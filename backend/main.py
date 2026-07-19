@@ -1,0 +1,362 @@
+"""
+RaceControl API
+---------------
+A thin FastAPI wrapper over the FastF1 library that serves historical Formula 1
+data (2018-present) as JSON for the RaceControl iOS app.
+
+Run locally:
+    pip install -r requirements.txt
+    uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+Interactive docs once running:  http://localhost:8000/docs
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+import secrets
+import time
+from typing import Any, Callable
+
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+
+import fastf1_service as svc
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger("racecontrol")
+
+CACHE_DIR = os.environ.get(
+    "FASTF1_CACHE",
+    os.path.join(os.path.dirname(__file__), ".fastf1_cache"),
+)
+os.makedirs(CACHE_DIR, exist_ok=True)
+svc.configure_cache(CACHE_DIR)
+
+app = FastAPI(
+    title="RaceControl API",
+    version="1.0.0",
+    description="Historical Formula 1 data (2018+) powered by FastF1.",
+)
+
+# The iOS app is a native client (no browser origin), so a permissive CORS
+# policy is harmless here — access is gated by API_TOKEN instead.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
+
+# --------------------------------------------------------------------------- #
+#  Authentication
+# --------------------------------------------------------------------------- #
+# Two independent mechanisms, either of which authorises an /api request:
+#
+#   1. App Attest (APP_ATTEST_ENABLED) — the published iOS app proves it is a
+#      genuine copy of our app on a real Apple device and receives a short-lived
+#      JWT. This is the mechanism for App Store distribution: no user key.
+#
+#   2. API_TOKEN — a shared secret, useful as an admin/break-glass credential
+#      and for `curl` during development.
+#
+# If NEITHER is configured the API is fully open, so `./run.sh` works unchanged.
+import attest  # noqa: E402
+
+API_TOKEN = os.environ.get("API_TOKEN", "").strip()
+
+_attest_config = attest.AttestConfig.from_env()
+attest_verifier: attest.AppAttestVerifier | None = (
+    attest.AppAttestVerifier(_attest_config) if _attest_config.enabled else None
+)
+
+# Paths reachable without any credential: health probe, docs, and the App Attest
+# bootstrap endpoints (which are gated by the attestation/assertion themselves).
+_OPEN_PATHS = {
+    "/", "/api/health", "/docs", "/openapi.json", "/redoc",
+    "/attest/challenge", "/attest/verify", "/attest/token", "/attest/status",
+}
+
+if attest_verifier:
+    log.info("App Attest auth is ENABLED (app_id=%s, production=%s)",
+             _attest_config.app_id, _attest_config.production)
+if API_TOKEN:
+    log.info("Shared-secret API_TOKEN auth is ENABLED")
+if not attest_verifier and not API_TOKEN:
+    log.warning("No auth configured — API is open (fine for local dev)")
+
+
+def _is_authorized(request: Request) -> bool:
+    header = request.headers.get("authorization", "")
+    # Admin / dev shared secret.
+    if API_TOKEN and secrets.compare_digest(header, f"Bearer {API_TOKEN}"):
+        return True
+    # App-issued JWT (from App Attest).
+    if attest_verifier and header.startswith("Bearer "):
+        if attest_verifier.verify_app_token(header[len("Bearer "):]):
+            return True
+    # No auth configured at all → open.
+    return not attest_verifier and not API_TOKEN
+
+
+@app.middleware("http")
+async def authenticate(request: Request, call_next):
+    if request.url.path not in _OPEN_PATHS and not _is_authorized(request):
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+    return await call_next(request)
+
+
+# --------------------------------------------------------------------------- #
+#  Per-IP rate limiting (defence in depth against abuse of a public endpoint)
+# --------------------------------------------------------------------------- #
+_RATE_LIMIT = int(os.environ.get("RATE_LIMIT_PER_MINUTE", 120))
+_rate_hits: dict[str, list[float]] = {}
+_rate_lock_window = 60.0
+
+
+@app.middleware("http")
+async def rate_limit(request: Request, call_next):
+    if _RATE_LIMIT > 0 and request.url.path != "/api/health":
+        client = request.client.host if request.client else "unknown"
+        now = time.time()
+        hits = [t for t in _rate_hits.get(client, []) if now - t < _rate_lock_window]
+        if len(hits) >= _RATE_LIMIT:
+            return JSONResponse(status_code=429, content={"detail": "Too many requests"})
+        hits.append(now)
+        _rate_hits[client] = hits
+    return await call_next(request)
+
+# --------------------------------------------------------------------------- #
+#  Tiny in-process response cache (FastF1 loads are expensive)
+# --------------------------------------------------------------------------- #
+_CACHE: dict[str, tuple[float, Any]] = {}
+# 6 hours by default; historical data is effectively static.
+_TTL_SECONDS = int(os.environ.get("CACHE_TTL_SECONDS", 60 * 60 * 6))
+
+
+def cached(key: str, producer: Callable[[], Any]) -> Any:
+    now = time.time()
+    hit = _CACHE.get(key)
+    if hit and (now - hit[0]) < _TTL_SECONDS:
+        return hit[1]
+    value = producer()
+    _CACHE[key] = (now, value)
+    return value
+
+
+def _guard(fn: Callable[[], Any], context: str) -> Any:
+    try:
+        return fn()
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        log.exception("error in %s", context)
+        raise HTTPException(status_code=502, detail=f"{context}: {exc}") from exc
+
+
+# --------------------------------------------------------------------------- #
+#  Routes
+# --------------------------------------------------------------------------- #
+@app.get("/")
+def root() -> dict[str, Any]:
+    return {"service": "RaceControl API", "status": "ok", "docs": "/docs"}
+
+
+@app.get("/api/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+# --------------------------------------------------------------------------- #
+#  App Attest bootstrap endpoints
+# --------------------------------------------------------------------------- #
+class AttestVerifyBody(BaseModel):
+    keyId: str
+    attestation: str
+    challenge: str
+
+
+class AttestTokenBody(BaseModel):
+    keyId: str
+    assertion: str
+    challenge: str
+
+
+@app.get("/attest/status")
+def attest_status() -> dict[str, Any]:
+    """Non-sensitive diagnostics for verifying App Attest setup on a device."""
+    if not attest_verifier:
+        return {"enabled": False, "adminTokenSet": bool(API_TOKEN)}
+    return {**attest_verifier.status(), "adminTokenSet": bool(API_TOKEN)}
+
+
+@app.get("/attest/challenge")
+def attest_challenge() -> dict[str, Any]:
+    if not attest_verifier:
+        raise HTTPException(status_code=404, detail="App Attest is not enabled")
+    return {"challenge": attest_verifier.new_challenge()}
+
+
+@app.post("/attest/verify")
+async def attest_verify(body: AttestVerifyBody) -> dict[str, Any]:
+    if not attest_verifier:
+        raise HTTPException(status_code=404, detail="App Attest is not enabled")
+    try:
+        token = await attest_verifier.verify_attestation(
+            body.keyId, body.attestation, body.challenge)
+    except attest.AttestError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    return {"token": token, "expiresIn": _attest_config.jwt_ttl}
+
+
+@app.post("/attest/token")
+async def attest_token(body: AttestTokenBody) -> dict[str, Any]:
+    if not attest_verifier:
+        raise HTTPException(status_code=404, detail="App Attest is not enabled")
+    try:
+        token = await attest_verifier.verify_assertion(
+            body.keyId, body.assertion, body.challenge)
+    except attest.AttestError as exc:
+        # 409 tells the app its key is unknown and it should re-attest.
+        status = 409 if "re-attestation" in str(exc).lower() else 401
+        raise HTTPException(status_code=status, detail=str(exc)) from exc
+    return {"token": token, "expiresIn": _attest_config.jwt_ttl}
+
+
+@app.get("/api/seasons")
+def seasons() -> list[int]:
+    return svc.get_seasons()
+
+
+@app.get("/api/schedule/{year}")
+def schedule(year: int) -> Any:
+    return cached(f"schedule:{year}", lambda: _guard(lambda: svc.get_schedule(year), "schedule"))
+
+
+@app.get("/api/results/{year}/{rnd}/{session}")
+def results(year: int, rnd: int, session: str) -> Any:
+    key = f"results:{year}:{rnd}:{session}"
+    return cached(key, lambda: _guard(lambda: svc.get_results(year, rnd, session), "results"))
+
+
+@app.get("/api/standings/drivers/{year}")
+def driver_standings(year: int) -> Any:
+    key = f"dstand:{year}"
+    return cached(key, lambda: _guard(lambda: svc.get_driver_standings(year), "driver standings"))
+
+
+@app.get("/api/standings/constructors/{year}")
+def constructor_standings(year: int) -> Any:
+    key = f"cstand:{year}"
+    return cached(
+        key, lambda: _guard(lambda: svc.get_constructor_standings(year), "constructor standings")
+    )
+
+
+@app.get("/api/drivers/{year}")
+def drivers(year: int) -> Any:
+    return cached(f"drivers:{year}", lambda: _guard(lambda: svc.get_drivers(year), "drivers"))
+
+
+@app.get("/api/drivers/{year}/{driver_id}")
+def driver_detail(year: int, driver_id: str) -> Any:
+    key = f"driver:{year}:{driver_id}"
+    return cached(key, lambda: _guard(lambda: svc.get_driver_detail(year, driver_id), "driver"))
+
+
+@app.get("/api/teams/{year}")
+def teams(year: int) -> Any:
+    return cached(f"teams:{year}", lambda: _guard(lambda: svc.get_teams(year), "teams"))
+
+
+@app.get("/api/teams/{year}/{team_id}")
+def team_detail(year: int, team_id: str) -> Any:
+    key = f"team:{year}:{team_id}"
+    return cached(key, lambda: _guard(lambda: svc.get_team_detail(year, team_id), "team"))
+
+
+@app.get("/api/circuits/{year}")
+def circuits(year: int) -> Any:
+    return cached(f"circuits:{year}", lambda: _guard(lambda: svc.get_circuits(year), "circuits"))
+
+
+@app.get("/api/circuit/{year}/{rnd}")
+def circuit_map(year: int, rnd: int) -> Any:
+    key = f"circuitmap:{year}:{rnd}"
+    return cached(key, lambda: _guard(lambda: svc.get_circuit_map(year, rnd), "circuit map"))
+
+
+@app.get("/api/replay/{year}/{rnd}")
+def replay(year: int, rnd: int) -> Any:
+    key = f"replay:{year}:{rnd}"
+    return cached(key, lambda: _guard(lambda: svc.get_race_replay(year, rnd), "replay"))
+
+
+@app.get("/api/laptimes/{year}/{rnd}")
+def laptimes(year: int, rnd: int) -> Any:
+    key = f"laptimes:{year}:{rnd}"
+    return cached(key, lambda: _guard(lambda: svc.get_lap_times(year, rnd), "lap times"))
+
+
+@app.get("/api/strategy/{year}/{rnd}")
+def strategy(year: int, rnd: int) -> Any:
+    key = f"strategy:{year}:{rnd}"
+    return cached(key, lambda: _guard(lambda: svc.get_strategy(year, rnd), "strategy"))
+
+
+@app.get("/api/weather/{year}/{rnd}/{session}")
+def weather(year: int, rnd: int, session: str) -> Any:
+    key = f"weather:{year}:{rnd}:{session}"
+    return cached(key, lambda: _guard(lambda: svc.get_weather(year, rnd, session), "weather"))
+
+
+@app.get("/api/racedrivers/{year}/{rnd}")
+def race_drivers(year: int, rnd: int) -> Any:
+    key = f"racedrivers:{year}:{rnd}"
+    return cached(key, lambda: _guard(lambda: svc.list_race_drivers(year, rnd), "race drivers"))
+
+
+@app.get("/api/telemetry/{year}/{rnd}/{driver}")
+def telemetry(year: int, rnd: int, driver: str, lap: str = "fastest") -> Any:
+    key = f"tel:{year}:{rnd}:{driver}:{lap}"
+    return cached(key, lambda: _guard(lambda: svc.get_telemetry(year, rnd, driver, lap), "telemetry"))
+
+
+@app.get("/api/telemetry-compare/{year}/{rnd}")
+def telemetry_compare(year: int, rnd: int, d1: str, d2: str) -> Any:
+    key = f"telcmp:{year}:{rnd}:{d1}:{d2}"
+    return cached(key, lambda: _guard(lambda: svc.get_telemetry_compare(year, rnd, d1, d2), "telemetry compare"))
+
+
+@app.get("/api/retirements/{year}/{rnd}")
+def retirements(year: int, rnd: int) -> Any:
+    key = f"retire:{year}:{rnd}"
+    return cached(key, lambda: _guard(lambda: svc.get_retirements(year, rnd), "retirements"))
+
+
+@app.get("/api/reliability/{year}")
+def reliability(year: int) -> Any:
+    key = f"reliability:{year}"
+    return cached(key, lambda: _guard(lambda: svc.get_reliability(year), "reliability"))
+
+
+@app.get("/api/compare/{year}/{d1}/{d2}")
+def compare(year: int, d1: str, d2: str) -> Any:
+    key = f"compare:{year}:{d1}:{d2}"
+    return cached(key, lambda: _guard(lambda: svc.get_compare(year, d1, d2), "compare"))
+
+
+@app.get("/api/standings-evolution/{year}")
+def standings_evolution(year: int) -> Any:
+    key = f"standevo:{year}"
+    return cached(key, lambda: _guard(lambda: svc.get_standings_evolution(year), "standings evolution"))
+
+
+# Normalise any uncaught error into JSON rather than an HTML 500 page.
+@app.exception_handler(Exception)
+def unhandled(_request, exc: Exception) -> JSONResponse:  # noqa: ANN001
+    log.exception("unhandled error")
+    return JSONResponse(status_code=500, content={"detail": str(exc)})

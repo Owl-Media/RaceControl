@@ -1,0 +1,66 @@
+import SwiftUI
+
+/// Grid of analysis entry-points shown on the race detail screen. Turns a race
+/// into a hub: replay, telemetry, strategy, lap times, qualifying, weather,
+/// retirements and the track map.
+struct RaceAnalysisGrid: View {
+    let event: RaceEvent
+
+    private var columns: [GridItem] {
+        [GridItem(.flexible(), spacing: Theme.Space.sm),
+         GridItem(.flexible(), spacing: Theme.Space.sm),
+         GridItem(.flexible(), spacing: Theme.Space.sm)]
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Space.sm) {
+            Text("ANALYSIS")
+                .font(.caption.weight(.bold)).tracking(1)
+                .foregroundStyle(Theme.Palette.textSecondary)
+
+            LazyVGrid(columns: columns, spacing: Theme.Space.sm) {
+                tile("Replay", "play.circle.fill", Theme.Palette.racingRed) {
+                    ReplayView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Telemetry", "waveform.path.ecg", Theme.Palette.info) {
+                    TelemetryView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Lap Times", "chart.xyaxis.line", Theme.Palette.positive) {
+                    LapTimesChartView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Strategy", "timeline.selection", Theme.Palette.warning) {
+                    StrategyView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Qualifying", "stopwatch.fill", Theme.Palette.info) {
+                    QualifyingView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Track Map", "map.fill", Theme.Palette.textSecondary) {
+                    CircuitMapView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Weather", "cloud.sun.fill", Theme.Palette.info) {
+                    WeatherView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Retirements", "exclamationmark.triangle.fill", Theme.Palette.negative) {
+                    RetirementsView(year: event.year, round: event.round, title: event.displayName)
+                }
+            }
+        }
+    }
+
+    private func tile<Destination: View>(_ label: String, _ icon: String, _ tint: Color,
+                                         @ViewBuilder destination: @escaping () -> Destination) -> some View {
+        NavigationLink {
+            destination()
+        } label: {
+            VStack(spacing: 6) {
+                Image(systemName: icon).font(.title2)
+                Text(label).font(.caption.weight(.semibold))
+                    .multilineTextAlignment(.center)
+            }
+            .foregroundStyle(tint)
+            .frame(maxWidth: .infinity, minHeight: 72)
+            .background(tint.opacity(0.12), in: RoundedRectangle(cornerRadius: Theme.Radius.md))
+        }
+        .buttonStyle(.plain)
+    }
+}

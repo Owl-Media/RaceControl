@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  App Attest environment.
+	  "development" — Xcode debug builds on a registered device (what you use now).
+	  "production"  — REQUIRED for TestFlight / App Store. When you switch this to
+	                  production, also set APP_ATTEST_PRODUCTION=true on the backend
+	                  so the two environments match, or attestations will be rejected.
+	-->
+	<key>com.apple.developer.devicecheck.appattest-environment</key>
+	<string>development</string>
+</dict>
+</plist>

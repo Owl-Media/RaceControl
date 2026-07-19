@@ -1,0 +1,12 @@
+# Python
+backend/.venv/
+backend/.fastf1_cache/
+__pycache__/
+*.pyc
+
+# Xcode
+RaceControlApp/build/
+RaceControlApp/DerivedData/
+*.xcuserstate
+xcuserdata/
+.DS_Store

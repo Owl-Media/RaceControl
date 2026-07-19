@@ -1,0 +1,10 @@
+# Verified working set (Python 3.10+). fastf1 pulls pandas/numpy/scipy itself.
+fastf1>=3.5,<4.0
+fastapi>=0.115
+uvicorn[standard]>=0.30
+
+# App Attest authentication for App Store distribution.
+pyattest>=0.1.1
+PyJWT>=2.3
+cbor2>=5.4
+cryptography>=42.0
