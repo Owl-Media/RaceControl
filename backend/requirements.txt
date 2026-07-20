@@ -8,3 +8,7 @@ pyattest>=0.1.1
 PyJWT>=2.3
 cbor2>=5.4
 cryptography>=42.0
+
+# Play Integrity authentication for Play Store distribution.
+google-auth>=2.29
+requests>=2.31

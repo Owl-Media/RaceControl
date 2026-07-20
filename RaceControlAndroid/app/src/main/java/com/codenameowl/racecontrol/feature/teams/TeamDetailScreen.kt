@@ -1,0 +1,163 @@
+package com.codenameowl.racecontrol.feature.teams
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewModelScope
+import com.codenameowl.racecontrol.R
+import com.codenameowl.racecontrol.core.design.Dimens
+import com.codenameowl.racecontrol.core.design.RcTheme
+import com.codenameowl.racecontrol.core.design.legibleOnSurface
+import com.codenameowl.racecontrol.core.design.teamColor
+import com.codenameowl.racecontrol.core.ui.DriverAvatar
+import com.codenameowl.racecontrol.core.ui.LoadableContent
+import com.codenameowl.racecontrol.core.ui.RcCard
+import com.codenameowl.racecontrol.core.ui.RcDetailScaffold
+import com.codenameowl.racecontrol.core.ui.SectionHeader
+import com.codenameowl.racecontrol.core.ui.StatCell
+import com.codenameowl.racecontrol.core.ui.UiState
+import com.codenameowl.racecontrol.data.remote.dto.TeamDto
+import com.codenameowl.racecontrol.data.repository.RaceControlRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+@HiltViewModel
+class TeamDetailViewModel @Inject constructor(
+    private val repository: RaceControlRepository,
+) : ViewModel() {
+
+    private val _state = MutableStateFlow<UiState<TeamDto>>(UiState.Idle)
+    val state: StateFlow<UiState<TeamDto>> = _state.asStateFlow()
+
+    fun load(year: Int, teamId: String) {
+        if (_state.value is UiState.Loaded) return
+        viewModelScope.launch {
+            _state.value = UiState.Loading
+            repository.teamDetail(year, teamId)
+                .onSuccess { _state.value = UiState.Loaded(it) }
+                .onFailure { _state.value = UiState.Failed(repository.messageFor(it)) }
+        }
+    }
+}
+
+@Composable
+fun TeamDetailScreen(
+    year: Int,
+    teamId: String,
+    onBack: () -> Unit,
+    viewModel: TeamDetailViewModel = hiltViewModel(),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
+    LaunchedEffect(year, teamId) { viewModel.load(year, teamId) }
+
+    val title = (state as? UiState.Loaded)?.value?.teamName.orEmpty()
+
+    RcDetailScaffold(title = title, onBack = onBack) { modifier ->
+        LoadableContent(
+            state = state,
+            onRetry = { viewModel.load(year, teamId) },
+            modifier = modifier,
+        ) { team ->
+            val accent = teamColor(team.teamColor).legibleOnSurface()
+            Column(
+                modifier = Modifier
+                    .verticalScroll(rememberScrollState())
+                    .padding(Dimens.MD),
+                verticalArrangement = Arrangement.spacedBy(Dimens.MD),
+            ) {
+                RcCard {
+                    Text(
+                        text = team.teamName.orEmpty(),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = accent,
+                    )
+                    Text(
+                        text = team.nationality.orEmpty(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = RcTheme.colors.textSecondary,
+                    )
+                }
+
+                RcCard {
+                    Row(Modifier.fillMaxWidth()) {
+                        StatCell(
+                            value = team.pointsString,
+                            label = stringResource(R.string.stat_points),
+                            modifier = Modifier.weight(1f),
+                        )
+                        StatCell(
+                            value = team.wins?.numberLabel ?: "0",
+                            label = stringResource(R.string.stat_wins),
+                            modifier = Modifier.weight(1f),
+                        )
+                        StatCell(
+                            value = team.positionInt?.toString() ?: "–",
+                            label = stringResource(R.string.stat_position),
+                            modifier = Modifier.weight(1f),
+                            accent = accent,
+                        )
+                    }
+                }
+
+                if (team.drivers.isNotEmpty()) {
+                    RcCard {
+                        SectionHeader(stringResource(R.string.line_up))
+                        team.drivers.forEach { driver ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = Dimens.SM),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Dimens.SM),
+                            ) {
+                                DriverAvatar(
+                                    url = driver.headshotUrl,
+                                    initials = driver.initials,
+                                    accent = accent,
+                                    size = 44.dp,
+                                )
+                                Column(Modifier.weight(1f)) {
+                                    Text(
+                                        text = driver.name.orEmpty(),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = RcTheme.colors.textPrimary,
+                                    )
+                                    driver.number?.stringValue?.let {
+                                        Text(
+                                            text = "#$it",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = RcTheme.colors.textTertiary,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

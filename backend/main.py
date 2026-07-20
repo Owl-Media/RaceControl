@@ -54,17 +54,28 @@ app.add_middleware(
 # --------------------------------------------------------------------------- #
 #  Authentication
 # --------------------------------------------------------------------------- #
-# Two independent mechanisms, either of which authorises an /api request:
+# Three independent mechanisms, any one of which authorises an /api request:
 #
 #   1. App Attest (APP_ATTEST_ENABLED) — the published iOS app proves it is a
 #      genuine copy of our app on a real Apple device and receives a short-lived
 #      JWT. This is the mechanism for App Store distribution: no user key.
 #
-#   2. API_TOKEN — a shared secret, useful as an admin/break-glass credential
+#   2. Play Integrity (PLAY_INTEGRITY_ENABLED) — the Android counterpart: the
+#      published Android app proves (via Google Play services) that it is a
+#      genuine, unmodified copy of our app on a genuine device, installed
+#      through Play, and receives a short-lived JWT the same shape as #1's.
+#      This is the mechanism for Play Store distribution: no user key, and no
+#      secret embedded in the APK for someone to extract with a decompiler.
+#
+#   3. API_TOKEN — a shared secret, useful as an admin/break-glass credential
 #      and for `curl` during development.
 #
-# If NEITHER is configured the API is fully open, so `./run.sh` works unchanged.
+# If NONE are configured the API is fully open, so `./run.sh` works unchanged.
+# These are additive, not exclusive — enabling Play Integrity for the Android
+# rollout does not require or affect the App Attest configuration, and vice
+# versa; a request is authorised if it satisfies *any* enabled mechanism.
 import attest  # noqa: E402
+import playintegrity  # noqa: E402
 
 API_TOKEN = os.environ.get("API_TOKEN", "").strip()
 
@@ -73,19 +84,30 @@ attest_verifier: attest.AppAttestVerifier | None = (
     attest.AppAttestVerifier(_attest_config) if _attest_config.enabled else None
 )
 
-# Paths reachable without any credential: health probe, docs, and the App Attest
-# bootstrap endpoints (which are gated by the attestation/assertion themselves).
+_play_integrity_config = playintegrity.PlayIntegrityConfig.from_env()
+play_integrity_verifier: playintegrity.PlayIntegrityVerifier | None = (
+    playintegrity.PlayIntegrityVerifier(_play_integrity_config)
+    if _play_integrity_config.enabled else None
+)
+
+# Paths reachable without any credential: health probe, docs, and the App
+# Attest / Play Integrity bootstrap endpoints (each gated by the attestation
+# itself, not by _is_authorized).
 _OPEN_PATHS = {
     "/", "/api/health", "/docs", "/openapi.json", "/redoc",
     "/attest/challenge", "/attest/verify", "/attest/token", "/attest/status",
+    "/playintegrity/challenge", "/playintegrity/verify", "/playintegrity/status",
 }
 
 if attest_verifier:
     log.info("App Attest auth is ENABLED (app_id=%s, production=%s)",
              _attest_config.app_id, _attest_config.production)
+if play_integrity_verifier:
+    log.info("Play Integrity auth is ENABLED (package=%s)",
+             _play_integrity_config.package_name)
 if API_TOKEN:
     log.info("Shared-secret API_TOKEN auth is ENABLED")
-if not attest_verifier and not API_TOKEN:
+if not attest_verifier and not play_integrity_verifier and not API_TOKEN:
     log.warning("No auth configured — API is open (fine for local dev)")
 
 
@@ -94,12 +116,16 @@ def _is_authorized(request: Request) -> bool:
     # Admin / dev shared secret.
     if API_TOKEN and secrets.compare_digest(header, f"Bearer {API_TOKEN}"):
         return True
-    # App-issued JWT (from App Attest).
-    if attest_verifier and header.startswith("Bearer "):
-        if attest_verifier.verify_app_token(header[len("Bearer "):]):
+    # App-issued JWT (from App Attest or Play Integrity — same JWT shape,
+    # checked against whichever mechanisms are enabled).
+    if header.startswith("Bearer "):
+        token = header[len("Bearer "):]
+        if attest_verifier and attest_verifier.verify_app_token(token):
+            return True
+        if play_integrity_verifier and play_integrity_verifier.verify_app_token(token):
             return True
     # No auth configured at all → open.
-    return not attest_verifier and not API_TOKEN
+    return not attest_verifier and not play_integrity_verifier and not API_TOKEN
 
 
 @app.middleware("http")
@@ -224,6 +250,40 @@ async def attest_token(body: AttestTokenBody) -> dict[str, Any]:
         status = 409 if "re-attestation" in str(exc).lower() else 401
         raise HTTPException(status_code=status, detail=str(exc)) from exc
     return {"token": token, "expiresIn": _attest_config.jwt_ttl}
+
+
+# --------------------------------------------------------------------------- #
+#  Play Integrity bootstrap endpoints
+# --------------------------------------------------------------------------- #
+class PlayIntegrityVerifyBody(BaseModel):
+    nonce: str
+    integrityToken: str
+
+
+@app.get("/playintegrity/status")
+def play_integrity_status() -> dict[str, Any]:
+    """Non-sensitive diagnostics for verifying Play Integrity setup on a device."""
+    if not play_integrity_verifier:
+        return {"enabled": False, "adminTokenSet": bool(API_TOKEN)}
+    return {**play_integrity_verifier.status(), "adminTokenSet": bool(API_TOKEN)}
+
+
+@app.get("/playintegrity/challenge")
+def play_integrity_challenge() -> dict[str, Any]:
+    if not play_integrity_verifier:
+        raise HTTPException(status_code=404, detail="Play Integrity is not enabled")
+    return {"nonce": play_integrity_verifier.new_challenge()}
+
+
+@app.post("/playintegrity/verify")
+def play_integrity_verify(body: PlayIntegrityVerifyBody) -> dict[str, Any]:
+    if not play_integrity_verifier:
+        raise HTTPException(status_code=404, detail="Play Integrity is not enabled")
+    try:
+        token = play_integrity_verifier.verify_token(body.nonce, body.integrityToken)
+    except playintegrity.PlayIntegrityError as exc:
+        raise HTTPException(status_code=401, detail=str(exc)) from exc
+    return {"token": token, "expiresIn": _play_integrity_config.jwt_ttl}
 
 
 @app.get("/api/seasons")
