@@ -12,7 +12,28 @@ RaceControl is two pieces:
 | **Data backend** | Python · FastAPI · FastF1 | [`backend/`](backend/) |
 
 FastF1 is a Python library (not a hosted web service), so the backend runs FastF1 on your
-machine and exposes clean JSON over REST; the SwiftUI app consumes it.
+machine and exposes clean JSON over REST; the SwiftUI app consumes it. A native Android
+client also lives in [`RaceControlAndroid/`](RaceControlAndroid/), against the same backend.
+
+[![Backend CI](https://github.com/Owl-Media/RaceControl/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Owl-Media/RaceControl/actions/workflows/backend-ci.yml)
+[![Android CI](https://github.com/Owl-Media/RaceControl/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Owl-Media/RaceControl/actions/workflows/android-ci.yml)
+[![iOS CI](https://github.com/Owl-Media/RaceControl/actions/workflows/ios-ci.yml/badge.svg)](https://github.com/Owl-Media/RaceControl/actions/workflows/ios-ci.yml)
+
+### Continuous integration
+
+Three independent GitHub Actions workflows in [`.github/workflows/`](.github/workflows/),
+each path-filtered so a change to one piece doesn't run the others' checks:
+
+| Workflow | Runs on changes to | What it does |
+|---|---|---|
+| `backend-ci.yml` | `backend/**` | Installs `requirements.txt` + `pytest`/`httpx`, runs `test_attest.py` and `test_attest_endpoints.py`, then imports `main.py` with no env vars to confirm the open-by-default local-dev path still boots. |
+| `android-ci.yml` | `RaceControlAndroid/**` | `./gradlew testDebugUnitTest` then `./gradlew assembleDebug`; uploads the test reports as a build artifact. |
+| `ios-ci.yml` | `RaceControlApp/**` | Unsigned `xcodebuild build` against `generic/platform=iOS Simulator`, on a macOS runner. |
+
+This is CI only — nothing here deploys anywhere. Deploying the backend to Coolify is still
+the manual process in section 1b below; there's no Play Store or TestFlight upload wired up
+(those would need a Play Console service-account key and Apple signing certs as repo
+secrets, which haven't been set up).
 
 ---
 

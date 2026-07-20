@@ -1,0 +1,40 @@
+name: iOS CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "RaceControlApp/**"
+      - ".github/workflows/ios-ci.yml"
+  pull_request:
+    paths:
+      - "RaceControlApp/**"
+      - ".github/workflows/ios-ci.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    working-directory: RaceControlApp
+
+jobs:
+  build:
+    name: Build for simulator
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode version in use
+        run: xcodebuild -version
+
+      - name: Build (unsigned, simulator destination)
+        run: |
+          xcodebuild build \
+            -project RaceControl.xcodeproj \
+            -scheme RaceControl \
+            -destination "generic/platform=iOS Simulator" \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO
