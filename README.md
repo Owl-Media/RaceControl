@@ -1,19 +1,21 @@
 # RaceControl 🏁
 
-A modern, native **iOS app** for exploring historical Formula 1 data — drivers, teams,
-circuits, standings, full session results, and a **lap-by-lap race replay** — powered by
-the [FastF1](https://docs.fastf1.dev) library (2018–present).
+Modern, **native iOS and Android apps** for exploring historical Formula 1 data — drivers,
+teams, circuits, standings, full session results, and a **lap-by-lap race replay** — powered
+by the [FastF1](https://docs.fastf1.dev) library (2018–present).
 
-RaceControl is two pieces:
+RaceControl is three pieces:
 
 | Piece | Tech | Folder |
 |------|------|--------|
 | **iOS app** | Swift · SwiftUI (iOS 17+) | [`RaceControlApp/`](RaceControlApp/) |
+| **Android app** | Kotlin · Jetpack Compose (Android 8+) | [`RaceControlAndroid/`](RaceControlAndroid/) |
 | **Data backend** | Python · FastAPI · FastF1 | [`backend/`](backend/) |
 
-FastF1 is a Python library (not a hosted web service), so the backend runs FastF1 on your
-machine and exposes clean JSON over REST; the SwiftUI app consumes it. A native Android
-client also lives in [`RaceControlAndroid/`](RaceControlAndroid/), against the same backend.
+Same backend, same data, same features — the iOS and Android apps are independent, full
+native builds of the same idea, each following its own platform's conventions rather than
+one being a port of the other. FastF1 is a Python library (not a hosted web service), so the
+backend runs FastF1 on a server and exposes clean JSON over REST; both apps consume it.
 
 [![Backend CI](https://github.com/Owl-Media/RaceControl/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Owl-Media/RaceControl/actions/workflows/backend-ci.yml)
 [![Android CI](https://github.com/Owl-Media/RaceControl/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Owl-Media/RaceControl/actions/workflows/android-ci.yml)
@@ -144,15 +146,22 @@ Keychain, not UserDefaults.
 
 ---
 
-## 1c. App Store distribution — App Attest (no user API keys)
+## 1c. Public app store distribution — device attestation (no user API keys)
 
-A shared `API_TOKEN` can't ship in a public app — anything bundled in the IPA
-can be extracted, so it wouldn't be secret. Instead, the published app uses
-**Apple App Attest**: each install proves, with a hardware-backed key attested
-by Apple, that requests come from a genuine, unmodified copy of *this* app on a
-real Apple device. No user-visible key, nothing to distribute.
+A shared `API_TOKEN` can't ship in a public app — anything bundled in the IPA or
+APK can be extracted (for Android, that's a trivial decompile), so it wouldn't be
+secret. Instead, both published apps use their platform's own device-attestation
+service — **Apple App Attest** on iOS, **Google Play Integrity** on Android — so
+each install proves, via a hardware- or platform-backed check, that requests come
+from a genuine, unmodified copy of *that* app on a real device. No user-visible
+key, nothing to distribute, on either platform. The two mechanisms are fully
+independent (enabling one never requires or affects the other) and mint
+interchangeable JWTs, so the backend authorises a request from either without
+needing to know which one issued it.
 
-### How it works
+### Apple App Attest (iOS)
+
+#### How it works
 
 ```
 App                                    Backend
@@ -169,7 +178,7 @@ The app caches the JWT in the Keychain and refreshes it with a cheap assertion;
 it only re-attests if the server forgets its key. All of this is automatic and
 invisible to the user — there's no key field for them to fill in.
 
-### Backend setup
+#### Backend setup
 
 1. Set `APP_ATTEST_ENABLED=true`, `APPLE_TEAM_ID`, `APP_BUNDLE_ID`, `JWT_SECRET`.
 2. Match environments: Xcode debug builds use the **development** App Attest
@@ -180,7 +189,7 @@ invisible to the user — there's no key field for them to fill in.
    the persistent volume — otherwise every redeploy forces all installs to
    re-attest (harmless, just an extra round-trip on next launch).
 
-### iOS setup (Xcode)
+#### iOS setup (Xcode)
 
 1. The **App Attest capability** is already wired: `RaceControl.entitlements`
    contains `com.apple.developer.devicecheck.appattest-environment` and the
@@ -192,21 +201,74 @@ invisible to the user — there's no key field for them to fill in.
 3. Use a real device — **App Attest does not work in the Simulator.** There, the
    app falls back to the admin token (Settings) or an open local server.
 
-### What this does and doesn't protect
+### Google Play Integrity (Android)
 
-- ✅ Strongly binds API access to genuine installs of your app on real Apple
-  devices, plus per-IP rate limiting as defence in depth.
-- ⚠️ It is not a login — there are no user accounts (the data is public F1
-  history). It stops abuse/scraping, not "authenticated users".
-- ⚠️ **The server-side verification could not be tested end-to-end here** (that
-  needs a real device + your developer account). The verification *logic* is
-  covered by offline tests — `python backend/test_attest.py` and
-  `python backend/test_attest_endpoints.py` — using Apple's documented steps via
-  the `pyattest` library. Do a real-device smoke test before shipping.
+#### How it works
+
+```
+App                                        Backend
+ │  GET /playintegrity/challenge  ───────▶  issues a one-time nonce
+ │  Play Integrity API vouches for the     binds the check to that nonce
+ │  app + device, tied to the nonce
+ │  POST /playintegrity/verify  ─────────▶  decode token via Google's REST API,
+ │                                          check verdicts → returns JWT
+ │  GET /api/...  (Bearer <JWT>) ────────▶  normal requests
+ │  (JWT cached with expiry; refreshed by requesting a fresh integrity token)
+```
+
+`PlayIntegrityTokenProvider` fetches the nonce, asks Play Integrity to vouch for
+the app, and exchanges the result for a short-lived JWT, cached encrypted so
+ordinary requests don't pay for a fresh round trip. `CompositeTokenProvider`
+prefers a manually-entered Settings token first — same admin/dev-override
+precedence the iOS app uses — falling back to Play Integrity otherwise.
+
+#### Backend setup
+
+1. Set `PLAY_INTEGRITY_ENABLED=true` and `GOOGLE_CLOUD_PROJECT_NUMBER`, plus
+   either `GOOGLE_APPLICATION_CREDENTIALS_JSON` (the service-account key inline)
+   or `GOOGLE_APPLICATION_CREDENTIALS` (a path to the key file) — see
+   `backend/.env.example` for the full list, including the minimum
+   device-integrity verdict required.
+2. In Google Cloud, enable the Play Integrity API on a project and link that
+   project to the app in Play Console; create a service account with access to
+   the linked app and download its JSON key.
+3. `JWT_SECRET`/`JWT_TTL_SECONDS` are shared with App Attest's config — both
+   mechanisms mint interchangeable tokens.
+
+#### Android setup (Gradle)
+
+1. Set the real Google Cloud project number in
+   `RaceControlAndroid/app/build.gradle.kts`'s `PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER`
+   (currently the placeholder `0L` — the app throws a clear error if this is
+   still unset when it tries to attest).
+2. Nothing else to wire up in code — `PlayIntegrityTokenProvider` and the
+   Settings-token fallback are already in place.
+3. Play Integrity needs Play Services configured correctly; test on a real
+   device or a Play-Store-enabled emulator image before shipping. It cannot be
+   exercised on a bare AOSP emulator image.
+
+### What this protects, on both platforms
+
+- ✅ Strongly binds API access to genuine installs of the app on a real device
+  (Apple-attested on iOS, Play-Integrity-verified on Android), plus per-IP rate
+  limiting as defence in depth.
+- ⚠️ Neither is a login — there are no user accounts (the data is public F1
+  history). They stop abuse/scraping, not "authenticated users".
+- ⚠️ **Neither mechanism's server-side verification has been tested
+  end-to-end against real hardware here** — App Attest needs a real iPhone +
+  Apple developer account, Play Integrity needs a real Android device or a
+  Play-enabled emulator + a linked Play Console project, none of which are
+  available in this environment. App Attest's verification *logic* is covered
+  by offline tests (`python backend/test_attest.py` and
+  `python backend/test_attest_endpoints.py`, using Apple's documented steps via
+  `pyattest`); `playintegrity.py` does not yet have an equivalent committed test
+  file, only ad-hoc manual verification during development. Do a real-device
+  smoke test of both before shipping, and consider adding `test_playintegrity.py`
+  alongside the App Attest tests.
 
 ---
 
-## 2. Run the iOS app
+## 2a. Run the iOS app
 
 Requirements: **Xcode 16+**, macOS.
 
@@ -236,7 +298,39 @@ brew install xcodegen && xcodegen generate
 
 ---
 
+## 2b. Run the Android app
+
+Requirements: **Android Studio Ladybug or newer**, JDK 17.
+
+1. Open `RaceControlAndroid/` as a project in Android Studio (or run
+   `./gradlew assembleDebug` from that folder directly).
+2. Run on an emulator or a connected device.
+3. The app defaults to `http://10.0.2.2:8000` — the emulator's alias for
+   `localhost` on your machine, reachable automatically with no setup.
+
+**Testing on a physical Android device?** It can't see `10.0.2.2`. In the app: **⋮
+overflow menu → Settings → Server address**, and enter your machine's LAN address,
+e.g. `http://192.168.1.20:8000`. Tap **Test Connection**, then save. Your machine
+and device must be on the same network.
+
+> Debug builds permit plain HTTP to any host. Release builds only permit cleartext
+> to `localhost`/`10.0.2.2` — anything else must be HTTPS. To let a release build
+> reach a LAN backend over HTTP, add the address to
+> `app/src/main/res/xml/network_security_config.xml`.
+
+See [`RaceControlAndroid/README.md`](RaceControlAndroid/README.md) for the full
+build/run guide and [`RaceControlAndroid/docs/FEATURES.md`](RaceControlAndroid/docs/FEATURES.md)
+for the complete iOS→Android mapping, including every deliberate platform
+divergence and why.
+
+---
+
 ## 3. Features
+
+Identical on iOS and Android — same backend, same data, same feature set. Platform-specific
+implementation notes are called out inline; the full list of deliberate Android divergences
+(and the reasoning for each) is in
+[`RaceControlAndroid/docs/FEATURES.md`](RaceControlAndroid/docs/FEATURES.md).
 
 - **Races** — season calendar with an "up next" banner, sprint-weekend badges, and per-race
   results. Switch between Race / Qualifying / Sprint / Practice classifications. Each row
@@ -250,8 +344,9 @@ brew install xcodegen && xcodegen generate
 - **Circuits** — season venues in calendar order with Raced/Upcoming status; tap a raced one
   for a detail page: **track map**, length, corners, fastest lap, podium, and quick actions.
 - **Race analysis hub** — every completed race opens a grid of deep-dives:
-  - **Telemetry** — speed / throttle / gear traces over a lap (Swift Charts), with an optional
-    second driver overlaid for a head-to-head comparison.
+  - **Telemetry** — speed / throttle / gear traces over a lap (Swift Charts on iOS, a
+    Compose Canvas chart on Android), with an optional second driver overlaid for a
+    head-to-head comparison.
   - **Lap Times** — multi-driver lap-time evolution line chart with outlier filtering.
   - **Tyre Strategy** — stint timeline per driver with compound colours and pit counts.
   - **Qualifying** — Q1/Q2/Q3 breakdown with gap-to-pole.
@@ -260,24 +355,42 @@ brew install xcodegen && xcodegen generate
 - **Reliability** (Standings tab) — season finish-rate and DNF-by-cause bars per driver & team.
 - **Head-to-head** (Drivers tab) — pick two drivers and compare points, wins, podiums, poles,
   best finish, DNFs and their direct race/qualifying records.
+- **Offline (Android only)** — a 10 MB response cache backs the schedule and standings with a
+  "showing cached data" banner. The iOS app doesn't cache, since it's designed around always
+  having a Mac/backend on the same network during development.
 
 ## 4. Design notes
 
-Built against Apple's Human Interface Guidelines and mobile-design best practices:
-dark-first OLED-tuned palette, official F1 team/tyre colours, 44pt+ touch targets,
-Dynamic Type, semantic SF Symbols, tab-bar navigation (≤5 tabs), and consistent
-loading / error-with-retry / empty states on every screen.
+Each app follows its own platform's conventions rather than copying the other's UI:
+
+- **iOS** — built against Apple's Human Interface Guidelines: dark-first OLED-tuned palette,
+  official F1 team/tyre colours, 44pt+ touch targets, Dynamic Type, semantic SF Symbols,
+  tab-bar navigation (≤5 tabs), and consistent loading / error-with-retry / empty states on
+  every screen.
+- **Android** — built against Material 3 and Android accessibility conventions: the same
+  dark-first OLED-tuned palette and F1 team/tyre colours, but 48dp touch targets (Android's
+  accessibility minimum, above iOS's 44pt), tab rows instead of segmented controls where the
+  option count varies, no Material You dynamic colour (it would collide with the F1 team/tyre
+  colours the app uses to convey meaning), and the same loading/error/empty-state pattern.
+  Every divergence from the iOS design is deliberate and documented in
+  [`RaceControlAndroid/docs/FEATURES.md`](RaceControlAndroid/docs/FEATURES.md).
 
 ## 5. Architecture
 
 ```
-SwiftUI app  ──HTTP/JSON──▶  FastAPI  ──▶  FastF1 ──▶ F1 live-timing + Ergast/Jolpica
-   MVVM                       cache            disk cache
+SwiftUI app   ──┐
+                ├──HTTP/JSON──▶  FastAPI  ──▶  FastF1 ──▶ F1 live-timing + Ergast/Jolpica
+Compose app   ──┘                  cache            disk cache
 ```
 
-- **App:** MVVM. Each feature has a `@MainActor` view model exposing a `Loadable` state;
+- **iOS app:** MVVM. Each feature has a `@MainActor` view model exposing a `Loadable` state;
   `APIClient` is an `actor`. A permissive `JSONValue` type absorbs the fact that FastF1
   emits numbers where Ergast emits strings for the same fields.
+- **Android app:** MVVM with Hilt DI. Each feature has a `ViewModel` exposing a `UiState`
+  `StateFlow`; networking is Retrofit + OkHttp over a `RaceControlRepository` returning
+  `Result<T>`. The equivalent permissive `JsonValue` type absorbs the same FastF1/Ergast
+  number-vs-string inconsistency. Full package layout and component breakdown in
+  [`RaceControlAndroid/README.md`](RaceControlAndroid/README.md).
 - **Backend:** a thin serialisation layer (`fastf1_service.py`) converts pandas
   `Timedelta`/`Timestamp`/`NaN` values into JSON-safe output, wrapped by a small cached
   FastAPI app (`main.py`).
