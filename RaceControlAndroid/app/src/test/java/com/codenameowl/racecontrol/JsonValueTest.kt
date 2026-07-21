@@ -48,8 +48,13 @@ class JsonValueTest {
 
     @Test
     fun `decodes null`() {
+        // position is JsonValue? (nullable), so kotlinx.serialization intercepts a
+        // JSON `null` literal structurally before JsonValueSerializer.deserialize()
+        // ever runs - the result is Kotlin `null`, not the JsonValue.Null sentinel.
+        // JsonValue.Null is still reachable for a genuinely present-but-unparsable
+        // element (e.g. the backend sending `{}` for this field), just not this case.
         val holder = json.decodeFromString<Holder>("""{"position": null}""")
-        assertEquals(JsonValue.Null, holder.position)
+        assertNull(holder.position)
         assertNull(holder.position?.intValue)
     }
 
