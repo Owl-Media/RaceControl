@@ -4,11 +4,12 @@ Offline tests for the replay car-position endpoint
 
 Unlike the other offline service tests, this one builds real
 `fastf1.core.Laps`/`Telemetry` instances (not plain DataFrames or stubs),
-because `get_replay_positions` relies on FastF1's own `Lap.get_pos_data()`
-(via `.pick_drivers()` + `.iloc[0]` preserving the `Lap` type, then slicing
-`session.pos_data` by that lap's time window) — behaviour that's easy to get
-subtly wrong with a hand-rolled stub. No network access is used: `pos_data`
-is a synthetic in-memory `Telemetry` frame.
+because `get_replay_positions` relies on FastF1's own `Laps.get_pos_data()`
+(via `.pick_drivers()` slicing `session.pos_data` by a driver's full set of
+laps in one call) plus a `merge_asof` lap-bucketing step done locally —
+behaviour that's easy to get subtly wrong with a hand-rolled stub. No
+network access is used: `pos_data` is a synthetic in-memory `Telemetry`
+frame.
 
     python test_replay_positions_service.py     (or: pytest test_replay_positions_service.py)
 """
@@ -73,7 +74,7 @@ def test_no_laps_returns_empty(monkeypatch):
 
 
 def test_samples_positions_per_lap(monkeypatch):
-    # One driver, two laps, each 90s long, sampled every 9s => 10 pos points/lap.
+    # One driver, two laps, each 90s long, sampled every 9s => ~10 pos points/lap.
     laps = _laps_for([
         ("VER", "1", 1, 0, 90),
         ("VER", "1", 2, 90, 180),
@@ -89,13 +90,39 @@ def test_samples_positions_per_lap(monkeypatch):
     lap1 = out["laps"][0]
     assert "VER" in lap1["positions"]
     pts = lap1["positions"]["VER"]
-    # points_per_lap=4 requested; downsampling by stride may yield a few more/fewer,
-    # but it must be non-empty, small, and each point is an [x, y] pair.
     assert 1 <= len(pts) <= 10
     for p in pts:
         assert len(p) == 2
         assert isinstance(p[0], (int, float))
         assert isinstance(p[1], (int, float))
+
+
+def test_positions_bucketed_into_correct_lap(monkeypatch):
+    # Two drivers on the same two laps; positions for lap 2 must not leak
+    # into lap 1's bucket and vice versa.
+    laps = _laps_for([
+        ("VER", "1", 1, 0, 90),
+        ("VER", "1", 2, 90, 180),
+        ("HAM", "44", 1, 0, 92),
+        ("HAM", "44", 2, 92, 181),
+    ])
+    ver_pos = _pos_data(num_points=19, seconds_per_point=10)  # 0..180s
+    ham_pos = _pos_data(num_points=19, seconds_per_point=10, x_step=5, y_step=1)
+    session = _stub_session(laps, {"1": ver_pos, "44": ham_pos})
+    monkeypatch.setattr(svc, "_load_session", lambda *a, **k: session)
+
+    out = svc.get_replay_positions(2024, 1, points_per_lap=100)  # no downsampling, easier to reason about
+    by_lap = {entry["lap"]: entry["positions"] for entry in out["laps"]}
+
+    assert set(by_lap.keys()) == {1, 2}
+    assert "VER" in by_lap[1] and "VER" in by_lap[2]
+    assert "HAM" in by_lap[1] and "HAM" in by_lap[2]
+
+    # Every VER point attributed to lap 1 must have come from a sample at or
+    # after t=0 and before t=90 (lap 1 -> lap 2 boundary), i.e. x in [0, 9).
+    lap1_xs = [p[0] for p in by_lap[1]["VER"]]
+    lap2_xs = [p[0] for p in by_lap[2]["VER"]]
+    assert max(lap1_xs) < min(lap2_xs)
 
 
 def test_driver_meta_included(monkeypatch):

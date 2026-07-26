@@ -708,8 +708,14 @@ def get_replay_positions(year: int, rnd: int, points_per_lap: int = 6) -> dict[s
     """Per-driver car X/Y positions, sampled at a handful of points across
     every lap, for animating cars moving around the track outline in the
     race replay (paired with `/api/circuit/{year}/{round}` for the track
-    shape). Uses the lightweight position-only channel (`Lap.get_pos_data`)
+    shape). Uses the lightweight position-only channel (`Laps.get_pos_data`)
     rather than full merged car telemetry, since only X/Y is needed here.
+
+    Fetches each driver's position trace with a *single* call covering their
+    whole race, then buckets samples into laps locally with `merge_asof`,
+    rather than slicing lap-by-lap (~20 drivers x ~60 laps of individual
+    FastF1 calls) — the latter is a couple of orders of magnitude slower and
+    was liable to blow past reverse-proxy request timeouts on a full race.
     """
     session = _load_session(year, rnd, "R", with_laps=True, with_telemetry=True)
     meta = _driver_meta(session)
@@ -734,28 +740,49 @@ def get_replay_positions(year: int, rnd: int, points_per_lap: int = 6) -> dict[s
     by_lap: dict[int, dict[str, list]] = {}
     abbrs = sorted(set(laps["Driver"].dropna()))
     for abbr in abbrs:
-        d_laps = laps.pick_drivers(abbr)
-        lap_numbers = sorted({int(n) for n in d_laps["LapNumber"].dropna()})
-        for lap_no in lap_numbers:
-            subset = d_laps[d_laps["LapNumber"] == lap_no]
-            if not len(subset):
-                continue
-            lap = subset.iloc[0]
-            try:
-                pos = lap.get_pos_data()
-            except Exception:  # noqa: BLE001
-                continue
-            if pos is None or not len(pos) or "X" not in pos or "Y" not in pos:
-                continue
-            step = max(1, len(pos) // points_per_lap)
-            sampled = pos.iloc[::step]
+        d_laps = laps.pick_drivers(abbr).sort_values("LapNumber")
+        if not len(d_laps):
+            continue
+        try:
+            pos = d_laps.get_pos_data()
+        except Exception as exc:  # noqa: BLE001
+            log.warning("pos data unavailable for %s in %s r%s: %s", abbr, year, rnd, exc)
+            continue
+        if pos is None or not len(pos) or "X" not in pos or "Y" not in pos or "SessionTime" not in pos:
+            continue
+
+        lap_bounds = (
+            d_laps[["LapNumber", "LapStartTime"]]
+            .dropna()
+            .rename(columns={"LapStartTime": "SessionTime"})
+            .sort_values("SessionTime")
+        )
+        if not len(lap_bounds):
+            continue
+
+        try:
+            merged = pd.merge_asof(
+                pos[["SessionTime", "X", "Y"]].sort_values("SessionTime"),
+                lap_bounds,
+                on="SessionTime",
+                direction="backward",
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("lap bucketing failed for %s in %s r%s: %s", abbr, year, rnd, exc)
+            continue
+        merged = merged.dropna(subset=["LapNumber", "X", "Y"])
+
+        for lap_no, group in merged.groupby("LapNumber"):
+            lap_no_int = int(lap_no)
+            step = max(1, len(group) // points_per_lap)
+            sampled = group.iloc[::step]
             pts = [
                 [round(float(x)), round(float(y))]
                 for x, y in zip(sampled["X"], sampled["Y"])
                 if not (math.isnan(x) or math.isnan(y))
             ]
             if pts:
-                by_lap.setdefault(lap_no, {})[abbr] = pts
+                by_lap.setdefault(lap_no_int, {})[abbr] = pts
 
     payload["laps"] = [{"lap": n, "positions": by_lap[n]} for n in sorted(by_lap.keys())]
     return payload
