@@ -112,6 +112,59 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
   };
 }
 
+/**
+ * Catmull-Rom spline smoothing: inserts `subdivisions` interpolated points
+ * between each pair of samples so a polyline reads as a continuous curve
+ * instead of straight facets. The backend supplies ~350 evenly-spaced
+ * points per lap track outline — plenty for positional accuracy, but at the
+ * pixel scale a tight corner renders at (e.g. a hairpin), straight segments
+ * between those points still show visible kinks. This is purely a
+ * rendering-side smoothing pass; any extra numeric fields on each point
+ * (speed, drs, ...) are interpolated linearly, since only the x/y geometry
+ * needs curve smoothing.
+ */
+export function densifyTrace<T extends RawPoint>(points: T[], subdivisions = 6): T[] {
+  const n = points.length;
+  if (n < 4 || subdivisions < 2) return points;
+
+  const at = (i: number) => points[Math.max(0, Math.min(n - 1, i))];
+  const lerpField = (a: number, b: number, t: number) => a + (b - a) * t;
+
+  const catmullRom = (a: number, b: number, c: number, d: number, t: number) => {
+    const t2 = t * t;
+    const t3 = t2 * t;
+    return (
+      0.5 *
+      (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3)
+    );
+  };
+
+  const out: T[] = [];
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = at(i - 1);
+    const p1 = at(i);
+    const p2 = at(i + 1);
+    const p3 = at(i + 2);
+    for (let s = 0; s < subdivisions; s++) {
+      const t = s / subdivisions;
+      const point = { ...p1 } as T;
+      point.x = catmullRom(p0.x, p1.x, p2.x, p3.x, t);
+      point.y = catmullRom(p0.y, p1.y, p2.y, p3.y, t);
+      for (const key of Object.keys(p1) as (keyof T)[]) {
+        if (key === "x" || key === "y") continue;
+        const va = p1[key];
+        const vb = p2[key];
+        if (typeof va === "number" && typeof vb === "number") {
+          point[key] = lerpField(va, vb, t) as T[keyof T];
+        }
+      }
+      out.push(point);
+    }
+  }
+  out.push(points[n - 1]);
+  return out;
+}
+
 /** Nearest-index lookup by cumulative distance, for scrubbing telemetry traces. */
 export function nearestIndexByDistance(distances: number[], target: number): number {
   let lo = 0;

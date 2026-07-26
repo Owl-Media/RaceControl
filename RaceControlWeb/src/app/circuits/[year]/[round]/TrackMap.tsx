@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { createProjector, rotatePoints, speedColor } from "@/lib/trackGeometry";
+import { createProjector, densifyTrace, rotatePoints, speedColor } from "@/lib/trackGeometry";
 import type { CircuitMap } from "@/lib/types";
 
 const VB = 600;
@@ -11,8 +11,14 @@ export function TrackMap({ map }: { map: CircuitMap }) {
   const { segments, corners, start, minSpeed, maxSpeed } = useMemo(() => {
     if (map.points.length === 0) return { segments: [], corners: [], start: null, minSpeed: 0, maxSpeed: 0 };
 
+    // The backend gives ~350 evenly-spaced points per lap — accurate, but
+    // still shows visible straight-line facets through tight corners at the
+    // pixel scale they render at. Smooth the drawn line with a Catmull-Rom
+    // spline rather than connecting the raw samples directly.
+    const dense = densifyTrace(map.points, 6);
+
     const rotated = rotatePoints(
-      map.points.map((p) => ({ x: p.x, y: p.y })),
+      dense.map((p) => ({ x: p.x, y: p.y })),
       map.rotation,
     );
     const projector = createProjector(rotated, VB, VB, 36);
@@ -26,8 +32,11 @@ export function TrackMap({ map }: { map: CircuitMap }) {
     for (let i = 1; i < screen.length; i++) {
       const a = screen[i - 1];
       const b = screen[i];
-      const speed = (map.points[i - 1].speed + map.points[i].speed) / 2;
-      const drsOpen = DRS_OPEN.has(map.points[i - 1].drs) && DRS_OPEN.has(map.points[i].drs);
+      const speed = (dense[i - 1].speed + dense[i].speed) / 2;
+      // drs is a discrete code (10/12/14 = open); densifyTrace linearly
+      // interpolates it like any other numeric field, so round back to the
+      // nearest whole code before checking membership.
+      const drsOpen = DRS_OPEN.has(Math.round(dense[i - 1].drs)) && DRS_OPEN.has(Math.round(dense[i].drs));
       segments.push({ a, b, color: speedColor(speed, minSpeed, maxSpeed), drsOpen });
     }
 

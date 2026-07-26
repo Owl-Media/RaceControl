@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef } from "react";
-import { createProjector, rotatePoints } from "@/lib/trackGeometry";
+import { createProjector, densifyTrace, rotatePoints } from "@/lib/trackGeometry";
 import { REPLAY_TICK_MS } from "@/lib/replay";
 import type { CircuitMap, ReplayLapPositions } from "@/lib/types";
 
@@ -21,7 +21,11 @@ export function ReplayTrackMap({
 }) {
   const { screenOutline, projector } = useMemo(() => {
     if (!circuit || circuit.outline.length === 0) return { screenOutline: [] as { x: number; y: number }[], projector: null };
-    const rotated = rotatePoints(circuit.outline, circuit.rotation);
+    // Smooth the drawn outline the same way the circuits page does — the
+    // backend's ~350 evenly-spaced points are accurate but still show
+    // visible facets through tight corners without curve interpolation.
+    const dense = densifyTrace(circuit.outline, 6);
+    const rotated = rotatePoints(dense, circuit.rotation);
     const proj = createProjector(rotated, VB, VB, 36);
     return { screenOutline: rotated.map((p) => proj.project(p)), projector: proj };
   }, [circuit]);
