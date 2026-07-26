@@ -1212,6 +1212,20 @@ def _is_finish_status(status: str, classified_position: Optional[str] = None) ->
     return status == "Finished" or status.strip().startswith("+")
 
 
+# `Status` text that describes the driver's on-track state rather than an
+# actual DNF reason. FastF1 sometimes leaves a retiree's `Status` at
+# "Lapped" (their last recorded track status before they stopped) instead of
+# supplying a specific cause like "Collision" or "Engine". Shown verbatim
+# that reads like a finishing description, not a retirement, so we relabel it.
+_AMBIGUOUS_RETIREMENT_STATUS = {"lapped", ""}
+
+
+def _retirement_display_status(status: str) -> str:
+    if status.strip().lower() in _AMBIGUOUS_RETIREMENT_STATUS:
+        return "Retired"
+    return status
+
+
 def get_retirements(year: int, rnd: int) -> dict[str, Any]:
     session = _load_session(year, rnd, "R", with_laps=False)
     retirements = []
@@ -1226,7 +1240,7 @@ def get_retirements(year: int, rnd: int) -> dict[str, Any]:
                     "driverId": _clean(r.get("DriverId")),
                     "teamName": _clean(r.get("TeamName")),
                     "teamColor": _hex_color(r.get("TeamColor")),
-                    "status": status,
+                    "status": _retirement_display_status(status),
                     "classifiedPosition": classified_position,
                 })
     except Exception as exc:  # noqa: BLE001

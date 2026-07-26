@@ -87,6 +87,23 @@ def test_no_retirements_when_all_classified(monkeypatch):
     assert out["retirements"] == []
 
 
+def test_retiree_with_ambiguous_lapped_status_is_relabeled(monkeypatch):
+    # A genuine retiree (ClassifiedPosition "R") whose Status text is the
+    # ambiguous "Lapped" (last on-track state, not a DNF reason) should be
+    # displayed as "Retired" so it doesn't read like a finishing description.
+    rows = [
+        _row("STR", "Lapped", "R"),
+        _row("SAI", "Gearbox", "R"),  # real reason text left untouched
+    ]
+    session = _stub_session(rows)
+    monkeypatch.setattr(svc, "_load_session", lambda *a, **k: session)
+
+    out = svc.get_retirements(2024, 1)
+    by_driver = {r["driver"]: r["status"] for r in out["retirements"]}
+    assert by_driver["STR"] == "Retired"
+    assert by_driver["SAI"] == "Gearbox"
+
+
 if __name__ == "__main__":
     import sys
     import pytest
