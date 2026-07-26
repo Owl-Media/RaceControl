@@ -66,6 +66,7 @@ export function DriversClient({ defaultYear }: { defaultYear: number }) {
                   </p>
                 </div>
                 <span className="tabular shrink-0 text-sm text-muted">P{d.position ?? "—"}</span>
+                <span className="tabular shrink-0 text-sm font-semibold">{d.points ?? 0} pts</span>
                 <StarButton
                   active={isFavoriteDriver(d.driverId)}
                   onClick={() => toggleFavoriteDriver(d.driverId)}

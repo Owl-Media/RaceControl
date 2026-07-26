@@ -1196,10 +1196,20 @@ def list_race_drivers(year: int, rnd: int) -> list[dict[str, Any]]:
 # --------------------------------------------------------------------------- #
 #  Retirements (single race) & reliability (season, Ergast-based)
 # --------------------------------------------------------------------------- #
-def _is_finish_status(status: str) -> bool:
+def _is_finish_status(status: str, classified_position: Optional[str] = None) -> bool:
+    # `ClassifiedPosition` is the authoritative signal: a plain integer means
+    # the driver was officially classified as a finisher — including drivers
+    # who finished a lap or more down, who are NOT retirements even though
+    # their free-text `Status` isn't a reliably consistent "Finished"/"+N
+    # Lap(s)" string across FastF1's own timing data vs. its Ergast/Jolpica
+    # fallback. Only "R" (retired), "D" (disqualified), "E" (excluded),
+    # "W" (withdrawn), "F" (failed to qualify) and "N" (not classified) are
+    # genuinely not-a-finish.
+    if classified_position and classified_position.strip().isdigit():
+        return True
     if not status:
         return False
-    return status == "Finished" or status.startswith("+")
+    return status == "Finished" or status.strip().startswith("+")
 
 
 def get_retirements(year: int, rnd: int) -> dict[str, Any]:
@@ -1208,7 +1218,8 @@ def get_retirements(year: int, rnd: int) -> dict[str, Any]:
     try:
         for _, r in session.results.iterrows():
             status = _clean(r.get("Status")) or ""
-            if not _is_finish_status(status):
+            classified_position = _clean(r.get("ClassifiedPosition"))
+            if not _is_finish_status(status, classified_position):
                 retirements.append({
                     "driver": _clean(r.get("Abbreviation")),
                     "fullName": _clean(r.get("FullName")),
@@ -1216,7 +1227,7 @@ def get_retirements(year: int, rnd: int) -> dict[str, Any]:
                     "teamName": _clean(r.get("TeamName")),
                     "teamColor": _hex_color(r.get("TeamColor")),
                     "status": status,
-                    "classifiedPosition": _clean(r.get("ClassifiedPosition")),
+                    "classifiedPosition": classified_position,
                 })
     except Exception as exc:  # noqa: BLE001
         log.warning("retirements unavailable %s r%s: %s", year, rnd, exc)
