@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import { useHelpDrawer } from "@/components/HelpDrawerProvider";
@@ -24,7 +23,11 @@ export function NavBar() {
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-3">
           <Link href="/schedule" className="flex items-center gap-2 font-bold tracking-tight">
-            <Image src="/logo.png" alt="" width={28} height={28} priority className="rounded-md" />
+            {/* Plain <img>, not next/image: this is a fixed-size static asset and the
+                production container doesn't ship `sharp`, so routing it through the
+                on-demand /_next/image optimizer is unnecessary risk for no benefit. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/icon-192.png" alt="" width={28} height={28} className="rounded-md" />
             RaceControl
           </Link>
           <nav className="hidden flex-1 items-center gap-1 overflow-x-auto sm:flex">
