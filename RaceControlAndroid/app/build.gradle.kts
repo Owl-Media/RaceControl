@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.codenameowl.racecontrol"
+    namespace = "com.owlmedia.racecontrol"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.codenameowl.racecontrol"
+        applicationId = "com.owlmedia.racecontrol"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

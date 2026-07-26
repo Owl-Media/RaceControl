@@ -70,7 +70,7 @@ Anti-Patterns I Will Avoid:
 ### Package layout
 
 ```
-com.codenameowl.racecontrol
+com.owlmedia.racecontrol
 ├── RaceControlApplication.kt        @HiltAndroidApp
 ├── MainActivity.kt                  edge-to-edge, ComponentActivity
 ├── core/

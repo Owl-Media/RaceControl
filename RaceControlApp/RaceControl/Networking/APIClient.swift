@@ -2,8 +2,8 @@ import Foundation
 
 /// Networking layer for the RaceControl FastF1 backend.
 ///
-/// The base URL is configurable at runtime (Settings screen) and persisted, so
-/// the same build works against `localhost` in the simulator or a deployed host.
+/// The App Store build always uses the production RaceControl backend. Self-hosted
+/// builds can point elsewhere by changing `AppConfig.apiBaseURL` before building.
 actor APIClient {
     static let shared = APIClient()
 
@@ -19,8 +19,7 @@ actor APIClient {
     }
 
     var baseURL: URL {
-        let stored = UserDefaults.standard.string(forKey: "api_base_url")
-        return URL(string: stored ?? AppConfig.defaultBaseURL) ?? URL(string: AppConfig.defaultBaseURL)!
+        AppConfig.apiBaseURL
     }
 
     func get<T: Decodable>(_ path: String, as type: T.Type) async throws -> T {
@@ -168,7 +167,7 @@ enum APIError: LocalizedError {
             return "The server returned an unexpected response."
         case .server(let status, let detail):
             if status == 401 {
-                return "The server rejected your API token. Check it in Settings."
+                return "The server couldn't authenticate this app. Please try again."
             }
             return detail ?? "Server error (\(status))."
         case .decoding:
@@ -176,7 +175,7 @@ enum APIError: LocalizedError {
         case .transport(let error):
             let ns = error as NSError
             if ns.domain == NSURLErrorDomain {
-                return "Can't reach the RaceControl server. Check it's running and the address in Settings."
+                return "Can't reach the RaceControl server. Please try again later."
             }
             return error.localizedDescription
         }
@@ -186,7 +185,6 @@ enum APIError: LocalizedError {
 private struct APIErrorBody: Decodable { let detail: String? }
 
 enum AppConfig {
-    /// Simulator can reach the host machine via localhost. On a physical device,
-    /// change this in Settings to your Mac's LAN IP (e.g. http://192.168.1.20:8000).
-    static let defaultBaseURL = "http://localhost:8000"
+    /// Self-hosted builds can replace this value with their own HTTPS backend.
+    static let apiBaseURL = URL(string: "https://racecontrol.owl-media.co.uk")!
 }

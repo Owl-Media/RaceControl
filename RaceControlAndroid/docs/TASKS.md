@@ -24,7 +24,7 @@ Legend — `[ ]` todo · `[~]` in progress · `[x]` done
 | # | Question | Needed by |
 |---|---|---|
 | 0.5 | `minSdk` — 26 (Android 8, ~99% reach) or 29? Affects `java.time` desugaring and adaptive icons. | Phase 1 |
-| 0.6 | `applicationId` — `com.codenameowl.racecontrol` (matches iOS bundle id) or a separate `.android` suffix? | Phase 1 |
+| 0.6 | `applicationId` — `com.owlmedia.racecontrol` (matches iOS bundle id) or a separate `.android` suffix? | Phase 1 |
 | 0.7 | Where does the module live — `RaceControlAndroid/` beside `RaceControlApp/` (assumed), or its own repo? | Phase 1 |
 | 0.8 | Default backend URL — iOS uses `http://localhost:8000`, useless on an Android device. Emulator uses `10.0.2.2:8000`. Ship that as the default, or blank-with-onboarding? | Phase 2 |
 | 0.9 | App icon and Play Store assets — reuse the iOS artwork from `Assets.xcassets`, or is new artwork coming? | Phase 9 |

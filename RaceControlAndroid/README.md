@@ -130,7 +130,7 @@ Compose UI ── StateFlow ── ViewModel ── RaceControlRepository ──
 ```
 
 ```
-com.codenameowl.racecontrol
+com.owlmedia.racecontrol
 ├── core/design/     theme, palette, type, dimens, tyre + flag helpers
 ├── core/ui/         UiState, loading/error/empty, shared components, charts
 ├── core/util/       date + lap-time formatting, LTTB downsampling

@@ -108,7 +108,7 @@ Local development is unaffected: `./run.sh` still runs it natively with no auth.
 |---|---|---|
 | `APP_ATTEST_ENABLED` | `true` | Gate the API with Apple App Attest (see below). |
 | `APPLE_TEAM_ID` | your 10-char Team ID | From developer.apple.com. |
-| `APP_BUNDLE_ID` | `com.codenameowl.racecontrol` | Must match the app's bundle id. |
+| `APP_BUNDLE_ID` | `com.owlmedia.racecontrol` | Must match the app's bundle id. |
 | `APP_ATTEST_PRODUCTION` | `false` dev / `true` release | Must match the app's entitlement environment. |
 | `JWT_SECRET` | `openssl rand -hex 32` | Signs the short-lived app tokens. |
 | `API_TOKEN` | `openssl rand -hex 32` | Optional admin/break-glass secret. |
@@ -134,12 +134,16 @@ Loading a race session with telemetry is pandas-heavy. Give the container
 **at least 1 GB RAM (2 GB recommended)**. If it gets OOM-killed while loading
 telemetry, lower `SESSION_CACHE_MAX` first.
 
-### Point the app at it
+### iOS backend endpoint
 
-In the app: **gear icon → Backend Server** = your Coolify HTTPS URL, and
-**API Token** = the same `API_TOKEN` value. Tap **Test Connection**: it checks
-reachability *and* validates the token. The token is stored in the device
-Keychain, not UserDefaults.
+The published iOS app uses `https://racecontrol.owl-media.co.uk` directly; users
+do not need to configure a server. The optional admin token in Settings is a
+development/break-glass credential and is stored in the device Keychain.
+
+For a self-hosted iOS build, change `AppConfig.apiBaseURL` in
+`RaceControlApp/RaceControl/Networking/APIClient.swift` to the HTTPS URL of your
+backend, then rebuild the app. Tap **Test Connection** in Settings to check
+reachability and authentication.
 
 > The app's ATS policy allows cleartext HTTP only to `localhost`/LAN addresses,
 > so a deployed backend must be HTTPS. Coolify handles the certificate for you.
@@ -199,15 +203,16 @@ Requirements: **Xcode 16+**, macOS.
 
 1. Open `RaceControlApp/RaceControl.xcodeproj` in Xcode.
 2. Select an iPhone simulator (e.g. iPhone 15 Pro) and press **⌘R**.
-3. The app defaults to `http://localhost:8000`, which the simulator can reach on your Mac.
+3. The app connects to the production backend at
+   `https://racecontrol.owl-media.co.uk`.
 
-**Testing on a physical iPhone?** Your phone can't see `localhost`. In the app, tap the
-**gear icon** (top-left of the Races tab) → **Backend Server**, and enter your Mac's LAN
-address, e.g. `http://192.168.1.20:8000` (find it with `ipconfig getifaddr en0`). Tap
-**Test Connection**, then **Save**. Your Mac and iPhone must be on the same Wi-Fi.
+**Self-hosting or testing against a local backend?** Change
+`AppConfig.apiBaseURL` in `RaceControlApp/RaceControl/Networking/APIClient.swift`
+before building. For a physical iPhone, use your Mac's LAN address, for example
+`http://192.168.1.20:8000`; your Mac and iPhone must be on the same Wi-Fi.
 
-> The bundled `Info.plist` allows plain-HTTP for local development. For a production build,
-> serve the API over HTTPS and remove `NSAllowsArbitraryLoads`.
+> The bundled `Info.plist` allows local networking for development. Production
+> backends should use HTTPS.
 
 ### Regenerating the Xcode project (optional)
 

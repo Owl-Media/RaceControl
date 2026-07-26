@@ -13,7 +13,7 @@ from pathlib import Path
 
 os.environ["APP_ATTEST_ENABLED"] = "true"
 os.environ["APPLE_TEAM_ID"] = "ABCDE12345"
-os.environ["APP_BUNDLE_ID"] = "com.codenameowl.racecontrol"
+os.environ["APP_BUNDLE_ID"] = "com.owlmedia.racecontrol"
 os.environ["JWT_SECRET"] = "endpoint-test-secret"
 os.environ["ATTEST_DB"] = "/tmp/attest_endpoint_test.sqlite"
 if os.path.exists("/tmp/attest_endpoint_test.sqlite"):
@@ -26,7 +26,7 @@ import main  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from pyattest.testutils.factories.attestation import apple as apple_factory  # noqa: E402
 
-APP_ID = "ABCDE12345.com.codenameowl.racecontrol"
+APP_ID = "ABCDE12345.com.owlmedia.racecontrol"
 
 # Point the verifier at pyattest's fixture root instead of Apple's real root.
 FIXTURE_ROOT = (Path(apple_factory.__file__).parent / ".." / ".." / "fixtures" / "root_cert.pem").read_bytes()

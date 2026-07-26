@@ -22,7 +22,7 @@ from pyattest.testutils.factories.attestation import apple as apple_factory
 
 import attest
 
-APP_ID = "ABCDE12345.com.codenameowl.racecontrol"
+APP_ID = "ABCDE12345.com.owlmedia.racecontrol"
 FIXTURE_ROOT = (
     Path(apple_factory.__file__).parent / ".." / ".." / "fixtures" / "root_cert.pem"
 ).read_bytes()

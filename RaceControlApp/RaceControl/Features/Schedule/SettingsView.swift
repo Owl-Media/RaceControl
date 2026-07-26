@@ -1,12 +1,9 @@
 import SwiftUI
 import DeviceCheck
 
-/// Lets the user point the app at their RaceControl backend. Defaults to
-/// localhost (works in the iOS Simulator); on a physical device set this to
-/// the Mac's LAN address, e.g. http://192.168.1.20:8000.
+/// User preferences and backend authentication diagnostics.
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
-    @AppStorage("api_base_url") private var baseURL: String = AppConfig.defaultBaseURL
     @AppStorage("notifications_enabled") private var notificationsEnabled = false
     @AppStorage("notify_day_before") private var notifyDayBefore = true
     @AppStorage("notify_1hour") private var notify1Hour = false
@@ -15,7 +12,6 @@ struct SettingsView: View {
     @AppStorage("notify_qualifying") private var notifyQualifying = true
     @AppStorage("notify_sprint") private var notifySprint = true
     @AppStorage("notify_race") private var notifyRace = true
-    @State private var draft: String = ""
     @State private var tokenDraft: String = ""
     @State private var status: ConnectionStatus = .unknown
     @State private var permissionDenied = false
@@ -27,12 +23,13 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Backend Server") {
-                    TextField("http://localhost:8000", text: $draft)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .keyboardType(.URL)
-                        .font(.system(.body, design: .monospaced))
+                Section {
+                    LabeledContent("App Attest") {
+                        Label(appAttestSupported ? "Active" : "Unavailable",
+                              systemImage: appAttestSupported ? "checkmark.shield.fill" : "xmark.shield")
+                            .foregroundStyle(appAttestSupported ? Theme.Palette.positive : Theme.Palette.textTertiary)
+                            .labelStyle(.titleAndIcon)
+                    }
                     Button {
                         Task { await test() }
                     } label: {
@@ -41,15 +38,6 @@ struct SettingsView: View {
                             Spacer()
                             statusIcon
                         }
-                    }
-                }
-
-                Section {
-                    LabeledContent("App Attest") {
-                        Label(appAttestSupported ? "Active" : "Unavailable",
-                              systemImage: appAttestSupported ? "checkmark.shield.fill" : "xmark.shield")
-                            .foregroundStyle(appAttestSupported ? Theme.Palette.positive : Theme.Palette.textTertiary)
-                            .labelStyle(.titleAndIcon)
                     }
                 } header: {
                     Text("Security")
@@ -68,16 +56,6 @@ struct SettingsView: View {
                     Text("Admin Token")
                 } footer: {
                     Text("Optional break-glass credential matching the server's API_TOKEN. Overrides App Attest when set. Stored in the device Keychain.")
-                }
-
-                Section {
-                    Button {
-                        draft = AppConfig.defaultBaseURL
-                    } label: {
-                        Label("Reset to Default", systemImage: "arrow.counterclockwise")
-                    }
-                } footer: {
-                    Text("Run the FastF1 backend with `./run.sh`, then enter its address here. Use your Mac's local IP when testing on a physical iPhone, or your deployed HTTPS URL.")
                 }
 
                 Section {
@@ -142,14 +120,12 @@ struct SettingsView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        baseURL = draft.trimmingCharacters(in: .whitespaces)
                         Keychain.apiToken = tokenDraft.trimmingCharacters(in: .whitespaces)
                         dismiss()
                     }.fontWeight(.semibold)
                 }
             }
             .onAppear {
-                draft = baseURL
                 tokenDraft = Keychain.apiToken
             }
         }
@@ -173,12 +149,10 @@ struct SettingsView: View {
     /// rather than showing up as errors all over the app.
     private func test() async {
         status = .checking
-        let base = draft.trimmingCharacters(in: .whitespaces)
         let token = tokenDraft.trimmingCharacters(in: .whitespaces)
-        guard let healthURL = URL(string: base)?.appending(path: "api/health"),
-              let authURL = URL(string: base)?.appending(path: "api/seasons") else {
-            status = .failed("Invalid URL"); return
-        }
+        let baseURL = AppConfig.apiBaseURL
+        let healthURL = baseURL.appending(path: "api/health")
+        let authURL = baseURL.appending(path: "api/seasons")
         do {
             let (_, healthResponse) = try await URLSession.shared.data(from: healthURL)
             guard let health = healthResponse as? HTTPURLResponse,
@@ -191,8 +165,7 @@ struct SettingsView: View {
             var usedAttest = false
             if !token.isEmpty {
                 request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-            } else if let baseURL = URL(string: base),
-                      let attestToken = await AppAttestService.shared.bearerToken(baseURL: baseURL) {
+            } else if let attestToken = await AppAttestService.shared.bearerToken(baseURL: baseURL) {
                 request.setValue("Bearer \(attestToken)", forHTTPHeaderField: "Authorization")
                 usedAttest = true
             }

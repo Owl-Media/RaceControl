@@ -7,11 +7,11 @@
 -keepclasseswithmembers class kotlinx.serialization.json.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
--keep,includedescriptorclasses class com.codenameowl.racecontrol.**$$serializer { *; }
--keepclassmembers class com.codenameowl.racecontrol.** {
+-keep,includedescriptorclasses class com.owlmedia.racecontrol.**$$serializer { *; }
+-keepclassmembers class com.owlmedia.racecontrol.** {
     *** Companion;
 }
--keepclasseswithmembers class com.codenameowl.racecontrol.** {
+-keepclasseswithmembers class com.owlmedia.racecontrol.** {
     kotlinx.serialization.KSerializer serializer(...);
 }
 
