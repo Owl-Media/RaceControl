@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Grid of analysis entry-points shown on the race detail screen. Turns a race
 /// into a hub: replay, telemetry, strategy, lap times, qualifying, weather,
-/// retirements and the track map.
+/// retirements, flags, the full race-control log and the track map.
 struct RaceAnalysisGrid: View {
     let event: RaceEvent
 
@@ -42,6 +42,12 @@ struct RaceAnalysisGrid: View {
                 }
                 tile("Retirements", "exclamationmark.triangle.fill", Theme.Palette.negative) {
                     RetirementsView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Flags", "flag.checkered", Theme.Palette.flagYellow) {
+                    FlagsView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Race Control", "list.bullet.clipboard.fill", Theme.Palette.info) {
+                    RaceControlView(year: event.year, round: event.round, title: event.displayName)
                 }
             }
         }

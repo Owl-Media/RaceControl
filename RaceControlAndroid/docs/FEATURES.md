@@ -141,8 +141,9 @@ Data: `GET /api/schedule/{year}`
 - Header card: flag emoji, official name, location + country, long-form date.
 - **Weekend schedule card** (`WeekendScheduleCard.swift`): each session with name, local
   date/time, and a per-session reminder affordance.
-- **Analysis grid** — only if `event.completed`. 3-column grid of 8 tinted tiles:
-  Replay, Telemetry, Lap Times, Strategy, Qualifying, Track Map, Weather, Retirements.
+- **Analysis grid** — only if `event.completed`. 3-column grid of 10 tinted tiles:
+  Replay, Telemetry, Lap Times, Strategy, Qualifying, Track Map, Weather, Retirements, Flags,
+  Race Control.
   Android: `LazyVerticalGrid(GridCells.Fixed(3))`, each tile min 72dp tall, ≥48dp target.
 - **Session picker** — segmented control over available sessions (Race / Quali / Sprint /
   Sprint Q / FP1–3), Race forced first. Android: **`PrimaryScrollableTabRow`**, because
@@ -245,11 +246,66 @@ Data: `/api/circuits/{year}`, `/api/circuit/{year}/{round}`
 | **Qualifying** | Q1/Q2/Q3 breakdown, gap to pole, elimination shading | Table + `LinearProgressIndicator` |
 | **Weather** | Air/track temp (+ max), humidity, pressure, wind, rainfall flag | Stat cards |
 | **Retirements** | Non-finishers grouped by cause (mechanical / accident / DSQ / other) | Grouped list |
+| **Flags** | Chronological flag/safety-car periods (collapsed) with the raw race-control timeline underneath; bands the Lap Times chart and badges the Telemetry lap in view | See §3.10 below |
 
 Driver selection chips → Material 3 `FilterChip` (already the right primitive).
 
 Data: `/api/telemetry/...`, `/api/telemetry-compare/...`, `/api/laptimes/...`,
-`/api/strategy/...`, `/api/weather/...`, `/api/retirements/...`
+`/api/strategy/...`, `/api/weather/...`, `/api/retirements/...`, `/api/flags/...`
+
+### 3.10 Flags — `FlagsView.swift` → `FlagsScreen.kt`
+
+New screen (ninth analysis tile) wrapping `GET /api/flags/{year}/{round}?session=R`, which
+returns a raw race-control event timeline plus a collapsed `periods` list (inclusive lap
+ranges per `YELLOW` / `DOUBLE_YELLOW` / `RED` / `SC` / `VSC`).
+
+| Element | iOS | Android |
+|---|---|---|
+| Primary list | `VStack` of `FlagPeriodRow`: icon, colour, type label, lap range, reason | `LazyColumn` of the same row shape — matches the list-of-cards convention every other analysis screen (Retirements, Strategy) already uses, rather than introducing a new pattern for one screen |
+| Raw timeline | `DisclosureGroup` ("RACE CONTROL TIMELINE (N)") | No native disclosure-group primitive in Material 3, so this is a clickable `SectionHeader` row with a rotating `ExpandMore` chevron (`animateFloatAsState`) toggling a boolean; expanded rows are lazy list items, not a separately-scrolling nested list |
+| Empty state | `EmptyStateView` (`flag.checkered`) | `EmptyState` (`Icons.Filled.EmojiFlags`) — reuses the shared empty-state composable per the existing pattern, no bespoke view |
+| Colour | Five colours from `FlagStyle` (Swift) | Ported to `RcPalette` (`FlagYellow` #FFD500, `FlagDoubleYellow` #FF9500, `FlagRed` #FF453A reusing the negative hue, `FlagSafetyCar` #FF6A00, `FlagVirtualSafetyCar` #AF52DE) + a Kotlin `FlagStyle` object mirroring the Swift one, alongside `TyreCompound` in `core/design/` — same "colour is data" reasoning as tyre compounds |
+| Icon | SF Symbol per type | `Icons.Filled.Flag` for the three flag types, `Icons.Filled.DirectionsCar` for SC/VSC (no direct Material equivalent of a safety-car symbol) |
+
+**Two Android-only overlay additions, not present on iOS** (the task explicitly asked for
+these beyond parity):
+
+- **Lap Times chart bands** — `LapTimesViewModel` fetches `/api/flags` alongside
+  `/api/laptimes` (parallel coroutine, best-effort: a failed flags fetch just means no bands,
+  never a second error state on top of the lap-time one). `RcLineChart` gained a `bands:
+  List<ChartBand>` parameter, drawn as translucent (`alpha = 0.16f`) rects behind the grid so
+  the line traces stay legible; each period is widened ±0.5 laps so a single-lap period reads
+  as a visible band rather than a hairline.
+- **Telemetry lap badge** — `TelemetryViewModel` fetches flags alongside the driver list;
+  `TelemetryScreen`'s per-driver "LAP" row shows an inline `FlagLapBadge` ("Safety Car (lap
+  20)") when `trace.lapNumber` falls inside a period, via a `List<FlagPeriodDto>.periodContaining(lap)`
+  helper in `AnalysisDtos.kt`.
+
+`periodContaining`/`FlagPeriodDto.contains` is pure Kotlin with no Android dependency, so it
+has a JVM unit test (`FlagPeriodTest.kt`) alongside `LapTimeFormatTest.kt`, covering inclusive
+boundaries, no-match laps, null laps, and case-insensitive backend type parsing.
+
+### 3.11 Race Control — `RaceControlScreen.kt`
+
+Tenth analysis tile, complementary to Flags rather than a duplicate of it: Flags only
+surfaces FLAG/SAFETY-CAR category messages (collapsed into periods); this screen wraps
+`GET /api/racecontrol/{year}/{round}?session=R`, which returns the **complete**
+chronological race-control log — DRS enabled/disabled, car events, and "Other" stewards'
+messages (investigations, penalties, reprimands) that Flags never shows, e.g. "TURN 3
+INCIDENT INVOLVING CARS 16 AND 55 UNDER INVESTIGATION" or "CAR 44 (HAM) - 5 SECOND TIME
+PENALTY".
+
+| Element | Detail |
+|---|---|
+| DTOs | `RaceControlResponseDto` / `RaceControlMessageDto` in `AnalysisDtos.kt`, mirroring `FlagsResponseDto`/`FlagEventDto`. `category` (`Flag`/`SafetyCar`/`Drs`/`CarEvent`/`Other`) is parsed into a `RaceControlCategory` enum via `RaceControlMessageDto.categoryType` |
+| List | `LazyColumn` of `RaceControlMessageRow`: category icon (tinted), lap chip, driver-code chip when present, message text — same list-of-cards shape as `FlagEventRow`/Retirements/Strategy |
+| Filter | Chips row (`FilterChip`, same primitive as the Lap Times driver picker): All / Flags / Safety Car / DRS / Incidents, where Incidents groups `CarEvent` + `Other` — five buckets read better than five-plus separate category chips |
+| Icons | `Icons.Filled.Flag` (Flag), `Icons.Filled.DirectionsCar` (SafetyCar, matching `FlagStyle`), `Icons.Filled.Bolt` (Drs), `Icons.Filled.ReportProblem` (CarEvent), `Icons.Filled.Article` (Other) |
+| Colour | Flag/SafetyCar rows reuse `FlagStyle.color(FlagPeriodType)` — the raw `flag` text is normalized (`"DOUBLE YELLOW"` → `DOUBLE_YELLOW`) and passed through the existing `FlagPeriodType.from` parser — for visual consistency with the Flags screen; DRS/CarEvent/Other rows use a neutral secondary tint since they aren't part of the flag vocabulary |
+| Empty state | `EmptyState` (`Icons.Filled.Article`) — no messages at all, and a second lighter-weight empty message when a filter matches nothing |
+| Tile | `Icons.Filled.Article`, `RcTheme.colors.info` tint — deliberately not `Icons.Filled.Flag` again, to stay visually distinct from the Flags tile beside it |
+
+Data: `GET /api/racecontrol/{year}/{round}?session=R`
 
 ### 3.9 Settings — `SettingsView.swift`
 

@@ -156,6 +156,76 @@ struct Retirement: Codable, Identifiable, Hashable {
     var id: String { driver ?? driverId ?? UUID().uuidString }
 }
 
+// MARK: - Flags / Safety Car
+
+struct FlagsResponse: Codable {
+    let year: Int
+    let round: Int
+    let session: String
+    let eventName: String?
+    let totalLaps: Int
+    let events: [FlagEvent]
+    let periods: [FlagPeriod]
+}
+
+/// A single race-control message from the raw timeline.
+struct FlagEvent: Codable, Identifiable, Hashable {
+    let time: String?
+    let lap: Int?
+    let category: String?
+    let flag: String?
+    let status: String?
+    let scope: String?
+    let sector: Int?
+    let driverNumber: String?
+    let driverCode: String?
+    let message: String?
+
+    var id: String { "\(time ?? "-")|\(lap ?? -1)|\(category ?? "")|\(flag ?? "")|\(message ?? "")" }
+}
+
+/// A collapsed lap range during which a flag/safety-car condition was active —
+/// used to band the lap-based charts (`YELLOW`, `DOUBLE_YELLOW`, `RED`, `SC`, `VSC`).
+struct FlagPeriod: Codable, Identifiable, Hashable {
+    let type: String
+    let startLap: Int
+    let endLap: Int
+    let reason: String?
+
+    var id: String { "\(type)-\(startLap)-\(endLap)" }
+
+    /// True when `lap` falls within this period's inclusive lap range.
+    func contains(lap: Int) -> Bool { lap >= startLap && lap <= endLap }
+}
+
+// MARK: - Race Control (full, unfiltered message log)
+
+struct RaceControlResponse: Codable {
+    let year: Int
+    let round: Int
+    let session: String
+    let eventName: String?
+    let totalLaps: Int
+    let messages: [RaceControlMessage]
+}
+
+/// A single race-control message from the complete, unfiltered timeline —
+/// flags, safety-car, DRS, car events and "other" (investigations, penalties).
+struct RaceControlMessage: Codable, Identifiable, Hashable {
+    let time: String?
+    let lap: Int?
+    let category: String?
+    let flag: String?
+    let status: String?
+    let scope: String?
+    let sector: Int?
+    let driverNumber: String?
+    let driverCode: String?
+    let message: String?
+
+    var id: String { "\(time ?? "-")|\(lap ?? -1)|\(category ?? "")|\(flag ?? "")|\(message ?? "")" }
+}
+
 // MARK: - Reliability
 
 struct ReliabilityResponse: Codable {

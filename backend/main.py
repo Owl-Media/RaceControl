@@ -373,6 +373,18 @@ def weather(year: int, rnd: int, session: str) -> Any:
     return cached(key, lambda: _guard(lambda: svc.get_weather(year, rnd, session), "weather"))
 
 
+@app.get("/api/flags/{year}/{rnd}")
+def flags(year: int, rnd: int, session: str = "R") -> Any:
+    key = f"flags:{year}:{rnd}:{session}"
+    return cached(key, lambda: _guard(lambda: svc.get_flags(year, rnd, session), "flags"))
+
+
+@app.get("/api/racecontrol/{year}/{rnd}")
+def race_control(year: int, rnd: int, session: str = "R") -> Any:
+    key = f"racecontrol:{year}:{rnd}:{session}"
+    return cached(key, lambda: _guard(lambda: svc.get_race_control(year, rnd, session), "race control"))
+
+
 @app.get("/api/racedrivers/{year}/{rnd}")
 def race_drivers(year: int, rnd: int) -> Any:
     key = f"racedrivers:{year}:{rnd}"

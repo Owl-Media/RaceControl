@@ -56,6 +56,12 @@ data class ChartSeries(
 
 data class ChartPoint(val x: Double, val y: Double)
 
+/**
+ * A translucent vertical band drawn behind the grid/series, e.g. a safety-car
+ * period shaded across the laps it covered on a lap-time chart.
+ */
+data class ChartBand(val minX: Double, val maxX: Double, val color: Color)
+
 data class ChartDomain(
     val minX: Double,
     val maxX: Double,
@@ -97,6 +103,7 @@ fun RcLineChart(
     playheadX: Double? = null,
     onPlayheadChange: ((Double) -> Unit)? = null,
     gridLines: Int = 4,
+    bands: List<ChartBand> = emptyList(),
 ) {
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -136,6 +143,7 @@ fun RcLineChart(
             val plotWidth = (size.width - plotLeft).coerceAtLeast(1f)
             val plotHeight = size.height
 
+            drawBands(bands, domain, plotLeft, plotWidth, plotHeight)
             drawGrid(gridLines, plotLeft, plotWidth, plotHeight)
             drawAxisLabels(textMeasurer, yAxisLabels, labelStyle, plotHeight)
 
@@ -189,6 +197,25 @@ fun ChartSeries.valueAt(x: Double): Double? {
     if (span <= 0) return before.y
     val t = (x - before.x) / span
     return before.y + t * (after.y - before.y)
+}
+
+private fun DrawScope.drawBands(
+    bands: List<ChartBand>,
+    domain: ChartDomain,
+    left: Float,
+    width: Float,
+    height: Float,
+) {
+    bands.forEach { band ->
+        val fromX = ((band.minX - domain.minX) / domain.spanX).toFloat().coerceIn(0f, 1f)
+        val toX = ((band.maxX - domain.minX) / domain.spanX).toFloat().coerceIn(0f, 1f)
+        if (toX <= fromX) return@forEach
+        drawRect(
+            color = band.color,
+            topLeft = Offset(left + fromX * width, 0f),
+            size = androidx.compose.ui.geometry.Size((toX - fromX) * width, height),
+        )
+    }
 }
 
 private fun DrawScope.drawGrid(lines: Int, left: Float, width: Float, height: Float) {

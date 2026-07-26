@@ -160,8 +160,9 @@ def _session_has_data(session, laps_requested: bool) -> bool:
 
 
 def _load_session(year: int, rnd: int, identifier: str, with_laps: bool,
-                  with_telemetry: bool = False, force: bool = False):
-    key = (year, rnd, identifier, with_laps, with_telemetry)
+                  with_telemetry: bool = False, with_messages: bool = False,
+                  force: bool = False):
+    key = (year, rnd, identifier, with_laps, with_telemetry, with_messages)
     if not force and key in _SESSION_CACHE:
         return _SESSION_CACHE[key]
 
@@ -173,7 +174,7 @@ def _load_session(year: int, rnd: int, identifier: str, with_laps: bool,
         laps=load_laps,
         telemetry=with_telemetry,
         weather=False,
-        messages=False,
+        messages=with_messages,
     )
 
     # Only cache a load that actually produced usable data.
@@ -827,6 +828,153 @@ def get_strategy(year: int, rnd: int) -> dict[str, Any]:
     return {"year": year, "round": rnd,
             "eventName": _clean(session.event.get("EventName")),
             "totalLaps": total_laps, "drivers": drivers}
+
+
+# --------------------------------------------------------------------------- #
+#  Track flags & race control
+# --------------------------------------------------------------------------- #
+# Flag values a "Track"-scoped race-control message can carry.
+_CLOSING_FLAGS = {"GREEN", "CLEAR", "CHEQUERED"}
+_INCIDENT_FLAGS = {"YELLOW", "DOUBLE YELLOW", "RED"}
+
+
+def _race_control_rows(session) -> list[dict[str, Any]]:
+    """Every race-control message for a session, cleaned and chronologically
+    sorted, regardless of category (Flag, SafetyCar, Drs, CarEvent, Other)."""
+    rcm = session.race_control_messages
+    if rcm is None or not len(rcm):
+        return []
+    meta = _driver_meta(session)
+    number_to_abbr = {v.get("number"): k for k, v in meta.items() if v.get("number")}
+
+    rows: list[dict[str, Any]] = []
+    for _, row in rcm.sort_values("Time").iterrows():
+        lap_raw = row.get("Lap")
+        lap_no = int(lap_raw) if lap_raw not in (None,) and not pd.isna(lap_raw) and int(lap_raw) > 0 else None
+        driver_number = row.get("RacingNumber")
+        rows.append({
+            "time": _clean(row.get("Time")),
+            "lap": lap_no,
+            "category": _clean(row.get("Category")),
+            "flag": _clean(row.get("Flag")),
+            "status": _clean(row.get("Status")),
+            "scope": _clean(row.get("Scope")),
+            "sector": _clean(row.get("Sector")),
+            "driverNumber": _clean(driver_number),
+            "driverCode": number_to_abbr.get(driver_number),
+            "message": _clean(row.get("Message")),
+        })
+    return rows
+
+
+def _session_total_laps(session) -> int:
+    try:
+        return (
+            int(session.laps["LapNumber"].max())
+            if session.laps is not None and len(session.laps) else 0
+        )
+    except Exception:  # noqa: BLE001
+        return 0
+
+
+def get_flags(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
+    """Every flag / safety-car race-control message for a session, plus the
+    contiguous lap-range periods they cover (yellow, double-yellow, red, VSC,
+    safety car) so a client can show a flags timeline and band them onto a
+    lap-based chart such as the lap-time evolution or telemetry views."""
+    session = _load_session(year, rnd, identifier, with_laps=True, with_messages=True)
+    empty = {"year": year, "round": rnd, "session": identifier,
+             "eventName": _clean(session.event.get("EventName")),
+             "totalLaps": 0, "events": [], "periods": []}
+    try:
+        rows = _race_control_rows(session)
+        if not rows:
+            return empty
+    except Exception as exc:  # noqa: BLE001
+        log.warning("flags unavailable %s r%s %s: %s", year, rnd, identifier, exc)
+        return empty
+
+    total_laps = _session_total_laps(session)
+
+    # Keep flag / safety-car messages plus anything else that carries a flag
+    # value; drop generic chatter (DRS enabled, car events, etc.) — that full
+    # log is available separately via get_race_control().
+    events = [r for r in rows if r["category"] in ("Flag", "SafetyCar") or r["flag"]]
+    periods = _flag_periods(events, total_laps)
+
+    return {"year": year, "round": rnd, "session": identifier,
+            "eventName": _clean(session.event.get("EventName")),
+            "totalLaps": total_laps, "events": events, "periods": periods}
+
+
+def get_race_control(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
+    """The complete, unfiltered race-control message log for a session —
+    flags and safety-car periods, but also DRS enable/disable, car events,
+    and "Other" messages such as investigations, penalties and reprimands —
+    in chronological order."""
+    session = _load_session(year, rnd, identifier, with_laps=True, with_messages=True)
+    empty = {"year": year, "round": rnd, "session": identifier,
+             "eventName": _clean(session.event.get("EventName")),
+             "totalLaps": 0, "messages": []}
+    try:
+        rows = _race_control_rows(session)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("race control unavailable %s r%s %s: %s", year, rnd, identifier, exc)
+        return empty
+
+    return {"year": year, "round": rnd, "session": identifier,
+            "eventName": _clean(session.event.get("EventName")),
+            "totalLaps": _session_total_laps(session), "messages": rows}
+
+
+def _flag_periods(events: list[dict[str, Any]], total_laps: int) -> list[dict[str, Any]]:
+    """Collapse the raw event stream into contiguous track-status periods,
+    each spanning a lap range, e.g. `{"type": "SC", "startLap": 12,
+    "endLap": 14, "reason": "SAFETY CAR DEPLOYED"}`."""
+    periods: list[dict[str, Any]] = []
+    open_period: Optional[dict[str, Any]] = None
+
+    def close(end_lap: Optional[int]) -> None:
+        nonlocal open_period
+        if open_period is None:
+            return
+        open_period["endLap"] = end_lap or open_period["startLap"]
+        periods.append(open_period)
+        open_period = None
+
+    for ev in events:
+        category = ev["category"]
+        flag = (ev["flag"] or "").upper()
+        message = (ev["message"] or "").upper()
+        lap = ev["lap"]
+
+        if category == "Flag" and ev["scope"] == "Track":
+            if flag in _CLOSING_FLAGS:
+                close(lap)
+            elif flag in _INCIDENT_FLAGS:
+                close(lap)  # a new flag supersedes whatever was already open
+                open_period = {
+                    "type": "DOUBLE_YELLOW" if flag == "DOUBLE YELLOW" else flag,
+                    "startLap": lap or 1,
+                    "endLap": None,
+                    "reason": ev["message"],
+                }
+        elif category == "SafetyCar":
+            if "DEPLOYED" in message:
+                close(lap)
+                open_period = {
+                    "type": "VSC" if "VIRTUAL" in message else "SC",
+                    "startLap": lap or 1,
+                    "endLap": None,
+                    "reason": ev["message"],
+                }
+            elif "ENDING" in message:
+                close(lap)
+
+    if open_period is not None:
+        close(total_laps or open_period["startLap"])
+
+    return periods
 
 
 # --------------------------------------------------------------------------- #

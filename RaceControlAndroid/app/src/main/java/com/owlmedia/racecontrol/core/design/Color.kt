@@ -43,6 +43,15 @@ object RcPalette {
     val TyreHard = Color(0xFFEBEBEB)
     val TyreIntermediate = Color(0xFF40B14B)
     val TyreWet = Color(0xFF1E6FE0)
+
+    // Track flag / safety-car period colours. Distinct hues so five bands
+    // overlaid on a chart (or listed back to back) stay tellable apart even
+    // for a colour-blind reader relying on the accompanying icon/label too.
+    val FlagYellow = Color(0xFFFFD500)
+    val FlagDoubleYellow = Color(0xFFFF9500)
+    val FlagRed = Color(0xFFFF453A)
+    val FlagSafetyCar = Color(0xFFFF6A00)
+    val FlagVirtualSafetyCar = Color(0xFFAF52DE)
 }
 
 /**

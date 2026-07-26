@@ -40,6 +40,16 @@ enum Theme {
         static let tyreHard = Color(hex: "EBEBEB")
         static let tyreIntermediate = Color(hex: "40B14B")
         static let tyreWet = Color(hex: "1E6FE0")
+
+        // Track flags / safety-car periods (official F1-ish flag colours)
+        static let flagGreen = Color(hex: "30D158")
+        static let flagYellow = Color(hex: "FFD60A")
+        static let flagDoubleYellow = Color(hex: "FF9F0A")
+        static let flagRed = Color(hex: "FF453A")
+        static let flagBlue = Color(hex: "64D2FF")
+        static let flagChequered = Color(hex: "F2F2F5")
+        static let flagSafetyCar = Color(hex: "FF9F0A")
+        static let flagVirtualSafetyCar = Color(hex: "BF5AF2")
     }
 
     // MARK: Spacing (8pt grid)
@@ -109,5 +119,95 @@ enum TyreCompound {
     static func letter(_ compound: String?) -> String {
         guard let c = compound?.uppercased().first else { return "?" }
         return String(c)
+    }
+}
+
+// MARK: - Flag / safety-car period helper
+enum FlagStyle {
+    /// Colour for a collapsed period's `type` (`YELLOW`, `DOUBLE_YELLOW`, `RED`, `SC`, `VSC`).
+    static func color(_ type: String?) -> Color {
+        switch (type ?? "").uppercased() {
+        case "YELLOW": return Theme.Palette.flagYellow
+        case "DOUBLE_YELLOW": return Theme.Palette.flagDoubleYellow
+        case "RED": return Theme.Palette.flagRed
+        case "SC": return Theme.Palette.flagSafetyCar
+        case "VSC": return Theme.Palette.flagVirtualSafetyCar
+        default: return Theme.Palette.textTertiary
+        }
+    }
+
+    static func icon(_ type: String?) -> String {
+        switch (type ?? "").uppercased() {
+        case "YELLOW", "DOUBLE_YELLOW": return "flag.fill"
+        case "RED": return "flag.fill"
+        case "SC": return "car.fill"
+        case "VSC": return "car.side.fill"
+        default: return "flag.fill"
+        }
+    }
+
+    static func label(_ type: String?) -> String {
+        switch (type ?? "").uppercased() {
+        case "YELLOW": return "Yellow Flag"
+        case "DOUBLE_YELLOW": return "Double Yellow"
+        case "RED": return "Red Flag"
+        case "SC": return "Safety Car"
+        case "VSC": return "Virtual Safety Car"
+        default: return type ?? "Flag"
+        }
+    }
+
+    /// Colour for a raw event's `flag` string (used in the events timeline).
+    static func eventColor(_ flag: String?) -> Color {
+        switch (flag ?? "").uppercased() {
+        case "GREEN": return Theme.Palette.flagGreen
+        case "YELLOW": return Theme.Palette.flagYellow
+        case "DOUBLE YELLOW": return Theme.Palette.flagDoubleYellow
+        case "RED": return Theme.Palette.flagRed
+        case "CLEAR": return Theme.Palette.flagGreen
+        case "CHEQUERED": return Theme.Palette.flagChequered
+        case "BLUE": return Theme.Palette.flagBlue
+        case "BLACK AND WHITE": return Theme.Palette.textPrimary
+        default: return Theme.Palette.textTertiary
+        }
+    }
+}
+
+// MARK: - Race-control message category helper
+/// Icon/colour mapping for the full, unfiltered race-control log (`RaceControlMessage.category`:
+/// `Flag`, `SafetyCar`, `Drs`, `CarEvent`, `Other`). Flag/SafetyCar rows with a `flag` value
+/// defer to `FlagStyle.eventColor` so colours stay consistent with the Flags screen.
+enum RaceControlStyle {
+    static func icon(_ category: String?) -> String {
+        switch category ?? "" {
+        case "Flag": return "flag.fill"
+        case "SafetyCar": return "car.fill"
+        case "Drs": return "bolt.fill"
+        case "CarEvent": return "exclamationmark.triangle.fill"
+        case "Other": return "doc.text.fill"
+        default: return "info.circle.fill"
+        }
+    }
+
+    static func color(_ category: String?, flag: String?) -> Color {
+        switch category ?? "" {
+        case "Flag": return FlagStyle.eventColor(flag)
+        case "SafetyCar": return Theme.Palette.flagSafetyCar
+        case "Drs": return Theme.Palette.info
+        case "CarEvent": return Theme.Palette.warning
+        case "Other": return Theme.Palette.textSecondary
+        default: return Theme.Palette.textTertiary
+        }
+    }
+
+    static func label(_ category: String?) -> String {
+        switch category ?? "" {
+        case "Flag": return "Flag"
+        case "SafetyCar": return "Safety Car"
+        case "Drs": return "DRS"
+        case "CarEvent": return "Car Event"
+        case "Other": return "Other"
+        default: return category ?? "—"
+        }
     }
 }

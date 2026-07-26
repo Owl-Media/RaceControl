@@ -61,6 +61,7 @@
     <string name="analysis_track_map">Track Map</string>
     <string name="analysis_weather">Weather</string>
     <string name="analysis_retirements">Retirements</string>
+    <string name="analysis_flags">Flags</string>
 
     <!-- Replay -->
     <string name="lap">LAP</string>
@@ -156,6 +157,10 @@
     <string name="telemetry_unavailable_title">No Telemetry</string>
     <string name="telemetry_unavailable_message">Telemetry isn\'t available for this driver at this race.</string>
     <string name="telemetry_max_drivers">Up to three drivers can be compared at once.</string>
+    <string name="telemetry_lap_fastest">Fastest</string>
+    <string name="telemetry_lap_picker_label">%1$s: %2$s</string>
+    <string name="telemetry_lap_option">Lap %1$d — %2$s</string>
+    <string name="telemetry_lap_picker_description">Choose lap for %1$s</string>
 
     <!-- Lap times -->
     <string name="hide_outliers">Hide outliers</string>
@@ -174,6 +179,36 @@
     <string name="gap_to_pole">Gap to pole</string>
     <string name="no_qualifying_title">No Qualifying</string>
     <string name="no_qualifying_message">Qualifying results aren\'t available for this race.</string>
+
+    <!-- Flags -->
+    <string name="no_flags_title">No Flags</string>
+    <string name="no_flags_message">Clean race — no yellow, red or safety-car periods were recorded.</string>
+    <plurals name="flag_periods_count">
+        <item quantity="one">%1$d flag period</item>
+        <item quantity="other">%1$d flag periods</item>
+    </plurals>
+    <string name="flags_across_laps">across %1$d laps</string>
+    <string name="flag_timeline_header">RACE CONTROL TIMELINE (%1$d)</string>
+    <string name="flag_type_yellow">Yellow Flag</string>
+    <string name="flag_type_double_yellow">Double Yellow</string>
+    <string name="flag_type_red">Red Flag</string>
+    <string name="flag_type_safety_car">Safety Car</string>
+    <string name="flag_type_virtual_safety_car">Virtual Safety Car</string>
+    <string name="flag_type_unknown">Flag</string>
+    <string name="flag_lap_single">Lap %1$d</string>
+    <string name="flag_lap_range">Laps %1$d–%2$d</string>
+    <string name="telemetry_flag_badge">%1$s (lap %2$d)</string>
+
+    <!-- Race Control -->
+    <string name="analysis_race_control">Race Control</string>
+    <string name="no_race_control_title">No Messages</string>
+    <string name="no_race_control_message">No race-control messages were recorded for this session.</string>
+    <string name="no_race_control_filter_message">No messages match this filter.</string>
+    <string name="race_control_filter_all">All</string>
+    <string name="race_control_filter_flags">Flags</string>
+    <string name="race_control_filter_safety_car">Safety Car</string>
+    <string name="race_control_filter_drs">DRS</string>
+    <string name="race_control_filter_incidents">Incidents</string>
 
     <!-- Weather -->
     <string name="weather_air">Air</string>

@@ -1,8 +1,10 @@
 package com.owlmedia.racecontrol.feature.analysis
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,23 +13,29 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.PauseCircleFilled
 import androidx.compose.material.icons.filled.PlayCircleFilled
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -46,6 +54,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.owlmedia.racecontrol.R
 import com.owlmedia.racecontrol.core.design.Dimens
+import com.owlmedia.racecontrol.core.design.FlagStyle
 import com.owlmedia.racecontrol.core.design.RcTheme
 import com.owlmedia.racecontrol.core.design.legibleOnSurface
 import com.owlmedia.racecontrol.core.design.tabular
@@ -63,7 +72,12 @@ import com.owlmedia.racecontrol.core.ui.RcLineChart
 import com.owlmedia.racecontrol.core.ui.SectionHeader
 import com.owlmedia.racecontrol.core.ui.StatCell
 import com.owlmedia.racecontrol.core.util.Downsample
+import com.owlmedia.racecontrol.core.util.LapTimeFormat
+import com.owlmedia.racecontrol.data.remote.dto.FlagPeriodDto
+import com.owlmedia.racecontrol.data.remote.dto.FlagPeriodType
+import com.owlmedia.racecontrol.data.remote.dto.LapTimePointDto
 import com.owlmedia.racecontrol.data.remote.dto.TelemetryTraceDto
+import com.owlmedia.racecontrol.data.remote.dto.periodContaining
 import kotlin.math.roundToInt
 
 @Composable
@@ -81,6 +95,9 @@ fun TelemetryScreen(
     val traceError by viewModel.traceError.collectAsStateWithLifecycle()
     val playhead by viewModel.playhead.collectAsStateWithLifecycle()
     val isPlaying by viewModel.isPlaying.collectAsStateWithLifecycle()
+    val flagPeriods by viewModel.flagPeriods.collectAsStateWithLifecycle()
+    val lapsByDriver by viewModel.lapsByDriver.collectAsStateWithLifecycle()
+    val selectedLaps by viewModel.selectedLaps.collectAsStateWithLifecycle()
 
     LaunchedEffect(year, round) { viewModel.loadDrivers(year, round) }
     DisposableEffect(Unit) { onDispose { viewModel.stopReplay() } }
@@ -135,6 +152,29 @@ fun TelemetryScreen(
                     )
                 }
 
+                if (selected.isNotEmpty()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(Dimens.SM),
+                    ) {
+                        selected.forEach { code ->
+                            val driver = drivers.firstOrNull { it.code == code }
+                            val accent = teamColor(driver?.teamColor).legibleOnSurface()
+                            LapPicker(
+                                code = code,
+                                accent = accent,
+                                laps = lapsByDriver[code]?.laps.orEmpty(),
+                                flagPeriods = flagPeriods,
+                                selectedLap = selectedLaps[code]
+                                    ?: TelemetryViewModel.FASTEST_LAP,
+                                onSelect = { lap -> viewModel.selectLap(code, lap) },
+                            )
+                        }
+                    }
+                }
+
                 when {
                     loadingTraces -> LoadingIndicator(
                         modifier = Modifier.height(180.dp),
@@ -158,6 +198,7 @@ fun TelemetryScreen(
                         traces = traces,
                         playhead = playhead,
                         isPlaying = isPlaying,
+                        flagPeriods = flagPeriods,
                         onPlayhead = viewModel::setPlayhead,
                         onToggleReplay = viewModel::toggleReplay,
                     )
@@ -172,6 +213,7 @@ private fun TelemetryContent(
     traces: List<TelemetryTraceDto>,
     playhead: Double,
     isPlaying: Boolean,
+    flagPeriods: List<FlagPeriodDto>,
     onPlayhead: (Double) -> Unit,
     onToggleReplay: () -> Unit,
 ) {
@@ -204,6 +246,10 @@ private fun TelemetryContent(
                         style = MaterialTheme.typography.bodyMedium.tabular(),
                         color = RcTheme.colors.textPrimary,
                     )
+                }
+                val period = flagPeriods.periodContaining(trace.lapNumber)
+                if (period != null) {
+                    FlagLapBadge(period, trace.lapNumber ?: period.startLap)
                 }
             }
         }
@@ -296,6 +342,133 @@ private fun TelemetryContent(
         }
     }
 }
+
+/**
+ * Per-driver lap selector — "Fastest" plus every recorded lap, each tagged with
+ * its time and, when it falls inside a flag/safety-car period, a coloured dot so
+ * the interesting (flagged) laps are findable rather than a guessing game.
+ */
+@Composable
+private fun LapPicker(
+    code: String,
+    accent: Color,
+    laps: List<LapTimePointDto>,
+    flagPeriods: List<FlagPeriodDto>,
+    selectedLap: String,
+    onSelect: (String) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val fastestLabel = stringResource(R.string.telemetry_lap_fastest)
+    val pickerDescription = stringResource(R.string.telemetry_lap_picker_description, code)
+    val selectedLabel = if (selectedLap == TelemetryViewModel.FASTEST_LAP) {
+        fastestLabel
+    } else {
+        val lapNumber = selectedLap.toIntOrNull()
+        val point = laps.firstOrNull { it.lap == lapNumber }
+        if (point != null) {
+            "Lap ${point.lap} — ${LapTimeFormat.format(point.timeMs, leading = true)}"
+        } else {
+            "Lap $selectedLap"
+        }
+    }
+
+    Box {
+        OutlinedButton(
+            onClick = { expanded = true },
+            modifier = Modifier
+                .height(Dimens.MinTouch)
+                .semantics { contentDescription = pickerDescription },
+        ) {
+            Text(
+                text = stringResource(R.string.telemetry_lap_picker_label, code, selectedLabel),
+                style = MaterialTheme.typography.labelMedium,
+                color = accent,
+            )
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            DropdownMenuItem(
+                text = { Text(fastestLabel) },
+                onClick = {
+                    onSelect(TelemetryViewModel.FASTEST_LAP)
+                    expanded = false
+                },
+            )
+            laps.sortedBy { it.lap }.forEach { point ->
+                val period = flagPeriods.periodContaining(point.lap)
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = stringResource(
+                                    R.string.telemetry_lap_option,
+                                    point.lap,
+                                    LapTimeFormat.format(point.timeMs, leading = true),
+                                ),
+                            )
+                            if (period != null) {
+                                Box(
+                                    modifier = Modifier
+                                        .padding(start = 6.dp)
+                                        .size(8.dp)
+                                        .background(
+                                            color = FlagStyle.color(period.periodType),
+                                            shape = CircleShape,
+                                        ),
+                                )
+                            }
+                        }
+                    },
+                    onClick = {
+                        onSelect(point.lap.toString())
+                        expanded = false
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * "Safety Car (lap 20)" — flags that the lap this trace was set on ran under a
+ * flag/safety-car period, so a suspiciously slow sector or lap time isn't
+ * mistaken for a driver mistake.
+ */
+@Composable
+private fun FlagLapBadge(period: FlagPeriodDto, lap: Int) {
+    val color = FlagStyle.color(period.periodType)
+    val label = period.periodType.badgeLabel()
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 2.dp, bottom = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = FlagStyle.icon(period.periodType),
+            contentDescription = null,
+            tint = color,
+            modifier = Modifier.size(14.dp),
+        )
+        Text(
+            text = stringResource(R.string.telemetry_flag_badge, label, lap),
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            modifier = Modifier.padding(start = 4.dp),
+        )
+    }
+}
+
+@Composable
+private fun FlagPeriodType.badgeLabel(): String = stringResource(
+    when (this) {
+        FlagPeriodType.YELLOW -> R.string.flag_type_yellow
+        FlagPeriodType.DOUBLE_YELLOW -> R.string.flag_type_double_yellow
+        FlagPeriodType.RED -> R.string.flag_type_red
+        FlagPeriodType.SAFETY_CAR -> R.string.flag_type_safety_car
+        FlagPeriodType.VIRTUAL_SAFETY_CAR -> R.string.flag_type_virtual_safety_car
+        FlagPeriodType.UNKNOWN -> R.string.flag_type_unknown
+    }
+)
 
 @Composable
 private fun TelemetryChartCard(

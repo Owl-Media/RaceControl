@@ -143,6 +143,12 @@ extension APIClient {
     func retirements(year: Int, round: Int) async throws -> RetirementsResponse {
         try await get("api/retirements/\(year)/\(round)", as: RetirementsResponse.self)
     }
+    func flags(year: Int, round: Int, session: String = "R") async throws -> FlagsResponse {
+        try await get("api/flags/\(year)/\(round)?session=\(session)", as: FlagsResponse.self)
+    }
+    func raceControl(year: Int, round: Int, session: String = "R") async throws -> RaceControlResponse {
+        try await get("api/racecontrol/\(year)/\(round)?session=\(session)", as: RaceControlResponse.self)
+    }
     func reliability(year: Int) async throws -> ReliabilityResponse {
         try await get("api/reliability/\(year)", as: ReliabilityResponse.self)
     }

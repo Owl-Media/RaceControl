@@ -8,8 +8,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navDeepLink
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
+import com.owlmedia.racecontrol.feature.analysis.FlagsScreen
 import com.owlmedia.racecontrol.feature.analysis.LapTimesScreen
 import com.owlmedia.racecontrol.feature.analysis.QualifyingScreen
+import com.owlmedia.racecontrol.feature.analysis.RaceControlScreen
 import com.owlmedia.racecontrol.feature.analysis.RetirementsScreen
 import com.owlmedia.racecontrol.feature.analysis.StrategyScreen
 import com.owlmedia.racecontrol.feature.analysis.TelemetryScreen
@@ -201,5 +203,13 @@ private fun NavGraphBuilder.analysisDestinations(navController: NavHostControlle
     composable<Routes.Retirements> { entry ->
         val route = entry.toRoute<Routes.Retirements>()
         RetirementsScreen(route.year, route.round, route.title, navController::popBackStack)
+    }
+    composable<Routes.Flags> { entry ->
+        val route = entry.toRoute<Routes.Flags>()
+        FlagsScreen(route.year, route.round, route.title, navController::popBackStack)
+    }
+    composable<Routes.RaceControl> { entry ->
+        val route = entry.toRoute<Routes.RaceControl>()
+        RaceControlScreen(route.year, route.round, route.title, navController::popBackStack)
     }
 }

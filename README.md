@@ -4,18 +4,22 @@ Modern, **native iOS and Android apps** for exploring historical Formula 1 data:
 teams, circuits, standings, full session results, and a **lap-by-lap race replay**, powered
 by the [FastF1](https://docs.fastf1.dev) library (2018–present).
 
-RaceControl is three pieces:
+RaceControl is four pieces:
 
 | Piece | Tech | Folder |
 |------|------|--------|
 | **iOS app** | Swift · SwiftUI (iOS 17+) | [`RaceControlApp/`](RaceControlApp/) |
 | **Android app** | Kotlin · Jetpack Compose (Android 8+) | [`RaceControlAndroid/`](RaceControlAndroid/) |
+| **Web app** | TypeScript · Next.js | [`RaceControlWeb/`](RaceControlWeb/) |
 | **Data backend** | Python · FastAPI · FastF1 | [`backend/`](backend/) |
 
-Same backend, same data, same features. The iOS and Android apps are independent, full
-native builds of the same idea, each following its own platform's conventions rather than
-one being a port of the other. FastF1 is a Python library (not a hosted web service), so the
-backend runs FastF1 on a server and exposes clean JSON over REST; both apps consume it.
+Same backend, same data, same features. The iOS, Android and web apps are independent
+clients of the same idea, each following its own platform's conventions rather than one
+being a port of another. FastF1 is a Python library (not a hosted web service), so the
+backend runs FastF1 on a server and exposes clean JSON over REST; all three apps consume it.
+The web app additionally fronts the backend with a small BFF layer (see
+[`RaceControlWeb/README.md`](RaceControlWeb/README.md)), since a browser can't do the device
+attestation the mobile apps use.
 
 [![Backend CI](https://github.com/Owl-Media/RaceControl/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Owl-Media/RaceControl/actions/workflows/backend-ci.yml)
 [![Android CI](https://github.com/Owl-Media/RaceControl/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Owl-Media/RaceControl/actions/workflows/android-ci.yml)
@@ -80,6 +84,8 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | GET | `/api/laptimes/{year}/{round}` | Per-driver lap-time series (evolution chart) |
 | GET | `/api/strategy/{year}/{round}` | Tyre stints & pit-stop counts per driver |
 | GET | `/api/weather/{year}/{round}/{session}` | Session weather summary |
+| GET | `/api/flags/{year}/{round}?session=R` | Track flags & safety-car history: raw race-control events plus collapsed lap-range periods (yellow/double-yellow/red/VSC/SC) for a flags timeline and chart overlays |
+| GET | `/api/racecontrol/{year}/{round}?session=R` | The complete race-control message log — flags and safety car, but also DRS enable/disable, car events, and investigations/penalties/reprimands — in chronological order |
 | GET | `/api/telemetry/{year}/{round}/{driver}` | Fastest-lap telemetry trace |
 | GET | `/api/telemetry-compare/{year}/{round}?d1=&d2=` | Two-driver telemetry overlay |
 | GET | `/api/racedrivers/{year}/{round}` | Driver list for a race (pickers) |
@@ -150,7 +156,20 @@ reachability and authentication.
 
 ---
 
-## 1c. Public app store distribution: device attestation (no user API keys)
+## 1c. Deploy the Web app to Coolify
+
+`RaceControlWeb/` also ships with a `Dockerfile` and deploys as a second, independent
+Coolify service from this same repo (**Base Directory:** `/RaceControlWeb`, **Port:** `3000`,
+**Health check path:** `/api/health`). It talks to the backend over
+`RACECONTROL_API_BASE_URL`, authorised with `RACECONTROL_API_TOKEN` set to the same value as
+the backend's `API_TOKEN` — prefer the backend's internal Coolify service DNS name (e.g.
+`http://backend:8000`) over its public URL so traffic stays inside Coolify's network. Full
+details, including local development, in
+[`RaceControlWeb/README.md`](RaceControlWeb/README.md).
+
+---
+
+## 1d. Public app store distribution: device attestation (no user API keys)
 
 A shared `API_TOKEN` can't ship in a public app: anything bundled in the IPA or
 APK can be extracted (for Android, that's a trivial decompile), so it wouldn't be
@@ -255,12 +274,33 @@ divergence and why.
 
 ---
 
+## 2c. Run the Web app
+
+Requirements: **Node 20+**.
+
+```bash
+cd RaceControlWeb
+cp .env.example .env.local   # RACECONTROL_API_BASE_URL=http://localhost:8000
+npm install
+npm run dev
+```
+
+Open **http://localhost:3000**. With the backend running locally with no auth configured
+(`./run.sh`'s default), leave `RACECONTROL_API_TOKEN` empty. See
+[`RaceControlWeb/README.md`](RaceControlWeb/README.md) for the BFF architecture and Coolify
+deployment steps.
+
+---
+
 ## 3. Features
 
-Identical on iOS and Android: same backend, same data, same feature set. Platform-specific
-implementation notes are called out inline; the full list of deliberate Android divergences
-(and the reasoning for each) is in
-[`RaceControlAndroid/docs/FEATURES.md`](RaceControlAndroid/docs/FEATURES.md).
+Largely identical across iOS, Android and Web: same backend, same data, same core feature
+set. Platform-specific implementation notes are called out inline; the full list of
+deliberate Android divergences (and the reasoning for each) is in
+[`RaceControlAndroid/docs/FEATURES.md`](RaceControlAndroid/docs/FEATURES.md). The web app
+intentionally leaves out session reminder notifications (see
+[`RaceControlWeb/README.md`](RaceControlWeb/README.md#notably-out-of-scope)) since there's no
+clean stateless-web equivalent.
 
 - **Races**: season calendar with an "up next" banner, sprint-weekend badges, and per-race
   results. Switch between Race / Qualifying / Sprint / Practice classifications. Each row
@@ -282,6 +322,14 @@ implementation notes are called out inline; the full list of deliberate Android 
   - **Qualifying**: Q1/Q2/Q3 breakdown with gap-to-pole.
   - **Weather**: air/track temps, humidity, wind, rainfall.
   - **Retirements**: non-finishers categorised by cause (mechanical / accident / DSQ).
+  - **Flags**: a lap-by-lap timeline of every flag and safety-car/VSC period issued
+    during the race, each with the lap it started/ended and the race-control message
+    explaining why. The same periods are banded onto the Lap Times chart, and the
+    Telemetry view flags whether the lap you're looking at was run under yellow,
+    safety car, VSC or red.
+  - **Race Control**: the full chronological race-control log — every message, not just
+    flags: DRS enabled/disabled, car events, and investigations/penalties/reprimands, with
+    the driver(s) involved where the message names one.
 - **Reliability** (Standings tab): season finish-rate and DNF-by-cause bars per driver & team.
 - **Head-to-head** (Drivers tab): pick two drivers and compare points, wins, podiums, poles,
   best finish, DNFs and their direct race/qualifying records.
@@ -311,12 +359,16 @@ Each app follows its own platform's conventions rather than copying the other's 
 flowchart LR
     iOS["iOS app<br/>SwiftUI · MVVM"]
     Android["Android app<br/>Compose · MVVM + Hilt"]
+    Browser["Browser"]
+    Web["Web app (BFF)<br/>Next.js"]
     Backend["Backend<br/>FastAPI<br/><i>response cache</i>"]
     FastF1["FastF1<br/><i>disk cache</i>"]
     Sources["F1 live-timing API<br/>Ergast / Jolpica DB"]
 
-    iOS -- HTTP/JSON --> Backend
-    Android -- HTTP/JSON --> Backend
+    iOS -- "HTTP/JSON<br/>(App Attest)" --> Backend
+    Android -- "HTTP/JSON<br/>(Play Integrity)" --> Backend
+    Browser -- HTTP --> Web
+    Web -- "HTTP/JSON<br/>(API_TOKEN)" --> Backend
     Backend --> FastF1
     FastF1 --> Sources
 ```
@@ -329,6 +381,10 @@ flowchart LR
   `Result<T>`. The equivalent permissive `JsonValue` type absorbs the same FastF1/Ergast
   number-vs-string inconsistency. Full package layout and component breakdown in
   [`RaceControlAndroid/README.md`](RaceControlAndroid/README.md).
+- **Web app:** Next.js App Router. Server Components fetch the backend directly through a
+  server-only helper; client components (season pickers, telemetry scrubbing, replay
+  playback) go through a same-origin proxy route so the backend's `API_TOKEN` never reaches
+  the browser. Full details in [`RaceControlWeb/README.md`](RaceControlWeb/README.md).
 - **Backend:** a thin serialisation layer (`fastf1_service.py`) converts pandas
   `Timedelta`/`Timestamp`/`NaN` values into JSON-safe output, wrapped by a small cached
   FastAPI app (`main.py`).

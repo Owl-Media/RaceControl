@@ -44,6 +44,26 @@ struct LapTimesChartView: View {
             .padding(.horizontal, Theme.Space.md)
 
             driverChips(data.drivers)
+
+            if !vm.flagPeriods.isEmpty {
+                flagLegend
+            }
+        }
+    }
+
+    private var flagLegend: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Theme.Space.md) {
+                ForEach(vm.flagPeriods) { period in
+                    HStack(spacing: 4) {
+                        Circle().fill(FlagStyle.color(period.type)).frame(width: 8, height: 8)
+                        Text("\(FlagStyle.label(period.type)) (\(period.startLap)–\(period.endLap))")
+                            .font(.caption2)
+                            .foregroundStyle(Theme.Palette.textSecondary)
+                    }
+                }
+            }
+            .padding(.horizontal, Theme.Space.md)
         }
     }
 
@@ -51,6 +71,14 @@ struct LapTimesChartView: View {
         let drivers = data.drivers.filter { vm.selected.contains($0.code) }
         let domain = vm.yDomain(for: drivers)
         return Chart {
+            // Flag / safety-car bands drawn behind the lap-time lines.
+            ForEach(vm.flagPeriods) { period in
+                RectangleMark(
+                    xStart: .value("Start", period.startLap),
+                    xEnd: .value("End", period.endLap + 1)
+                )
+                .foregroundStyle(FlagStyle.color(period.type).opacity(0.16))
+            }
             ForEach(drivers) { driver in
                 ForEach(vm.visibleLaps(driver), id: \.lap) { lp in
                     LineMark(
@@ -131,6 +159,7 @@ final class LapTimesViewModel: ObservableObject {
     @Published var state: Loadable<LapTimesResponse> = .idle
     @Published var selected: Set<String> = []
     @Published var hideOutliers = true
+    @Published var flagPeriods: [FlagPeriod] = []
 
     func load(year: Int, round: Int) async {
         if case .loaded = state { return }
@@ -142,6 +171,10 @@ final class LapTimesViewModel: ObservableObject {
             state = .loaded(data)
         } catch {
             state = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)
+        }
+        // Flag overlay is supplementary — failures here shouldn't block the chart.
+        if let flags = try? await APIClient.shared.flags(year: year, round: round) {
+            flagPeriods = flags.periods
         }
     }
 

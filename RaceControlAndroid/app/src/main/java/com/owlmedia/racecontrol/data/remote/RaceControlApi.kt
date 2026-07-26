@@ -7,7 +7,9 @@ import com.owlmedia.racecontrol.data.remote.dto.ConstructorStandingDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverDetailDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverStandingDto
+import com.owlmedia.racecontrol.data.remote.dto.FlagsResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.LapTimesResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.RaceControlResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceDriverDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceEventDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceReplayDto
@@ -137,6 +139,20 @@ interface RaceControlApi {
         @Path("year") year: Int,
         @Path("round") round: Int,
     ): RetirementsResponseDto
+
+    @GET("api/flags/{year}/{round}")
+    suspend fun flags(
+        @Path("year") year: Int,
+        @Path("round") round: Int,
+        @Query("session") session: String = "R",
+    ): FlagsResponseDto
+
+    @GET("api/racecontrol/{year}/{round}")
+    suspend fun raceControl(
+        @Path("year") year: Int,
+        @Path("round") round: Int,
+        @Query("session") session: String = "R",
+    ): RaceControlResponseDto
 
     @GET("api/reliability/{year}")
     suspend fun reliability(@Path("year") year: Int): ReliabilityResponseDto

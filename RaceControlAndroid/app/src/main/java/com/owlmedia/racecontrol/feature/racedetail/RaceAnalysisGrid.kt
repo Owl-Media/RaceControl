@@ -11,7 +11,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Cloud
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.PlayCircleFilled
@@ -46,7 +48,7 @@ import com.owlmedia.racecontrol.feature.circuits.TrackMap
  *
  * A three-column grid inside an already-scrolling column, so this is a plain
  * Column of Rows rather than a LazyVerticalGrid — nesting a lazy grid in a
- * scrollable parent is both an error and unnecessary for eight fixed items.
+ * scrollable parent is both an error and unnecessary for ten fixed items.
  */
 @Composable
 fun RaceAnalysisGrid(
@@ -65,6 +67,8 @@ fun RaceAnalysisGrid(
         AnalysisTile(R.string.analysis_track_map, Icons.Filled.Map, RcTheme.colors.textSecondary, Routes.TrackMap(year, round, title)),
         AnalysisTile(R.string.analysis_weather, Icons.Filled.Cloud, RcTheme.colors.info, Routes.Weather(year, round, title)),
         AnalysisTile(R.string.analysis_retirements, Icons.Filled.WarningAmber, RcTheme.colors.negative, Routes.Retirements(year, round, title)),
+        AnalysisTile(R.string.analysis_flags, Icons.Filled.Flag, RcTheme.colors.warning, Routes.Flags(year, round, title)),
+        AnalysisTile(R.string.analysis_race_control, Icons.Filled.Article, RcTheme.colors.info, Routes.RaceControl(year, round, title)),
     )
 
     Column(modifier = modifier.fillMaxWidth()) {

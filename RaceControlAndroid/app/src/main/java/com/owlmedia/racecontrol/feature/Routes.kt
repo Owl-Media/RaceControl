@@ -49,6 +49,8 @@ object Routes {
     @Serializable data class TrackMap(val year: Int, val round: Int, val title: String)
     @Serializable data class Weather(val year: Int, val round: Int, val title: String)
     @Serializable data class Retirements(val year: Int, val round: Int, val title: String)
+    @Serializable data class Flags(val year: Int, val round: Int, val title: String)
+    @Serializable data class RaceControl(val year: Int, val round: Int, val title: String)
 
     @Serializable data object Settings
 

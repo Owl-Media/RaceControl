@@ -34,6 +34,8 @@ import com.owlmedia.racecontrol.core.design.Dimens
 import com.owlmedia.racecontrol.core.design.RcTheme
 import com.owlmedia.racecontrol.core.design.legibleOnSurface
 import com.owlmedia.racecontrol.core.design.teamColor
+import com.owlmedia.racecontrol.core.design.FlagStyle
+import com.owlmedia.racecontrol.core.ui.ChartBand
 import com.owlmedia.racecontrol.core.ui.ChartDomain
 import com.owlmedia.racecontrol.core.ui.ChartPoint
 import com.owlmedia.racecontrol.core.ui.ChartSeries
@@ -44,6 +46,7 @@ import com.owlmedia.racecontrol.core.ui.RcDetailScaffold
 import com.owlmedia.racecontrol.core.ui.RcLineChart
 import com.owlmedia.racecontrol.core.ui.UiState
 import com.owlmedia.racecontrol.core.util.LapTimeFormat
+import com.owlmedia.racecontrol.data.remote.dto.FlagPeriodDto
 import com.owlmedia.racecontrol.data.remote.dto.LapTimeDriverDto
 import com.owlmedia.racecontrol.data.remote.dto.LapTimesResponseDto
 import com.owlmedia.racecontrol.data.repository.RaceControlRepository
@@ -68,6 +71,12 @@ class LapTimesViewModel @Inject constructor(
     private val _hideOutliers = MutableStateFlow(true)
     val hideOutliers: StateFlow<Boolean> = _hideOutliers.asStateFlow()
 
+    // Flag periods only band the chart; they are not the primary data for this
+    // screen, so a failed fetch is silently ignored rather than surfacing a
+    // second error state alongside the lap-time one.
+    private val _flagPeriods = MutableStateFlow<List<FlagPeriodDto>>(emptyList())
+    val flagPeriods: StateFlow<List<FlagPeriodDto>> = _flagPeriods.asStateFlow()
+
     fun load(year: Int, round: Int) {
         if (_state.value is UiState.Loaded) return
         viewModelScope.launch {
@@ -80,6 +89,9 @@ class LapTimesViewModel @Inject constructor(
                     _selected.value = data.drivers.take(6).map { it.code }.toSet()
                 }
                 .onFailure { _state.value = UiState.Failed(repository.messageFor(it)) }
+        }
+        viewModelScope.launch {
+            repository.flags(year, round).onSuccess { _flagPeriods.value = it.periods }
         }
     }
 
@@ -128,6 +140,7 @@ fun LapTimesScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val selected by viewModel.selected.collectAsStateWithLifecycle()
     val hideOutliers by viewModel.hideOutliers.collectAsStateWithLifecycle()
+    val flagPeriods by viewModel.flagPeriods.collectAsStateWithLifecycle()
 
     LaunchedEffect(year, round) { viewModel.load(year, round) }
 
@@ -169,6 +182,17 @@ fun LapTimesScreen(
                     LapTimeFormat.fromSeconds(value)
                 }
             }
+            // Widened half a lap either side so a one-lap period reads as a
+            // visible band rather than a hairline between two grid columns.
+            val bands = remember(flagPeriods) {
+                flagPeriods.map { period ->
+                    ChartBand(
+                        minX = period.startLap - 0.5,
+                        maxX = period.endLap + 0.5,
+                        color = FlagStyle.color(period.periodType).copy(alpha = 0.16f),
+                    )
+                }
+            }
 
             Column(
                 modifier = Modifier.padding(Dimens.MD),
@@ -193,6 +217,7 @@ fun LapTimesScreen(
                             domain = domain,
                             yAxisLabels = axisLabels,
                             height = 260.dp,
+                            bands = bands,
                         )
                     }
                 }

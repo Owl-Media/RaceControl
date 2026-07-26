@@ -163,6 +163,118 @@ data class TelemetryTraceDto(
     val maxDistance: Double get() = distance.lastOrNull() ?: 0.0
 }
 
+/* ---------------------------------------------------------------- flags/SC */
+
+@Serializable
+data class FlagsResponseDto(
+    val year: Int = 0,
+    val round: Int = 0,
+    val session: String = "",
+    val eventName: String? = null,
+    val totalLaps: Int = 0,
+    val events: List<FlagEventDto> = emptyList(),
+    val periods: List<FlagPeriodDto> = emptyList(),
+)
+
+/** One raw race-control message — the full timeline, for the detail view. */
+@Serializable
+data class FlagEventDto(
+    val time: String? = null,
+    val lap: Int? = null,
+    val category: String? = null,
+    val flag: String? = null,
+    val status: String? = null,
+    val scope: String? = null,
+    val sector: Int? = null,
+    val driverNumber: Int? = null,
+    val driverCode: String? = null,
+    val message: String? = null,
+)
+
+/** A collapsed yellow/red/safety-car span over an inclusive lap range. */
+@Serializable
+data class FlagPeriodDto(
+    val type: String = "",
+    val startLap: Int = 0,
+    val endLap: Int = 0,
+    val reason: String? = null,
+) {
+    val periodType: FlagPeriodType get() = FlagPeriodType.from(type)
+
+    /** True when [lap] falls inside this period's inclusive lap range. */
+    fun contains(lap: Int): Boolean = lap in startLap..endLap
+}
+
+enum class FlagPeriodType {
+    YELLOW, DOUBLE_YELLOW, RED, SAFETY_CAR, VIRTUAL_SAFETY_CAR, UNKNOWN;
+
+    companion object {
+        fun from(raw: String?): FlagPeriodType = when (raw?.uppercase()) {
+            "YELLOW" -> YELLOW
+            "DOUBLE_YELLOW" -> DOUBLE_YELLOW
+            "RED" -> RED
+            "SC" -> SAFETY_CAR
+            "VSC" -> VIRTUAL_SAFETY_CAR
+            else -> UNKNOWN
+        }
+    }
+}
+
+/**
+ * The period (if any) covering [lap]. Used to band a lap-time chart and to
+ * badge the telemetry screen with "Safety Car (lap 20)" for the lap on screen.
+ */
+fun List<FlagPeriodDto>.periodContaining(lap: Int?): FlagPeriodDto? =
+    lap?.let { l -> firstOrNull { it.contains(l) } }
+
+/* ---------------------------------------------------------- race control log */
+
+/**
+ * The complete, unfiltered race-control message log — [FlagsResponseDto] only
+ * carries FLAG/SAFETY-CAR category messages, this carries every category
+ * (DRS, car events, stewards' investigations/penalties, etc.) so the two
+ * screens are complementary rather than duplicating each other.
+ */
+@Serializable
+data class RaceControlResponseDto(
+    val year: Int = 0,
+    val round: Int = 0,
+    val session: String = "",
+    val eventName: String? = null,
+    val totalLaps: Int = 0,
+    val messages: List<RaceControlMessageDto> = emptyList(),
+)
+
+@Serializable
+data class RaceControlMessageDto(
+    val time: String? = null,
+    val lap: Int? = null,
+    val category: String? = null,
+    val flag: String? = null,
+    val status: String? = null,
+    val scope: String? = null,
+    val sector: Int? = null,
+    val driverNumber: String? = null,
+    val driverCode: String? = null,
+    val message: String? = null,
+) {
+    val categoryType: RaceControlCategory get() = RaceControlCategory.from(category)
+}
+
+enum class RaceControlCategory {
+    FLAG, SAFETY_CAR, DRS, CAR_EVENT, OTHER;
+
+    companion object {
+        fun from(raw: String?): RaceControlCategory = when (raw) {
+            "Flag" -> FLAG
+            "SafetyCar" -> SAFETY_CAR
+            "Drs" -> DRS
+            "CarEvent" -> CAR_EVENT
+            else -> OTHER
+        }
+    }
+}
+
 /* ------------------------------------------------------- race driver pickers */
 
 @Serializable

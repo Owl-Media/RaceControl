@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.size
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.owlmedia.racecontrol.core.ui.UiState
+import com.owlmedia.racecontrol.data.remote.dto.FlagPeriodDto
+import com.owlmedia.racecontrol.data.remote.dto.LapTimeDriverDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceDriverDto
 import com.owlmedia.racecontrol.data.remote.dto.TelemetryTraceDto
 import com.owlmedia.racecontrol.data.repository.RaceControlRepository
@@ -27,6 +29,9 @@ class TelemetryViewModel @Inject constructor(
     /** Three overlaid traces is the most that stays readable on a phone. */
     companion object {
         const val MAX_DRIVERS = 3
+
+        /** Sentinel the backend accepts for "this driver's quickest lap of the race". */
+        const val FASTEST_LAP = "fastest"
     }
 
     private val _drivers = MutableStateFlow<UiState<List<RaceDriverDto>>>(UiState.Idle)
@@ -51,6 +56,22 @@ class TelemetryViewModel @Inject constructor(
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
+    // Badges the "Safety Car (lap 20)" banner on the currently-viewed lap. A
+    // failed fetch just means no badge shows — telemetry itself still works.
+    private val _flagPeriods = MutableStateFlow<List<FlagPeriodDto>>(emptyList())
+    val flagPeriods: StateFlow<List<FlagPeriodDto>> = _flagPeriods.asStateFlow()
+
+    // Reuses the lap-times endpoint purely as a source of "which laps exist for
+    // this driver, with what time/compound" so the lap picker has something to
+    // list — this screen doesn't otherwise touch lap-time evolution.
+    private val _lapsByDriver = MutableStateFlow<Map<String, LapTimeDriverDto>>(emptyMap())
+    val lapsByDriver: StateFlow<Map<String, LapTimeDriverDto>> = _lapsByDriver.asStateFlow()
+
+    // Per-driver selected lap ("fastest" or a lap-number string, per the
+    // backend's `lap` query param). Absent entries default to fastest.
+    private val _selectedLaps = MutableStateFlow<Map<String, String>>(emptyMap())
+    val selectedLaps: StateFlow<Map<String, String>> = _selectedLaps.asStateFlow()
+
     private var playbackJob: Job? = null
     private var year: Int = 0
     private var round: Int = 0
@@ -65,6 +86,16 @@ class TelemetryViewModel @Inject constructor(
                 .onSuccess { _drivers.value = UiState.Loaded(it) }
                 .onFailure { _drivers.value = UiState.Failed(repository.messageFor(it)) }
         }
+        viewModelScope.launch {
+            repository.flags(year, round).onSuccess { _flagPeriods.value = it.periods }
+        }
+        // Supplementary, like flags: a failed fetch just means the lap picker
+        // only offers "Fastest" — telemetry itself still works.
+        viewModelScope.launch {
+            repository.lapTimes(year, round).onSuccess { data ->
+                _lapsByDriver.value = data.drivers.associateBy { it.code }
+            }
+        }
     }
 
     fun toggleDriver(code: String) {
@@ -74,6 +105,17 @@ class TelemetryViewModel @Inject constructor(
             current.size >= MAX_DRIVERS -> current
             else -> current + code
         }
+        if (code !in _selected.value) {
+            // Drop the stale lap choice so re-adding the driver later starts
+            // fresh at "Fastest" instead of resurrecting an old selection.
+            _selectedLaps.value = _selectedLaps.value - code
+        }
+        loadTraces()
+    }
+
+    /** [lap] is `"fastest"` or a lap-number string, per the backend's `lap` param. */
+    fun selectLap(code: String, lap: String) {
+        _selectedLaps.value = _selectedLaps.value + (code to lap)
         loadTraces()
     }
 
@@ -91,8 +133,9 @@ class TelemetryViewModel @Inject constructor(
 
             // Fetched in parallel: three sequential telemetry calls against a
             // cold backend is a genuinely long wait.
+            val laps = _selectedLaps.value
             val results = codes.map { code ->
-                async { repository.telemetry(year, round, code) }
+                async { repository.telemetry(year, round, code, laps[code] ?: FASTEST_LAP) }
             }.awaitAll()
 
             val loaded = results.mapNotNull { result ->
