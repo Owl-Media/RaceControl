@@ -1,5 +1,17 @@
 export function LoadingState({ label = "Loading…" }: { label?: string }) {
-  return <div className="py-16 text-center text-sm text-muted">{label}</div>;
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+      <span
+        role="status"
+        aria-label="Loading"
+        className="h-7 w-7 animate-spin rounded-full border-2 border-border border-t-racing-red"
+      />
+      <span className="text-sm text-muted">{label}</span>
+      <span className="max-w-xs text-xs text-muted/70">
+        First load can take up to a minute while race data is fetched fresh — it&apos;s cached and much faster after that.
+      </span>
+    </div>
+  );
 }
 
 export function ErrorState({ message = "Something went wrong." }: { message?: string }) {

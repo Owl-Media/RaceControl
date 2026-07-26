@@ -38,7 +38,16 @@ export async function callBackend<T>(
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new BackendError(res.status, body || res.statusText);
+    const contentType = res.headers.get("content-type") || "";
+    // A non-JSON (e.g. HTML) error body almost always means BASE_URL isn't
+    // pointing at the backend at all (misconfigured RACECONTROL_API_BASE_URL,
+    // wrong host, hitting this web app's own 404 page, etc.) rather than a
+    // real backend error — don't dump the whole page into the server logs.
+    const summary = contentType.includes("json") || contentType.includes("text/plain")
+      ? body.slice(0, 500)
+      : `non-JSON response (content-type: ${contentType || "unknown"}), ${body.length} bytes — ` +
+        `check RACECONTROL_API_BASE_URL points at the backend, not this app`;
+    throw new BackendError(res.status, summary || res.statusText);
   }
   return (await res.json()) as T;
 }
