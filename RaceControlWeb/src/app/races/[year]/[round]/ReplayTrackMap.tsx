@@ -1,48 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { createProjector, rotatePoints } from "@/lib/trackGeometry";
+import { REPLAY_TICK_MS } from "@/lib/replay";
 import type { CircuitMap, ReplayLapPositions } from "@/lib/types";
 
 const VB = 600;
-const TICK_MS = 700; // must match the lap-advance interval in ReplayTab
 
 export function ReplayTrackMap({
   circuit,
   lapPositions,
   driverTeamColors,
   playing,
-  tickKey,
 }: {
   circuit: CircuitMap | undefined;
   /** Position samples for the lap currently on screen, or undefined if unavailable. */
-  lapPositions: ReplayLapPositions | undefined;
-  driverTeamColors: Record<string, string | null>;
-  playing: boolean;
-  /** Changes every time the current lap changes, to restart the sub-lap animation. */
-  tickKey: number;
-}) {
-  // Remounting on tickKey gives each lap's animator a fresh sampleIndex of 0
-  // via useState's initializer, rather than resetting it with a setState
-  // call inside an effect (which triggers an avoidable extra render).
-  return (
-    <ReplayTrackMapAnimator
-      key={tickKey}
-      circuit={circuit}
-      lapPositions={lapPositions}
-      driverTeamColors={driverTeamColors}
-      playing={playing}
-    />
-  );
-}
-
-function ReplayTrackMapAnimator({
-  circuit,
-  lapPositions,
-  driverTeamColors,
-  playing,
-}: {
-  circuit: CircuitMap | undefined;
   lapPositions: ReplayLapPositions | undefined;
   driverTeamColors: Record<string, string | null>;
   playing: boolean;
@@ -54,29 +26,49 @@ function ReplayTrackMapAnimator({
     return { screenOutline: rotated.map((p) => proj.project(p)), projector: proj };
   }, [circuit]);
 
-  // Smoothly step through this lap's position samples over the same window
-  // the lap index advances on, so cars visibly move around the track between
-  // laps rather than teleporting once per tick.
-  const [sampleIndex, setSampleIndex] = useState(0);
+  const rotation = circuit?.rotation ?? 0;
+  const drivers = lapPositions ? Object.keys(lapPositions.positions) : [];
+
+  // Cars are animated imperatively (direct DOM writes via refs), not through
+  // React state, so a ~60fps loop never triggers a React re-render — this
+  // both keeps it smooth and avoids state-update ordering issues around
+  // pause/resume and lap changes.
+  const dotRefs = useRef<Record<string, SVGGElement | null>>({});
   const frameRef = useRef<number>(0);
 
   useEffect(() => {
-    if (!playing) return;
     const start = performance.now();
 
+    function place(fraction: number) {
+      if (!projector || !lapPositions) return;
+      for (const [code, pts] of Object.entries(lapPositions.positions)) {
+        const el = dotRefs.current[code];
+        if (!el || pts.length === 0) continue;
+        const idx = Math.min(pts.length - 1, Math.floor(fraction * pts.length));
+        const point = pts[idx];
+        if (!point) continue;
+        const [x, y] = point;
+        if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+        const [rotated] = rotatePoints([{ x, y }], rotation);
+        const screen = projector.project(rotated);
+        el.setAttribute("transform", `translate(${screen.x}, ${screen.y})`);
+      }
+    }
+
+    // Always place the first sample immediately (covers the paused case, and
+    // avoids a blank frame right as a new lap starts while playing).
+    place(0);
+
+    if (!playing) return;
+
     function step(now: number) {
-      const maxSamples = Math.max(
-        1,
-        ...Object.values(lapPositions?.positions ?? {}).map((pts) => pts.length),
-      );
-      const t = Math.min(1, (now - start) / TICK_MS);
-      setSampleIndex(Math.min(maxSamples - 1, Math.floor(t * maxSamples)));
+      const t = Math.min(1, (now - start) / REPLAY_TICK_MS);
+      place(t);
       if (t < 1) frameRef.current = requestAnimationFrame(step);
     }
     frameRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frameRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing]);
+  }, [playing, lapPositions, projector, rotation]);
 
   if (!projector || screenOutline.length === 0) {
     return (
@@ -99,27 +91,19 @@ function ReplayTrackMapAnimator({
         strokeLinecap="round"
       />
       {start && <circle cx={start.x} cy={start.y} r={6} fill="#f2f2f4" stroke="#0a0a0c" strokeWidth={2} />}
-      {lapPositions &&
-        Object.entries(lapPositions.positions).map(([code, pts]) => {
-          if (pts.length === 0) return null;
-          const idx = Math.min(pts.length - 1, sampleIndex);
-          const [x, y] = pts[idx];
-          const rotated = rotatePoints([{ x, y }], circuit!.rotation)[0];
-          const screen = projector.project(rotated);
-          const color = driverTeamColors[code] || "#6b6b72";
-          return (
-            <g
-              key={code}
-              style={{ transition: "transform 120ms linear" }}
-              transform={`translate(${screen.x}, ${screen.y})`}
-            >
-              <circle r={7} fill={color} stroke="#0a0a0c" strokeWidth={1.5} />
-              <text y={-11} textAnchor="middle" fontSize={9} fontWeight={600} fill="var(--foreground)">
-                {code}
-              </text>
-            </g>
-          );
-        })}
+      {drivers.map((code) => (
+        <g
+          key={code}
+          ref={(el) => {
+            dotRefs.current[code] = el;
+          }}
+        >
+          <circle r={7} fill={driverTeamColors[code] || "#6b6b72"} stroke="#0a0a0c" strokeWidth={1.5} />
+          <text y={-11} textAnchor="middle" fontSize={9} fontWeight={600} fill="var(--foreground)">
+            {code}
+          </text>
+        </g>
+      ))}
     </svg>
   );
 }

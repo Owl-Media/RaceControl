@@ -6,6 +6,7 @@ import { useReplay, useReplayPositions, useCircuitMap } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState, TeamColorDot } from "@/components/StateViews";
 import { TyreLegend } from "@/components/TyreLegend";
 import { compoundColor } from "@/lib/tyres";
+import { REPLAY_TICK_MS } from "@/lib/replay";
 import type { ReplayLapPositions } from "@/lib/types";
 import { ReplayTrackMap } from "./ReplayTrackMap";
 
@@ -41,7 +42,7 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
         }
         return i + 1;
       });
-    }, 700);
+    }, REPLAY_TICK_MS);
     return () => clearInterval(id);
   }, [playing, frames.length]);
 
@@ -81,7 +82,6 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
           lapPositions={frame ? positionsByLap.get(frame.lap) : undefined}
           driverTeamColors={driverTeamColors}
           playing={playing}
-          tickKey={lapIndex}
         />
       </div>
 
