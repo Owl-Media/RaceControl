@@ -355,6 +355,12 @@ def replay(year: int, rnd: int) -> Any:
     return cached(key, lambda: _guard(lambda: svc.get_race_replay(year, rnd), "replay"))
 
 
+@app.get("/api/replay-positions/{year}/{rnd}")
+def replay_positions(year: int, rnd: int) -> Any:
+    key = f"replaypos:{year}:{rnd}"
+    return cached(key, lambda: _guard(lambda: svc.get_replay_positions(year, rnd), "replay positions"))
+
+
 @app.get("/api/laptimes/{year}/{rnd}")
 def laptimes(year: int, rnd: int) -> Any:
     key = f"laptimes:{year}:{rnd}"

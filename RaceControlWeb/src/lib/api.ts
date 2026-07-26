@@ -13,6 +13,7 @@ import type {
   LapTimesResponse,
   RaceDriver,
   RaceReplay,
+  ReplayPositions,
   RaceControlResponse,
   ReliabilityResponse,
   RetirementsResponse,
@@ -66,6 +67,8 @@ export const useTeamDetail = (year: number, teamId: string | null) =>
 export const useCircuits = (year: number) => useApi<Circuit[]>(`/api/circuits/${year}`);
 export const useCircuitMap = (year: number, rnd: number) => useApi<CircuitMap>(`/api/circuit/${year}/${rnd}`);
 export const useReplay = (year: number, rnd: number) => useApi<RaceReplay>(`/api/replay/${year}/${rnd}`);
+export const useReplayPositions = (year: number, rnd: number) =>
+  useApi<ReplayPositions>(`/api/replay-positions/${year}/${rnd}`);
 export const useLapTimes = (year: number, rnd: number) => useApi<LapTimesResponse>(`/api/laptimes/${year}/${rnd}`);
 export const useStrategy = (year: number, rnd: number) => useApi<StrategyResponse>(`/api/strategy/${year}/${rnd}`);
 export const useWeather = (year: number, rnd: number, session: string) =>

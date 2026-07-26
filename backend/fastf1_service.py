@@ -704,6 +704,63 @@ def get_race_replay(year: int, rnd: int) -> dict[str, Any]:
     }
 
 
+def get_replay_positions(year: int, rnd: int, points_per_lap: int = 6) -> dict[str, Any]:
+    """Per-driver car X/Y positions, sampled at a handful of points across
+    every lap, for animating cars moving around the track outline in the
+    race replay (paired with `/api/circuit/{year}/{round}` for the track
+    shape). Uses the lightweight position-only channel (`Lap.get_pos_data`)
+    rather than full merged car telemetry, since only X/Y is needed here.
+    """
+    session = _load_session(year, rnd, "R", with_laps=True, with_telemetry=True)
+    meta = _driver_meta(session)
+    payload: dict[str, Any] = {
+        "year": year, "round": rnd,
+        "eventName": _clean(session.event.get("EventName")),
+        "totalLaps": 0,
+        "drivers": [{"code": k, **v} for k, v in meta.items()],
+        "laps": [],
+    }
+    try:
+        laps = session.laps
+        if laps is None or not len(laps):
+            return payload
+    except Exception as exc:  # noqa: BLE001
+        log.warning("replay positions unavailable %s r%s: %s", year, rnd, exc)
+        return payload
+
+    total_laps = int(laps["LapNumber"].max()) if len(laps) else 0
+    payload["totalLaps"] = total_laps
+
+    by_lap: dict[int, dict[str, list]] = {}
+    abbrs = sorted(set(laps["Driver"].dropna()))
+    for abbr in abbrs:
+        d_laps = laps.pick_drivers(abbr)
+        lap_numbers = sorted({int(n) for n in d_laps["LapNumber"].dropna()})
+        for lap_no in lap_numbers:
+            subset = d_laps[d_laps["LapNumber"] == lap_no]
+            if not len(subset):
+                continue
+            lap = subset.iloc[0]
+            try:
+                pos = lap.get_pos_data()
+            except Exception:  # noqa: BLE001
+                continue
+            if pos is None or not len(pos) or "X" not in pos or "Y" not in pos:
+                continue
+            step = max(1, len(pos) // points_per_lap)
+            sampled = pos.iloc[::step]
+            pts = [
+                [round(float(x)), round(float(y))]
+                for x, y in zip(sampled["X"], sampled["Y"])
+                if not (math.isnan(x) or math.isnan(y))
+            ]
+            if pts:
+                by_lap.setdefault(lap_no, {})[abbr] = pts
+
+    payload["laps"] = [{"lap": n, "positions": by_lap[n]} for n in sorted(by_lap.keys())]
+    return payload
+
+
 # --------------------------------------------------------------------------- #
 #  Driver metadata helper (colours / names) from a session's results
 # --------------------------------------------------------------------------- #

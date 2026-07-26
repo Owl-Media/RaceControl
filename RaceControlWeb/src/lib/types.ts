@@ -195,6 +195,21 @@ export interface RaceReplay {
   frames: ReplayFrame[];
 }
 
+export interface ReplayLapPositions {
+  lap: number;
+  /** Driver code -> a handful of [x, y] samples spanning that lap, in order. */
+  positions: Record<string, [number, number][]>;
+}
+
+export interface ReplayPositions {
+  year: number;
+  round: number;
+  eventName: string | null;
+  totalLaps: number;
+  drivers: { code: string; driverId: string | null; fullName: string | null; teamName: string | null; teamColor: string | null; number: string | null }[];
+  laps: ReplayLapPositions[];
+}
+
 export interface LapTimeEntry {
   lap: number;
   timeMs: number;

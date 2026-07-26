@@ -81,6 +81,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | GET | `/api/circuits/{year}` | Circuits visited that season |
 | GET | `/api/circuit/{year}/{round}` | Track outline + corners, length & fastest lap |
 | GET | `/api/replay/{year}/{round}` | **Lap-by-lap running order** for the replay |
+| GET | `/api/replay-positions/{year}/{round}` | Per-driver car X/Y positions sampled across each lap, for animating cars around the track outline (`/api/circuit/{year}/{round}`) during replay |
 | GET | `/api/laptimes/{year}/{round}` | Per-driver lap-time series (evolution chart) |
 | GET | `/api/strategy/{year}/{round}` | Tyre stints & pit-stop counts per driver |
 | GET | `/api/weather/{year}/{round}/{session}` | Session weather summary |

@@ -2,6 +2,7 @@
 
 import { useStrategy } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState, TeamColorDot } from "@/components/StateViews";
+import { TyreLegend } from "@/components/TyreLegend";
 import { compoundColor } from "@/lib/tyres";
 
 export function StrategyTab({ year, round }: { year: number; round: number }) {
@@ -35,13 +36,8 @@ export function StrategyTab({ year, round }: { year: number; round: number }) {
           <span className="tabular w-20 shrink-0 text-right text-xs text-muted">{d.pitStops} stop{d.pitStops === 1 ? "" : "s"}</span>
         </div>
       ))}
-      <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted">
-        {["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"].map((c) => (
-          <span key={c} className="flex items-center gap-1.5">
-            <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: compoundColor(c) }} />
-            {c}
-          </span>
-        ))}
+      <div className="mt-2">
+        <TyreLegend />
       </div>
     </div>
   );
