@@ -20,6 +20,7 @@ from functools import lru_cache
 from typing import Any, Optional
 
 import fastf1
+import numpy as np
 import pandas as pd
 from fastf1.ergast import Ergast
 
@@ -570,15 +571,41 @@ def get_circuit_map(year: int, rnd: int) -> dict[str, Any]:
         # cumulative distance along the lap — everything we need to draw a
         # speed-coloured racing line with DRS zones and an elevation profile.
         tel = lap.get_telemetry()
-        step = max(1, len(tel) // 350)  # cap resolution for the wire
-        tel = tel.iloc[::step]
 
-        xs = tel["X"].to_numpy()
-        ys = tel["Y"].to_numpy()
-        zs = tel["Z"].to_numpy() if "Z" in tel else [0.0] * len(xs)
-        speeds = tel["Speed"].to_numpy()
-        drs = tel["DRS"].to_numpy() if "DRS" in tel else [0] * len(xs)
-        dist = tel["Distance"].to_numpy() if "Distance" in tel else range(len(xs))
+        xs_full = tel["X"].to_numpy(dtype=float)
+        ys_full = tel["Y"].to_numpy(dtype=float)
+        zs_full = tel["Z"].to_numpy(dtype=float) if "Z" in tel else np.zeros(len(xs_full))
+        speeds_full = tel["Speed"].to_numpy(dtype=float)
+        drs_full = tel["DRS"].to_numpy(dtype=float) if "DRS" in tel else np.zeros(len(xs_full))
+        dist_full = (
+            tel["Distance"].to_numpy(dtype=float)
+            if "Distance" in tel
+            else np.arange(len(xs_full), dtype=float)
+        )
+
+        # `get_telemetry()` merges the low-frequency (~3.7Hz) position channel
+        # onto the much higher-frequency car-data channel, which holds each
+        # position sample across many rows until the next real update. Taking
+        # every Nth row (uniform in *time*) over-samples those held stretches
+        # and under-samples the transitions between them — this is what was
+        # drawing straight polygon edges through corners instead of a smooth
+        # curve (worse on tracks with more low/medium-speed corners, where
+        # the car dwells at nearly the same position for longer). Resampling
+        # at fixed steps of *distance* along the lap fixes this everywhere,
+        # regardless of how the source data happened to be time-sampled.
+        TARGET_POINTS = 350
+        if len(dist_full) > 1 and dist_full[-1] > dist_full[0]:
+            order = np.argsort(dist_full, kind="stable")
+            d_sorted = dist_full[order]
+            targets = np.linspace(d_sorted[0], d_sorted[-1], TARGET_POINTS)
+            xs = np.interp(targets, d_sorted, xs_full[order])
+            ys = np.interp(targets, d_sorted, ys_full[order])
+            zs = np.interp(targets, d_sorted, zs_full[order])
+            speeds = np.interp(targets, d_sorted, speeds_full[order])
+            drs = np.round(np.interp(targets, d_sorted, drs_full[order]))
+            dist = targets
+        else:
+            xs, ys, zs, speeds, drs, dist = xs_full, ys_full, zs_full, speeds_full, drs_full, dist_full
 
         points = []
         for x, y, z, sp, dr, ds in zip(xs, ys, zs, speeds, drs, dist):
