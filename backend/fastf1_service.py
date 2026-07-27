@@ -539,6 +539,80 @@ def get_circuits(year: int) -> list[dict[str, Any]]:
     return out
 
 
+def _distinct_xy_count(tel: Any) -> int:
+    """How many genuinely distinct (X, Y) samples a telemetry frame contains.
+
+    `get_telemetry()` merges the low-frequency position channel onto the
+    high-frequency car-data channel, holding/interpolating position between
+    real updates — so row count says nothing about real positional detail.
+    Counting distinct rounded coordinate pairs does.
+    """
+    try:
+        if tel is None or len(tel) == 0 or "X" not in tel or "Y" not in tel:
+            return 0
+        xy = np.column_stack([
+            np.round(tel["X"].to_numpy(dtype=float), 1),
+            np.round(tel["Y"].to_numpy(dtype=float), 1),
+        ])
+        return int(len(np.unique(xy, axis=0)))
+    except Exception:  # noqa: BLE001
+        return 0
+
+
+# Below this many distinct position samples, a lap's trace is too coarse to
+# draw a recognisable track outline (a ~5km lap needs hundreds; a degraded
+# trace can be as low as ~20, which renders as a polygon).
+_MIN_OUTLINE_SAMPLES = 200
+# Cap how many candidate laps we pull telemetry for — each is an expensive
+# merge, and in practice a good lap turns up almost immediately.
+_MAX_OUTLINE_CANDIDATES = 8
+
+
+def _pick_outline_lap(laps: Any) -> tuple[Any, Any, int]:
+    """Choose a lap whose position trace is detailed enough to draw the track.
+
+    Tries the fastest lap first (best racing line), then falls back to other
+    laps, keeping whichever has the most distinct position samples. Returns
+    (lap, telemetry, distinct_sample_count).
+    """
+    candidates = []
+    try:
+        fastest = laps.pick_fastest()
+        if fastest is not None:
+            candidates.append(fastest)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("pick_fastest failed: %s", exc)
+
+    best_lap = best_tel = None
+    best_count = 0
+    try:
+        for _, other in laps.iterrows():
+            if len(candidates) >= _MAX_OUTLINE_CANDIDATES:
+                break
+            candidates.append(other)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("lap iteration failed: %s", exc)
+
+    for candidate in candidates:
+        try:
+            tel = candidate.get_telemetry()
+        except Exception as exc:  # noqa: BLE001
+            log.warning("telemetry unavailable for candidate lap: %s", exc)
+            continue
+        count = _distinct_xy_count(tel)
+        if count > best_count:
+            best_lap, best_tel, best_count = candidate, tel, count
+        if count >= _MIN_OUTLINE_SAMPLES:
+            break  # good enough; don't pay for more merges
+
+    if best_count and best_count < _MIN_OUTLINE_SAMPLES:
+        log.warning(
+            "circuit outline built from a sparse position trace (%s distinct samples); "
+            "corners will look angular", best_count,
+        )
+    return best_lap, best_tel, best_count
+
+
 def get_circuit_map(year: int, rnd: int) -> dict[str, Any]:
     """Track outline + corner markers derived from a fast lap's position trace.
 
@@ -560,17 +634,32 @@ def get_circuit_map(year: int, rnd: int) -> dict[str, Any]:
         "minElevation": None,
         "maxElevation": None,
         "fastestLap": None,
+        # Diagnostic: how many genuinely distinct position samples the chosen
+        # lap's trace contained. A low number here (vs. hundreds) means the
+        # source telemetry was too coarse to draw smooth corners, which is a
+        # data-availability issue rather than a rendering one.
+        "outlineSamples": 0,
     }
     try:
         laps = session.laps
         if laps is None or not len(laps):
             return payload  # session not available / no timing data
-        lap = laps.pick_fastest()
 
         # Merged telemetry gives X/Y/Z position aligned with speed, DRS and the
         # cumulative distance along the lap — everything we need to draw a
         # speed-coloured racing line with DRS zones and an elevation profile.
-        tel = lap.get_telemetry()
+        #
+        # The fastest lap is the natural choice, but its *position* channel is
+        # sometimes badly degraded (only a couple of dozen genuine samples for
+        # the whole lap, with everything between them held constant). That
+        # renders as a hard-edged polygon: no resampling or curve smoothing
+        # downstream can recover a corner shape that was never in the source.
+        # So verify the chosen lap actually has a well-populated position
+        # trace, and fall back to the richest lap available if it doesn't.
+        lap, tel, distinct_samples = _pick_outline_lap(laps)
+        if lap is None or tel is None:
+            return payload
+        payload["outlineSamples"] = distinct_samples
 
         xs_full = tel["X"].to_numpy(dtype=float)
         ys_full = tel["Y"].to_numpy(dtype=float)

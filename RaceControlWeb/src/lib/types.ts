@@ -159,6 +159,9 @@ export interface CircuitMap {
   lengthMeters: number | null;
   minElevation: number | null;
   maxElevation: number | null;
+  /** Distinct position samples behind the outline; low values (vs. hundreds)
+   * mean the source telemetry was too coarse to draw smooth corners. */
+  outlineSamples?: number;
   fastestLap: {
     driver: string | null;
     driverName: string | null;

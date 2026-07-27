@@ -141,6 +141,107 @@ def test_point_density_scales_with_track_length(monkeypatch):
     assert len(out["outline"]) <= 1600  # stays under the sanity cap
 
 
+def _polygon_telemetry(vertices=20, rows_per_edge=300, length_m=4400.0):
+    """A degraded position trace: only `vertices` genuinely distinct samples,
+    each held constant across many rows (what a sparse pos-data merge looks
+    like). Renders as a hard-edged polygon no matter how it's resampled."""
+    xs, ys, dists = [], [], []
+    for v in range(vertices):
+        angle = 2 * np.pi * v / vertices
+        vx, vy = np.cos(angle) * 1000, np.sin(angle) * 1000
+        for _ in range(rows_per_edge):
+            xs.append(vx)
+            ys.append(vy)
+    n = len(xs)
+    dists = list(np.linspace(0, length_m, n))
+    return pd.DataFrame({
+        "X": xs, "Y": ys, "Z": [0.0] * n,
+        "Speed": [200.0] * n, "DRS": [0] * n, "Distance": dists,
+    })
+
+
+def _circle_telemetry(samples=1200, length_m=4400.0):
+    """A healthy trace: hundreds of distinct position samples."""
+    angles = np.linspace(0, 2 * np.pi, samples)
+    return pd.DataFrame({
+        "X": np.cos(angles) * 1000,
+        "Y": np.sin(angles) * 1000,
+        "Z": np.zeros(samples),
+        "Speed": np.full(samples, 200.0),
+        "DRS": np.zeros(samples),
+        "Distance": np.linspace(0, length_m, samples),
+    })
+
+
+def test_distinct_xy_count_ignores_held_duplicate_rows():
+    # 6000 rows but only 20 genuinely distinct positions.
+    assert svc._distinct_xy_count(_polygon_telemetry(vertices=20)) == 20
+    assert svc._distinct_xy_count(_circle_telemetry(samples=1200)) > 900
+
+
+def test_falls_back_from_sparse_fastest_lap_to_richer_lap(monkeypatch):
+    # The fastest lap has a degraded position trace (20 distinct samples);
+    # another lap has a healthy one. The outline must come from the healthy
+    # lap, not the fastest — otherwise corners render as polygon vertices.
+    sparse = _FakeLap(_polygon_telemetry(vertices=20))
+    rich = _FakeLap(_circle_telemetry(samples=1200))
+
+    class _Laps:
+        def __len__(self):
+            return 2
+
+        def pick_fastest(self):
+            return sparse
+
+        def iterrows(self):
+            return iter([(0, sparse), (1, rich)])
+
+    session = SimpleNamespace(
+        event={"EventName": "Test Grand Prix", "Location": "Testville", "Country": "Testland"},
+        laps=_Laps(),
+        get_driver=lambda abbr: {"FullName": "Max Verstappen", "TeamName": "Red Bull Racing", "TeamColor": "3671C6"},
+        get_circuit_info=lambda: SimpleNamespace(rotation=0.0, corners=pd.DataFrame(columns=["Number", "Letter"])),
+    )
+    monkeypatch.setattr(svc, "_load_session", lambda *a, **k: session)
+
+    out = svc.get_circuit_map(2024, 1)
+    assert out["outlineSamples"] > 900, "should have selected the rich lap"
+
+    # And the resulting outline should trace a genuine circle, not a 20-gon:
+    # every point sits close to radius 1000 from the centre.
+    xs = np.array([p["x"] for p in out["outline"]])
+    ys = np.array([p["y"] for p in out["outline"]])
+    radii = np.hypot(xs, ys)
+    assert radii.min() > 995, "a polygon's edges would cut well inside the radius"
+
+
+def test_sparse_trace_is_reported_in_outline_samples(monkeypatch):
+    # When *every* lap is degraded there's nothing better to pick, but the
+    # payload must still report the low sample count so the cause is visible.
+    sparse = _FakeLap(_polygon_telemetry(vertices=20))
+
+    class _Laps:
+        def __len__(self):
+            return 1
+
+        def pick_fastest(self):
+            return sparse
+
+        def iterrows(self):
+            return iter([(0, sparse)])
+
+    session = SimpleNamespace(
+        event={"EventName": "Test Grand Prix", "Location": "Testville", "Country": "Testland"},
+        laps=_Laps(),
+        get_driver=lambda abbr: {"FullName": "Max Verstappen", "TeamName": "Red Bull Racing", "TeamColor": "3671C6"},
+        get_circuit_info=lambda: SimpleNamespace(rotation=0.0, corners=pd.DataFrame(columns=["Number", "Letter"])),
+    )
+    monkeypatch.setattr(svc, "_load_session", lambda *a, **k: session)
+
+    out = svc.get_circuit_map(2024, 1)
+    assert out["outlineSamples"] == 20
+
+
 def test_empty_session_returns_empty_outline(monkeypatch):
     laps = SimpleNamespace(__len__=lambda self=None: 0)
 
