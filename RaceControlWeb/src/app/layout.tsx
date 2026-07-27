@@ -41,13 +41,14 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      {/* min-h-dvh (dynamic viewport height), not min-h-full/100vh: on mobile
-          browsers the viewport height changes as the address bar shows/hides
-          while scrolling, and dvh tracks that instead of leaving stale space.
-          Combined with MobileTabBar's `sticky` (not `fixed`) positioning
-          below, this keeps the bottom tab bar a stable size instead of
-          visibly resizing mid-scroll on Android Chrome. */}
-      <body className="min-h-dvh flex flex-col bg-background text-foreground">
+      {/* min-h-full (static), deliberately NOT min-h-dvh: dvh is defined to
+          track the browser's dynamic toolbar live, which just re-introduces
+          the resize-while-scrolling problem via our own layout instead of
+          the old `fixed` bar — the body itself would grow/shrink as the
+          toolbar animates. A static height means MobileTabBar's `sticky`
+          positioning (see NavBar.tsx) settles into place once and doesn't
+          get pushed around by toolbar animation frames. */}
+      <body className="min-h-full flex flex-col bg-background text-foreground">
         <FavoritesProvider>
           <HelpDrawerProvider>
             <NavBar />
