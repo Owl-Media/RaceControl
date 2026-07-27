@@ -163,8 +163,16 @@ function MostRecentRaceCard({
               <p className="truncate text-sm text-muted">
                 {event.location}, {event.country}
               </p>
-              <p className="tabular mt-1 text-sm text-muted">{formatDateTime(event.date)}</p>
+              <p className="tabular mt-1 text-sm text-muted">
+                {formatDateTime(event.sessions.find((s) => s.identifier === "R")?.date ?? event.date)}
+              </p>
               <WeatherSummary weather={weather} isLoading={weatherLoading} />
+              {circuitLoading && (
+                <p className="mt-2 max-w-xs text-xs text-muted/70">
+                  First load can take up to a minute while race data is fetched fresh — it&apos;s cached and much
+                  faster after that.
+                </p>
+              )}
             </>
           ) : (
             <p className="text-sm text-muted">No races completed yet this season.</p>

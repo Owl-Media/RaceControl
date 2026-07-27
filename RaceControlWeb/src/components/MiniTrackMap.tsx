@@ -35,7 +35,15 @@ export function MiniTrackMap({
   }, [circuit]);
 
   if (isLoading) {
-    return <div className={`animate-pulse rounded-md bg-surface-raised ${className}`} />;
+    return (
+      <div className={`flex flex-col items-center justify-center gap-1.5 rounded-md bg-surface-raised ${className}`}>
+        <span
+          role="status"
+          aria-label="Loading"
+          className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-racing-red"
+        />
+      </div>
+    );
   }
 
   if (screenOutline.length === 0) return null;

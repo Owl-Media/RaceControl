@@ -2,7 +2,7 @@ const LINK_CLASS = "underline decoration-border underline-offset-2 transition-co
 
 export function Footer() {
   return (
-    <footer className="border-t border-border pb-20 sm:pb-6">
+    <footer className="border-t border-border pb-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-1.5 px-4 py-6 text-xs leading-relaxed text-muted">
         <p>
           Race data powered by{" "}
