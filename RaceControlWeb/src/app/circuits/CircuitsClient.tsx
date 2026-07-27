@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useYearParam } from "@/lib/useYearParam";
 import { useSchedule } from "@/lib/api";
 import { SeasonPicker } from "@/components/SeasonPicker";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
+import { RaceListRow, UpcomingBadge } from "@/components/RaceListRow";
+import { formatDate } from "@/lib/format";
 
 export function CircuitsClient({ defaultYear }: { defaultYear: number }) {
   const [year, setYear] = useYearParam(defaultYear);
@@ -26,10 +27,7 @@ export function CircuitsClient({ defaultYear }: { defaultYear: number }) {
         <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {races.map((race) => (
             <li key={race.round}>
-              <Link
-                href={`/circuits/${year}/${race.round}`}
-                className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 transition-colors hover:bg-surface-raised"
-              >
+              <RaceListRow href={`/circuits/${year}/${race.round}`} upcoming={!race.completed}>
                 <span className="tabular w-8 shrink-0 text-sm text-muted">R{race.round}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{race.name}</p>
@@ -37,7 +35,13 @@ export function CircuitsClient({ defaultYear }: { defaultYear: number }) {
                     {race.location}, {race.country}
                   </p>
                 </div>
-              </Link>
+                {!race.completed && (
+                  <>
+                    <span className="tabular shrink-0 text-sm text-muted">{formatDate(race.date)}</span>
+                    <UpcomingBadge />
+                  </>
+                )}
+              </RaceListRow>
             </li>
           ))}
         </ul>

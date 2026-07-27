@@ -1,11 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import clsx from "clsx";
 import { useYearParam } from "@/lib/useYearParam";
 import { useSchedule } from "@/lib/api";
 import { SeasonPicker } from "@/components/SeasonPicker";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
+import { RaceListRow, UpcomingBadge } from "@/components/RaceListRow";
 import { formatDate } from "@/lib/format";
 
 export function ScheduleClient({ defaultYear }: { defaultYear: number }) {
@@ -29,10 +29,7 @@ export function ScheduleClient({ defaultYear }: { defaultYear: number }) {
             .filter((e) => e.round > 0)
             .map((event) => (
               <li key={event.round}>
-                <Link
-                  href={`/races/${year}/${event.round}`}
-                  className="flex items-center gap-4 rounded-lg border border-border bg-surface px-4 py-3 transition-colors hover:bg-surface-raised"
-                >
+                <RaceListRow href={`/races/${year}/${event.round}`} upcoming={!event.completed}>
                   <span className="tabular w-8 shrink-0 text-sm text-muted">R{event.round}</span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{event.name}</p>
@@ -48,12 +45,8 @@ export function ScheduleClient({ defaultYear }: { defaultYear: number }) {
                   >
                     {formatDate(event.date)}
                   </span>
-                  {!event.completed && (
-                    <span className="shrink-0 rounded-full bg-racing-red/15 px-2 py-0.5 text-xs font-semibold text-racing-red">
-                      Upcoming
-                    </span>
-                  )}
-                </Link>
+                  {!event.completed && <UpcomingBadge />}
+                </RaceListRow>
               </li>
             ))}
         </ol>
