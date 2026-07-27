@@ -593,11 +593,19 @@ def get_circuit_map(year: int, rnd: int) -> dict[str, Any]:
         # the car dwells at nearly the same position for longer). Resampling
         # at fixed steps of *distance* along the lap fixes this everywhere,
         # regardless of how the source data happened to be time-sampled.
-        TARGET_POINTS = 350
+        #
+        # 350 points over a ~4-5km lap is only one sample every ~12-15m,
+        # which is too coarse for a tight, short-radius corner (e.g. a
+        # hairpin with a ~20m arc through the turn) — that corner ends up
+        # captured by only 1-2 samples, so no amount of curve smoothing on
+        # the frontend can round it out; there's simply nothing to smooth
+        # between. Raising the target spacing to ~4m gives several samples
+        # through even the tightest corners.
         if len(dist_full) > 1 and dist_full[-1] > dist_full[0]:
+            target_points = max(350, min(1600, round((dist_full[-1] - dist_full[0]) / 4)))
             order = np.argsort(dist_full, kind="stable")
             d_sorted = dist_full[order]
-            targets = np.linspace(d_sorted[0], d_sorted[-1], TARGET_POINTS)
+            targets = np.linspace(d_sorted[0], d_sorted[-1], target_points)
             xs = np.interp(targets, d_sorted, xs_full[order])
             ys = np.interp(targets, d_sorted, ys_full[order])
             zs = np.interp(targets, d_sorted, zs_full[order])

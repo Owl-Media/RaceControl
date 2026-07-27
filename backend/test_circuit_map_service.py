@@ -115,6 +115,32 @@ def test_outline_resampled_by_distance_not_time_row(monkeypatch):
     assert (xs > 500).sum() > 50
 
 
+def _long_lap_telemetry(length_m=4400.0, raw_rows=6000):
+    xs = np.linspace(0, length_m, raw_rows)
+    return pd.DataFrame({
+        "X": xs,
+        "Y": np.zeros(raw_rows),
+        "Z": np.zeros(raw_rows),
+        "Speed": np.full(raw_rows, 200.0),
+        "DRS": np.zeros(raw_rows),
+        "Distance": xs,
+    })
+
+
+def test_point_density_scales_with_track_length(monkeypatch):
+    # A realistic ~4.4km lap should get noticeably more than the old fixed
+    # 350-point budget, since 350 points over that distance (~12.5m/sample)
+    # is too coarse to resolve a short, tight corner — this is what left
+    # corners looking like sharp polygon vertices even after the distance-
+    # uniform resampling fix, until the point count itself was raised too.
+    session = _stub_session(_long_lap_telemetry())
+    monkeypatch.setattr(svc, "_load_session", lambda *a, **k: session)
+
+    out = svc.get_circuit_map(2024, 1)
+    assert len(out["outline"]) > 900  # ~4400m / 4m spacing, well above 350
+    assert len(out["outline"]) <= 1600  # stays under the sanity cap
+
+
 def test_empty_session_returns_empty_outline(monkeypatch):
     laps = SimpleNamespace(__len__=lambda self=None: 0)
 
