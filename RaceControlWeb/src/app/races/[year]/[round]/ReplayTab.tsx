@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import clsx from "clsx";
 import { motion, AnimatePresence } from "motion/react";
 import { useReplay, useReplayPositions, useCircuitMap } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState, TeamColorDot } from "@/components/StateViews";
 import { TyreLegend } from "@/components/TyreLegend";
 import { compoundColor } from "@/lib/tyres";
 import { REPLAY_TICK_MS } from "@/lib/replay";
+import { useLocalStorageFlag } from "@/lib/useLocalStorageFlag";
 import type { ReplayLapPositions } from "@/lib/types";
 import { ReplayTrackMap } from "./ReplayTrackMap";
 
@@ -19,6 +21,9 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
   const { data: positions, isLoading: positionsLoading } = useReplayPositions(year, round);
   const [lapIndex, setLapIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
+  // Only affects the stacked (mobile) layout; on `lg` and up the map lives in
+  // its own column and is always shown.
+  const [mapCollapsed, setMapCollapsed] = useLocalStorageFlag("replay:map-collapsed", false);
 
   const frames = data?.frames ?? [];
   const frame = frames[lapIndex];
@@ -79,46 +84,66 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
         </span>
       </div>
 
-      <div className="mb-4">
-        <ReplayTrackMap
-          circuit={circuit}
-          circuitLoading={circuitLoading}
-          positionsLoading={positionsLoading}
-          lapPositions={frame ? positionsByLap.get(frame.lap) : undefined}
-          driverTeamColors={driverTeamColors}
-          playing={playing}
-        />
-      </div>
-
-      <div className="mb-3">
-        <TyreLegend />
-      </div>
-
-      <ul className="flex flex-col gap-1.5">
-        <AnimatePresence initial={false}>
-          {frame?.order.map((entry) => (
-            <motion.li
-              key={entry.driver}
-              layout
-              transition={{ type: "spring", stiffness: 400, damping: 35 }}
-              className="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2"
+      {/* Desktop puts the map and the running order side by side so neither
+          has to be hidden, with the map sticky so it stays in view while the
+          order is scrolled. Below `lg` there isn't room for two columns, so
+          the map stacks and can be collapsed away instead. */}
+      <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-6">
+        <div className="lg:sticky lg:top-6">
+          <div className="mb-2 flex justify-end lg:hidden">
+            <button
+              type="button"
+              onClick={() => setMapCollapsed(!mapCollapsed)}
+              aria-expanded={!mapCollapsed}
+              className="rounded-md border border-border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:text-foreground"
             >
-              <span className="tabular w-6 shrink-0 text-center font-semibold">{entry.position}</span>
-              <TeamColorDot color={entry.teamColor} />
-              <span className="w-14 shrink-0 font-medium">{entry.driver}</span>
-              <span className="min-w-0 flex-1 truncate text-sm text-muted">{entry.teamName}</span>
-              {entry.compound && (
-                <span
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
-                  style={{ backgroundColor: compoundColor(entry.compound) }}
-                  title={entry.compound}
-                />
-              )}
-              <span className="tabular w-20 shrink-0 text-right text-sm text-muted">{entry.lapTime ?? "—"}</span>
-            </motion.li>
-          ))}
-        </AnimatePresence>
-      </ul>
+              {mapCollapsed ? "Show map" : "Hide map"}
+            </button>
+          </div>
+          <div className={clsx("mb-4", mapCollapsed && "hidden lg:block")}>
+            <ReplayTrackMap
+              circuit={circuit}
+              circuitLoading={circuitLoading}
+              positionsLoading={positionsLoading}
+              lapPositions={frame ? positionsByLap.get(frame.lap) : undefined}
+              driverTeamColors={driverTeamColors}
+              playing={playing}
+            />
+          </div>
+        </div>
+
+        <div>
+          <div className="mb-3">
+            <TyreLegend />
+          </div>
+
+          <ul className="flex flex-col gap-1.5">
+            <AnimatePresence initial={false}>
+              {frame?.order.map((entry) => (
+                <motion.li
+                  key={entry.driver}
+                  layout
+                  transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                  className="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2"
+                >
+                  <span className="tabular w-6 shrink-0 text-center font-semibold">{entry.position}</span>
+                  <TeamColorDot color={entry.teamColor} />
+                  <span className="w-14 shrink-0 font-medium">{entry.driver}</span>
+                  <span className="min-w-0 flex-1 truncate text-sm text-muted">{entry.teamName}</span>
+                  {entry.compound && (
+                    <span
+                      className="h-2.5 w-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: compoundColor(entry.compound) }}
+                      title={entry.compound}
+                    />
+                  )}
+                  <span className="tabular w-20 shrink-0 text-right text-sm text-muted">{entry.lapTime ?? "—"}</span>
+                </motion.li>
+              ))}
+            </AnimatePresence>
+          </ul>
+        </div>
+      </div>
     </div>
   );
 }

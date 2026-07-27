@@ -107,7 +107,15 @@ export function ReplayTrackMap({
 
   return (
     <div className="relative">
-      <svg viewBox={`0 0 ${VB} ${VB}`} className="w-full rounded-lg border border-border bg-surface">
+      {/* The viewBox is square, so an unconstrained `w-full` makes the map as
+          tall as the container is wide — over 1100px on a desktop layout,
+          pushing the running order entirely below the fold. Cap the height and
+          let preserveAspectRatio letterbox it instead. */}
+      <svg
+        viewBox={`0 0 ${VB} ${VB}`}
+        preserveAspectRatio="xMidYMid meet"
+        className="max-h-[45vh] w-full rounded-lg border border-border bg-surface lg:max-h-[calc(100vh-10rem)]"
+      >
         <polyline
           points={screenOutline.map((p) => `${p.x},${p.y}`).join(" ")}
           fill="none"
