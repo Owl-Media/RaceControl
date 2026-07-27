@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { createProjector, densifyTrace, rotatePoints } from "@/lib/trackGeometry";
+import { LoadingState } from "@/components/StateViews";
 import { REPLAY_TICK_MS } from "@/lib/replay";
 import type { CircuitMap, ReplayLapPositions } from "@/lib/types";
 
@@ -9,11 +10,19 @@ const VB = 600;
 
 export function ReplayTrackMap({
   circuit,
+  circuitLoading = false,
+  positionsLoading = false,
   lapPositions,
   driverTeamColors,
   playing,
 }: {
   circuit: CircuitMap | undefined;
+  /** The track outline request is still in flight — distinct from "there is
+   * no outline", which is only knowable once it has finished. */
+  circuitLoading?: boolean;
+  /** The car-position request is still in flight; the track can already be
+   * drawn, but there are no cars to place on it yet. */
+  positionsLoading?: boolean;
   /** Position samples for the lap currently on screen, or undefined if unavailable. */
   lapPositions: ReplayLapPositions | undefined;
   driverTeamColors: Record<string, string | null>;
@@ -74,6 +83,18 @@ export function ReplayTrackMap({
     return () => cancelAnimationFrame(frameRef.current);
   }, [playing, lapPositions, projector, rotation]);
 
+  // Only report missing data once the request has actually finished — while
+  // it's in flight there is legitimately nothing to draw yet, and showing the
+  // failure copy in the meantime reads as a hard error that then silently
+  // fixes itself.
+  if (circuitLoading) {
+    return (
+      <div className="flex h-72 items-center justify-center rounded-lg border border-border bg-surface">
+        <LoadingState label="Loading track map…" />
+      </div>
+    );
+  }
+
   if (!projector || screenOutline.length === 0) {
     return (
       <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-border text-sm text-muted">
@@ -85,29 +106,47 @@ export function ReplayTrackMap({
   const start = screenOutline[0];
 
   return (
-    <svg viewBox={`0 0 ${VB} ${VB}`} className="w-full rounded-lg border border-border bg-surface">
-      <polyline
-        points={screenOutline.map((p) => `${p.x},${p.y}`).join(" ")}
-        fill="none"
-        stroke="#2a2a30"
-        strokeWidth={10}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      {start && <circle cx={start.x} cy={start.y} r={6} fill="#f2f2f4" stroke="#0a0a0c" strokeWidth={2} />}
-      {drivers.map((code) => (
-        <g
-          key={code}
-          ref={(el) => {
-            dotRefs.current[code] = el;
-          }}
-        >
-          <circle r={7} fill={driverTeamColors[code] || "#6b6b72"} stroke="#0a0a0c" strokeWidth={1.5} />
-          <text y={-11} textAnchor="middle" fontSize={9} fontWeight={600} fill="var(--foreground)">
-            {code}
-          </text>
-        </g>
-      ))}
-    </svg>
+    <div className="relative">
+      <svg viewBox={`0 0 ${VB} ${VB}`} className="w-full rounded-lg border border-border bg-surface">
+        <polyline
+          points={screenOutline.map((p) => `${p.x},${p.y}`).join(" ")}
+          fill="none"
+          stroke="#2a2a30"
+          strokeWidth={10}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {start && <circle cx={start.x} cy={start.y} r={6} fill="#f2f2f4" stroke="#0a0a0c" strokeWidth={2} />}
+        {drivers.map((code) => (
+          <g
+            key={code}
+            ref={(el) => {
+              dotRefs.current[code] = el;
+            }}
+          >
+            <circle r={7} fill={driverTeamColors[code] || "#6b6b72"} stroke="#0a0a0c" strokeWidth={1.5} />
+            <text y={-11} textAnchor="middle" fontSize={9} fontWeight={600} fill="var(--foreground)">
+              {code}
+            </text>
+          </g>
+        ))}
+      </svg>
+
+      {/* The track outline arrives well before the per-lap car positions, so
+          the map can sit there looking empty. Say why rather than leaving it
+          ambiguous. */}
+      {positionsLoading && drivers.length === 0 && (
+        <div className="absolute inset-x-0 bottom-3 flex justify-center">
+          <span className="flex items-center gap-2 rounded-full border border-border bg-surface/90 px-3 py-1.5 text-xs text-muted backdrop-blur">
+            <span
+              role="status"
+              aria-label="Loading"
+              className="h-3 w-3 animate-spin rounded-full border-2 border-border border-t-racing-red"
+            />
+            Loading car positions…
+          </span>
+        </div>
+      )}
+    </div>
   );
 }

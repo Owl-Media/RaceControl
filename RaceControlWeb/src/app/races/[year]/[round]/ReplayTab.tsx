@@ -12,8 +12,11 @@ import { ReplayTrackMap } from "./ReplayTrackMap";
 
 export function ReplayTab({ year, round }: { year: number; round: number }) {
   const { data, error, isLoading } = useReplay(year, round);
-  const { data: circuit } = useCircuitMap(year, round);
-  const { data: positions } = useReplayPositions(year, round);
+  // The track outline and the car positions are separate requests from the
+  // replay itself and resolve later, so their loading state has to be passed
+  // down — otherwise the map reports "no data" during its own fetch.
+  const { data: circuit, isLoading: circuitLoading } = useCircuitMap(year, round);
+  const { data: positions, isLoading: positionsLoading } = useReplayPositions(year, round);
   const [lapIndex, setLapIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
 
@@ -79,6 +82,8 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
       <div className="mb-4">
         <ReplayTrackMap
           circuit={circuit}
+          circuitLoading={circuitLoading}
+          positionsLoading={positionsLoading}
           lapPositions={frame ? positionsByLap.get(frame.lap) : undefined}
           driverTeamColors={driverTeamColors}
           playing={playing}
