@@ -150,9 +150,12 @@ struct Retirement: Codable, Identifiable, Hashable {
     let fullName: String?
     let driverId: String?
     let teamName: String?
+    let teamId: String?
+    let teamLogoUrl: String?
     let teamColor: String?
     let status: String?
     let classifiedPosition: String?
+    let lapsCompleted: Int?
     var id: String { driver ?? driverId ?? UUID().uuidString }
 }
 
@@ -253,6 +256,7 @@ struct ReliabilityDriver: Codable, Identifiable, Hashable {
 struct ReliabilityTeam: Codable, Identifiable, Hashable {
     let teamId: String
     let teamName: String?
+    let teamLogoUrl: String?
     let finished: Int
     let mechanical: Int
     let accident: Int
@@ -299,6 +303,8 @@ struct CompareDriver: Codable, Identifiable, Hashable {
     let driverId: String
     let name: String
     let teamName: String?
+    let teamId: String?
+    let teamLogoUrl: String?
     let points: Double
     let wins: Int
     let podiums: Int
@@ -309,7 +315,7 @@ struct CompareDriver: Codable, Identifiable, Hashable {
     let qualWinsH2h: Int
 
     enum CodingKeys: String, CodingKey {
-        case driverId, name, teamName, points, wins, podiums, poles, bestFinish, dnf
+        case driverId, name, teamName, teamId, teamLogoUrl, points, wins, podiums, poles, bestFinish, dnf
         case raceWinsH2h = "raceWins_h2h"
         case qualWinsH2h = "qualWins_h2h"
     }

@@ -1,12 +1,17 @@
 package com.owlmedia.racecontrol.feature.teams
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -15,6 +20,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -33,7 +40,9 @@ import com.owlmedia.racecontrol.core.ui.RcCard
 import com.owlmedia.racecontrol.core.ui.RcDetailScaffold
 import com.owlmedia.racecontrol.core.ui.SectionHeader
 import com.owlmedia.racecontrol.core.ui.StatCell
+import com.owlmedia.racecontrol.core.ui.TeamLogo
 import com.owlmedia.racecontrol.core.ui.UiState
+import com.owlmedia.racecontrol.data.remote.dto.TeamDriverDto
 import com.owlmedia.racecontrol.data.remote.dto.TeamDto
 import com.owlmedia.racecontrol.data.repository.RaceControlRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -88,17 +97,22 @@ fun TeamDetailScreen(
                 verticalArrangement = Arrangement.spacedBy(Dimens.MD),
             ) {
                 RcCard {
-                    Text(
-                        text = team.teamName.orEmpty(),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
-                        color = accent,
-                    )
-                    Text(
-                        text = team.nationality.orEmpty(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = RcTheme.colors.textSecondary,
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Dimens.SM)) {
+                        TeamLogo(url = team.teamLogoUrl, size = 40.dp)
+                        Column {
+                            Text(
+                                text = team.teamName.orEmpty(),
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = accent,
+                            )
+                            Text(
+                                text = team.nationality.orEmpty(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = RcTheme.colors.textSecondary,
+                            )
+                        }
+                    }
                 }
 
                 RcCard {
@@ -123,6 +137,8 @@ fun TeamDetailScreen(
                 }
 
                 if (team.drivers.isNotEmpty()) {
+                    PointsBreakdownCard(drivers = team.drivers, accent = accent)
+
                     RcCard {
                         SectionHeader(stringResource(R.string.line_up))
                         team.drivers.forEach { driver ->
@@ -153,10 +169,70 @@ fun TeamDetailScreen(
                                         )
                                     }
                                 }
+                                Text(
+                                    text = stringResource(R.string.points_suffix, driver.pointsLabel),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = RcTheme.colors.textPrimary,
+                                )
                             }
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Who's actually carried the team, at a glance — a driver list alone doesn't
+ * show whether points are split evenly or one driver is doing most of the
+ * scoring.
+ */
+@Composable
+private fun PointsBreakdownCard(drivers: List<TeamDriverDto>, accent: Color) {
+    val total = drivers.sumOf { it.pointsValue }
+    if (total <= 0) return
+
+    RcCard {
+        SectionHeader(stringResource(R.string.points_breakdown))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(10.dp)
+                .clip(RoundedCornerShape(5.dp))
+                .background(RcTheme.colors.surfaceElevated),
+        ) {
+            drivers.forEachIndexed { index, driver ->
+                val fraction = (driver.pointsValue / total).toFloat()
+                if (fraction > 0f) {
+                    Box(
+                        modifier = Modifier
+                            .weight(fraction)
+                            .fillMaxHeight()
+                            .background(accent.copy(alpha = if (index == 0) 1f else 0.5f)),
+                    )
+                }
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = Dimens.SM),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.MD),
+        ) {
+            drivers.forEach { driver ->
+                val pct = if (total > 0) ((driver.pointsValue / total) * 100).toInt() else 0
+                Text(
+                    text = stringResource(
+                        R.string.points_breakdown_entry,
+                        driver.code ?: driver.name.orEmpty(),
+                        driver.pointsLabel,
+                        pct,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = RcTheme.colors.textSecondary,
+                )
             }
         }
     }

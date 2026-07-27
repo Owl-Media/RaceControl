@@ -305,9 +305,12 @@ data class RetirementDto(
     val fullName: String? = null,
     val driverId: String? = null,
     val teamName: String? = null,
+    val teamId: String? = null,
+    val teamLogoUrl: String? = null,
     val teamColor: String? = null,
     val status: String? = null,
     val classifiedPosition: String? = null,
+    val lapsCompleted: Int? = null,
 ) {
     val id: String get() = driver ?: driverId ?: "unknown"
 
@@ -367,6 +370,7 @@ data class ReliabilityDriverDto(
 data class ReliabilityTeamDto(
     val teamId: String = "",
     val teamName: String? = null,
+    val teamLogoUrl: String? = null,
     val finished: Int = 0,
     val mechanical: Int = 0,
     val accident: Int = 0,
@@ -416,6 +420,8 @@ data class CompareDriverDto(
     val driverId: String = "",
     val name: String = "",
     val teamName: String? = null,
+    val teamId: String? = null,
+    val teamLogoUrl: String? = null,
     val points: Double = 0.0,
     val wins: Int = 0,
     val podiums: Int = 0,

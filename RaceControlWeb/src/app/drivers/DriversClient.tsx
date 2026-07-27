@@ -7,7 +7,8 @@ import { useDrivers } from "@/lib/api";
 import { useFavorites } from "@/components/FavoritesProvider";
 import { SeasonPicker } from "@/components/SeasonPicker";
 import { LoadingState, ErrorState, EmptyState, TeamColorDot, StarButton } from "@/components/StateViews";
-import { driverInitials } from "@/lib/format";
+import { DriverAvatar } from "@/components/DriverAvatar";
+import { TeamLogo } from "@/components/TeamLogo";
 
 export function DriversClient({ defaultYear }: { defaultYear: number }) {
   const [year, setYear] = useYearParam(defaultYear);
@@ -48,20 +49,14 @@ export function DriversClient({ defaultYear }: { defaultYear: number }) {
                 href={`/drivers/${year}/${d.driverId}`}
                 className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3 transition-colors hover:bg-surface-raised"
               >
-                {d.headshotUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={d.headshotUrl} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
-                ) : (
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-raised text-xs font-semibold text-muted">
-                    {driverInitials(`${d.givenName} ${d.familyName}`)}
-                  </span>
-                )}
+                <DriverAvatar src={d.headshotUrl} name={`${d.givenName} ${d.familyName}`} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">
                     {d.givenName} {d.familyName}
                   </p>
                   <p className="flex items-center gap-1.5 truncate text-sm text-muted">
                     <TeamColorDot color={d.teamColor} />
+                    <TeamLogo src={d.teamLogoUrl} name={d.teamName} sizeClassName="h-4 w-4" />
                     {d.teamName ?? "—"}
                   </p>
                 </div>

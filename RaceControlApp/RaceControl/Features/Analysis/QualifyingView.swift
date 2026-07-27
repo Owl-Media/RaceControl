@@ -60,6 +60,7 @@ private struct QualiRow: View {
             HStack(spacing: Theme.Space.sm) {
                 PositionBadge(text: entry.positionLabel, highlight: (entry.position ?? 99) <= 3)
                 TeamAccentBar(color: accent).frame(height: 34)
+                TeamLogoView(url: entry.teamLogoUrl, size: 22)
                 VStack(alignment: .leading, spacing: 1) {
                     Text(entry.fullName ?? entry.abbreviation ?? "")
                         .font(.subheadline.weight(.semibold))

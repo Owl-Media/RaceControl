@@ -36,7 +36,8 @@ struct ReliabilityView: View {
                                 ReliabilityRow(title: t.teamName ?? t.teamId, subtitle: nil,
                                                finished: t.finished, mechanical: t.mechanical,
                                                accident: t.accident, disqualified: t.disqualified,
-                                               other: t.other, starts: t.starts, finishRate: t.finishRate)
+                                               other: t.other, starts: t.starts, finishRate: t.finishRate,
+                                               logoUrl: t.teamLogoUrl)
                             }
                         }
                     }
@@ -76,10 +77,12 @@ private struct ReliabilityRow: View {
     let other: Int
     let starts: Int
     let finishRate: Double
+    var logoUrl: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: Theme.Space.sm) {
             HStack {
+                TeamLogoView(url: logoUrl, size: 20)
                 Text(title)
                     .font(.headline).foregroundStyle(Theme.Palette.textPrimary).lineLimit(1)
                 Spacer()

@@ -5,10 +5,12 @@ import clsx from "clsx";
 import { motion, AnimatePresence } from "motion/react";
 import { useReplay, useReplayPositions, useCircuitMap } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState, TeamColorDot } from "@/components/StateViews";
+import { TeamLogo } from "@/components/TeamLogo";
 import { TyreLegend } from "@/components/TyreLegend";
 import { compoundColor } from "@/lib/tyres";
 import { REPLAY_TICK_MS } from "@/lib/replay";
 import { useLocalStorageFlag } from "@/lib/useLocalStorageFlag";
+import { useMediaQuery } from "@/lib/useMediaQuery";
 import type { ReplayLapPositions } from "@/lib/types";
 import { ReplayTrackMap } from "./ReplayTrackMap";
 
@@ -24,6 +26,13 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
   // Only affects the stacked (mobile) layout; on `lg` and up the map lives in
   // its own column and is always shown.
   const [mapCollapsed, setMapCollapsed] = useLocalStorageFlag("replay:map-collapsed", false);
+  // `mapCollapsed` only actually hides the map below `lg` (see the `hidden
+  // lg:block` class below) — on desktop it's always visible regardless. The
+  // map runs a per-frame animation loop while playing, so this tells it
+  // whether it's really on screen and worth animating, rather than always
+  // running that loop even while CSS-hidden on a phone.
+  const isDesktopLayout = useMediaQuery("(min-width: 1024px)");
+  const mapVisible = isDesktopLayout || !mapCollapsed;
 
   const frames = data?.frames ?? [];
   const frame = frames[lapIndex];
@@ -108,6 +117,7 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
               lapPositions={frame ? positionsByLap.get(frame.lap) : undefined}
               driverTeamColors={driverTeamColors}
               playing={playing}
+              active={mapVisible}
             />
           </div>
         </div>
@@ -128,6 +138,7 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
                 >
                   <span className="tabular w-6 shrink-0 text-center font-semibold">{entry.position}</span>
                   <TeamColorDot color={entry.teamColor} />
+                  <TeamLogo src={entry.teamLogoUrl} name={entry.teamName} sizeClassName="h-5 w-5" />
                   <span className="w-14 shrink-0 font-medium">{entry.driver}</span>
                   <span className="min-w-0 flex-1 truncate text-sm text-muted">{entry.teamName}</span>
                   {entry.compound && (

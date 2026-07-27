@@ -58,12 +58,42 @@ def _clean(value: Any) -> Any:
     # numpy scalar -> python scalar
     if hasattr(value, "item"):
         try:
-            return value.item()
+            value = value.item()
         except (ValueError, AttributeError):
-            return str(value)
+            value = str(value)
     if isinstance(value, float) and (math.isinf(value) or math.isnan(value)):
         return None
+    # Some upstream columns (e.g. a qualifying entry with no recorded driver
+    # number) arrive pre-stringified as the literal text "nan"/"NaT" rather
+    # than an actual float NaN/NaT — the numeric checks above never see
+    # those cases since the value is already a str. Left as-is, this string
+    # flows straight into the JSON response and collides with every other
+    # row that has the same non-value, e.g. producing duplicate React keys
+    # of "nan" on the client. `_hex_color` already special-cases this same
+    # artifact; treat it the same way here for every field.
+    if isinstance(value, str) and value.strip().lower() in ("nan", "nat", "none", "<na>"):
+        return None
     return value
+
+
+def _clean_utc(value: Any) -> Optional[str]:
+    """Like `_clean`, but for timestamps that are known to represent UTC.
+
+    FastF1's race-control message timestamps come from the raw feed's "Utc"
+    field, but `fastf1.utils.to_datetime` parses them into a *naive* Python
+    datetime with no tzinfo attached. `_clean`'s plain `.isoformat()` on a
+    naive value therefore omits any 'Z'/offset — e.g. "2026-07-26T12:20:00" —
+    which browsers interpret as *local* time via `new Date(...)`, silently
+    shifting every timestamp by the viewer's UTC offset. Attach the UTC
+    tzinfo explicitly before formatting so the ISO string is unambiguous.
+    """
+    if value is None or value is pd.NaT:
+        return None
+    if isinstance(value, (pd.Timestamp, datetime)):
+        ts = value if isinstance(value, pd.Timestamp) else pd.Timestamp(value)
+        aware = ts.tz_localize("UTC") if ts.tzinfo is None else ts.tz_convert("UTC")
+        return aware.isoformat()
+    return _clean(value)
 
 
 def _td_ms(value: Any) -> Optional[int]:
@@ -105,6 +135,37 @@ def _hex_color(raw: Any) -> Optional[str]:
     if not s or s.lower() in ("nan", "none"):
         return None
     return f"#{s}" if not s.startswith("#") else s
+
+
+# Neither FastF1 nor Ergast/Jolpica expose team logos, so these are hardcoded
+# against F1.com's own media CDN (found by inspecting formula1.com/en/teams).
+# Our teamId values come from Ergast's constructorId and don't match F1.com's
+# URL slugs (e.g. "red_bull" vs "redbullracing"), hence the explicit mapping.
+# This needs manual upkeep each season for renames/new entrants/rebrands.
+_TEAM_LOGO_SLUGS: dict[str, str] = {
+    "red_bull": "redbullracing",
+    "ferrari": "ferrari",
+    "mercedes": "mercedes",
+    "mclaren": "mclaren",
+    "alpine": "alpine",
+    "williams": "williams",
+    "aston_martin": "astonmartin",
+    "rb": "racingbulls",
+    "haas": "haasf1team",
+    "audi": "audi",
+    "cadillac": "cadillac",
+}
+_TEAM_LOGO_URL_TEMPLATE = (
+    "https://media.formula1.com/image/upload/c_lfill,w_128/q_auto/"
+    "v1740000001/common/f1/2026/{slug}/2026{slug}logowhite.webp"
+)
+
+
+def _team_logo_url(team_id: Any) -> Optional[str]:
+    slug = _TEAM_LOGO_SLUGS.get(str(team_id)) if team_id else None
+    if not slug:
+        return None
+    return _TEAM_LOGO_URL_TEMPLATE.format(slug=slug)
 
 
 def _collect_multi(resp, max_pages: int = 25):
@@ -289,6 +350,7 @@ def get_results(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
                 "countryCode": _clean(r.get("CountryCode")),
                 "teamName": _clean(r.get("TeamName")),
                 "teamId": _clean(r.get("TeamId")),
+                "teamLogoUrl": _team_logo_url(r.get("TeamId")),
                 "teamColor": _hex_color(r.get("TeamColor")),
                 "gridPosition": _clean(r.get("GridPosition")),
                 "status": _clean(r.get("Status")),
@@ -347,6 +409,7 @@ def get_driver_standings(year: int) -> list[dict[str, Any]]:
                 "dateOfBirth": _clean(r.get("dateOfBirth")),
                 "teamName": _clean(team),
                 "teamId": _clean(team_id),
+                "teamLogoUrl": _team_logo_url(team_id),
             }
         )
     return out
@@ -359,14 +422,16 @@ def get_constructor_standings(year: int) -> list[dict[str, Any]]:
     df = resp.content[0]
     out = []
     for _, r in df.iterrows():
+        team_id = r.get("constructorId")
         out.append(
             {
                 "position": _clean(r.get("position")),
                 "points": _clean(r.get("points")),
                 "wins": _clean(r.get("wins")),
-                "teamId": _clean(r.get("constructorId")),
+                "teamId": _clean(team_id),
                 "teamName": _clean(r.get("constructorName")),
                 "nationality": _clean(r.get("constructorNationality")),
+                "teamLogoUrl": _team_logo_url(team_id),
             }
         )
     return out
@@ -421,6 +486,7 @@ def get_drivers(year: int) -> list[dict[str, Any]]:
     drivers = []
     for did, s in standings.items():
         m = meta.get(did, {})
+        tid = s.get("teamId") or m.get("teamId")
         drivers.append(
             {
                 "driverId": did,
@@ -431,7 +497,8 @@ def get_drivers(year: int) -> list[dict[str, Any]]:
                 "nationality": s.get("nationality"),
                 "dateOfBirth": s.get("dateOfBirth"),
                 "teamName": s.get("teamName"),
-                "teamId": s.get("teamId") or m.get("teamId"),
+                "teamId": tid,
+                "teamLogoUrl": _team_logo_url(tid),
                 "teamColor": m.get("teamColor"),
                 "headshotUrl": m.get("headshotUrl"),
                 "countryCode": m.get("countryCode"),
@@ -496,16 +563,20 @@ def get_teams(year: int) -> list[dict[str, Any]]:
                 "code": d.get("code"),
                 "number": d.get("number"),
                 "headshotUrl": d.get("headshotUrl"),
+                "points": d.get("points"),
             }
         )
     teams = []
     for t in standings:
         tid = t["teamId"]
+        # Highest individual points contribution first, so the roster reads
+        # as a breakdown of who's carried the team rather than grid order.
+        drivers = sorted(roster.get(tid, []), key=lambda d: d.get("points") or 0, reverse=True)
         teams.append(
             {
                 **t,
                 "teamColor": colors.get(tid),
-                "drivers": roster.get(tid, []),
+                "drivers": drivers,
             }
         )
     return teams
@@ -724,10 +795,12 @@ def get_circuit_map(year: int, rnd: int) -> dict[str, Any]:
             payload["maxElevation"] = round(float(max(zs)), 1)
 
         drv = session.get_driver(lap["Driver"]) if lap.get("Driver") else None
+        fastest_lap_team_id = _clean(drv.get("TeamId")) if drv is not None else None
         payload["fastestLap"] = {
             "driver": _clean(lap.get("Driver")),
             "driverName": _clean(drv["FullName"]) if drv is not None else None,
             "team": _clean(drv["TeamName"]) if drv is not None else None,
+            "teamLogoUrl": _team_logo_url(fastest_lap_team_id),
             "teamColor": _hex_color(drv["TeamColor"]) if drv is not None else None,
             "time": _fmt_lap(lap.get("LapTime")),
             "compound": _clean(lap.get("Compound")),
@@ -779,10 +852,13 @@ def get_race_replay(year: int, rnd: int) -> dict[str, Any]:
     for _, r in results.iterrows():
         abbr = _clean(r.get("Abbreviation"))
         if abbr:
+            tid = _clean(r.get("TeamId"))
             meta[abbr] = {
                 "driverId": _clean(r.get("DriverId")),
                 "fullName": _clean(r.get("FullName")),
                 "teamName": _clean(r.get("TeamName")),
+                "teamId": tid,
+                "teamLogoUrl": _team_logo_url(tid),
                 "teamColor": _hex_color(r.get("TeamColor")),
                 "number": _clean(r.get("DriverNumber")),
             }
@@ -806,6 +882,7 @@ def get_race_replay(year: int, rnd: int) -> dict[str, Any]:
                     "driverId": m.get("driverId"),
                     "teamColor": m.get("teamColor"),
                     "teamName": m.get("teamName"),
+                    "teamLogoUrl": m.get("teamLogoUrl"),
                     "lapTimeMs": _td_ms(lp.get("LapTime")),
                     "lapTime": _fmt_lap(lp.get("LapTime")),
                     "compound": _clean(lp.get("Compound")),
@@ -921,10 +998,13 @@ def _driver_meta(session) -> dict[str, dict[str, Any]]:
         for _, r in session.results.iterrows():
             abbr = _clean(r.get("Abbreviation"))
             if abbr:
+                tid = _clean(r.get("TeamId"))
                 meta[abbr] = {
                     "driverId": _clean(r.get("DriverId")),
                     "fullName": _clean(r.get("FullName")),
                     "teamName": _clean(r.get("TeamName")),
+                    "teamId": tid,
+                    "teamLogoUrl": _team_logo_url(tid),
                     "teamColor": _hex_color(r.get("TeamColor")),
                     "number": _clean(r.get("DriverNumber")),
                 }
@@ -1061,7 +1141,7 @@ def _race_control_rows(session) -> list[dict[str, Any]]:
         lap_no = int(lap_raw) if lap_raw not in (None,) and not pd.isna(lap_raw) and int(lap_raw) > 0 else None
         driver_number = row.get("RacingNumber")
         rows.append({
-            "time": _clean(row.get("Time")),
+            "time": _clean_utc(row.get("Time")),
             "lap": lap_no,
             "category": _clean(row.get("Category")),
             "flag": _clean(row.get("Flag")),
@@ -1350,22 +1430,48 @@ def _retirement_display_status(status: str) -> str:
     return status
 
 
+def _laps_completed_by_driver_number(session) -> dict[str, int]:
+    """Each driver's last completed lap number, from the timing data itself.
+
+    `SessionResults.Laps` (the count FastF1's own docs point to) is only
+    populated when results come via the Ergast fallback — the primary F1
+    timing path leaves it empty — so it can't be relied on. `session.laps`
+    is authoritative and already loaded for this endpoint; take each
+    driver's highest `LapNumber` directly from it instead.
+    """
+    try:
+        laps = session.laps
+        if laps is None or not len(laps) or "LapNumber" not in laps or "DriverNumber" not in laps:
+            return {}
+        maxima = laps.groupby("DriverNumber")["LapNumber"].max()
+        return {str(num): int(lap) for num, lap in maxima.items() if pd.notna(lap)}
+    except Exception as exc:  # noqa: BLE001
+        log.warning("laps-completed lookup failed: %s", exc)
+        return {}
+
+
 def get_retirements(year: int, rnd: int) -> dict[str, Any]:
-    session = _load_session(year, rnd, "R", with_laps=False)
+    session = _load_session(year, rnd, "R", with_laps=True)
+    laps_completed = _laps_completed_by_driver_number(session)
     retirements = []
     try:
         for _, r in session.results.iterrows():
             status = _clean(r.get("Status")) or ""
             classified_position = _clean(r.get("ClassifiedPosition"))
             if not _is_finish_status(status, classified_position):
+                driver_number = _clean(r.get("DriverNumber"))
+                team_id = _clean(r.get("TeamId"))
                 retirements.append({
                     "driver": _clean(r.get("Abbreviation")),
                     "fullName": _clean(r.get("FullName")),
                     "driverId": _clean(r.get("DriverId")),
                     "teamName": _clean(r.get("TeamName")),
+                    "teamId": team_id,
+                    "teamLogoUrl": _team_logo_url(team_id),
                     "teamColor": _hex_color(r.get("TeamColor")),
                     "status": _retirement_display_status(status),
                     "classifiedPosition": classified_position,
+                    "lapsCompleted": laps_completed.get(driver_number),
                 })
     except Exception as exc:  # noqa: BLE001
         log.warning("retirements unavailable %s r%s: %s", year, rnd, exc)
@@ -1452,6 +1558,7 @@ def get_reliability(year: int) -> dict[str, Any]:
     team_list = sorted(teams.values(), key=lambda x: (-x["dnf"], x["teamName"] or ""))
     for t in team_list:
         t["finishRate"] = finish_rate(t)
+        t["teamLogoUrl"] = _team_logo_url(t.get("teamId"))
 
     return {"year": year, "races": races, "drivers": driver_list, "teams": team_list}
 
@@ -1466,7 +1573,7 @@ def get_compare(year: int, d1: str, d2: str) -> dict[str, Any]:
     qual_contents, _ = _collect_multi(qual_resp)
 
     def blank(did):
-        return {"driverId": did, "name": did, "teamName": None,
+        return {"driverId": did, "name": did, "teamName": None, "teamId": None,
                 "points": 0.0, "wins": 0, "podiums": 0, "poles": 0,
                 "bestFinish": None, "dnf": 0, "raceWins_h2h": 0, "qualWins_h2h": 0,
                 "rounds": []}
@@ -1493,6 +1600,7 @@ def get_compare(year: int, d1: str, d2: str) -> dict[str, Any]:
             a["points"] += pts
             a["name"] = f'{_clean(r.get("givenName")) or ""} {_clean(r.get("familyName")) or ""}'.strip() or did
             a["teamName"] = _clean(r.get("constructorName")) or a["teamName"]
+            a["teamId"] = _clean(r.get("constructorId")) or a["teamId"]
             if pi == 1:
                 a["wins"] += 1
             if pi is not None and pi <= 3:
@@ -1536,6 +1644,7 @@ def get_compare(year: int, d1: str, d2: str) -> dict[str, Any]:
 
     for a in agg.values():
         a["points"] = round(a["points"], 1)
+        a["teamLogoUrl"] = _team_logo_url(a.get("teamId"))
     return {"year": year, "drivers": [agg[d1], agg[d2]]}
 
 

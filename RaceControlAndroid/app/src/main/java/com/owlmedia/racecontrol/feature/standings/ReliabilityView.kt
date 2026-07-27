@@ -41,6 +41,7 @@ import com.owlmedia.racecontrol.core.ui.EmptyState
 import com.owlmedia.racecontrol.core.ui.LoadableContent
 import com.owlmedia.racecontrol.core.ui.SectionHeader
 import com.owlmedia.racecontrol.core.ui.StackedBar
+import com.owlmedia.racecontrol.core.ui.TeamLogo
 import com.owlmedia.racecontrol.feature.AppState
 
 /**
@@ -109,6 +110,7 @@ fun ReliabilityView(viewModel: StandingsViewModel, appState: AppState) {
                     other = team.other,
                     starts = team.starts,
                     finishRate = team.finishRate,
+                    logoUrl = team.teamLogoUrl,
                 )
             }
         }
@@ -160,6 +162,7 @@ private fun ReliabilityRow(
     other: Int,
     starts: Int,
     finishRate: Double,
+    logoUrl: String? = null,
 ) {
     val ratePercent = (finishRate * 100).toInt()
     val segments = listOf(
@@ -189,6 +192,7 @@ private fun ReliabilityRow(
             },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
+            TeamLogo(url = logoUrl, size = 20.dp, modifier = Modifier.padding(end = 6.dp))
             Text(
                 text = name,
                 style = MaterialTheme.typography.bodyLarge,

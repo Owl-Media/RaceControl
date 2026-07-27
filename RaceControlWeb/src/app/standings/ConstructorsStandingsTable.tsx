@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useConstructorStandings } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
+import { TeamLogo } from "@/components/TeamLogo";
 
 export function ConstructorsStandingsTable({ year }: { year: number }) {
   const { data, error, isLoading } = useConstructorStandings(year);
@@ -27,7 +28,8 @@ export function ConstructorsStandingsTable({ year }: { year: number }) {
             <tr key={t.teamId} className="hover:bg-surface/60">
               <td className="tabular px-3 py-2 text-muted">{t.position ?? "—"}</td>
               <td className="px-3 py-2 font-medium">
-                <Link href={`/teams/${year}/${t.teamId}`} className="hover:text-racing-red">
+                <Link href={`/teams/${year}/${t.teamId}`} className="inline-flex items-center gap-2 hover:text-racing-red">
+                  <TeamLogo src={t.teamLogoUrl} name={t.teamName} />
                   {t.teamName}
                 </Link>
               </td>

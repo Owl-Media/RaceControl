@@ -43,6 +43,7 @@ import com.owlmedia.racecontrol.core.ui.DriverAvatar
 import com.owlmedia.racecontrol.core.ui.EmptyState
 import com.owlmedia.racecontrol.core.ui.LoadableContent
 import com.owlmedia.racecontrol.core.ui.RcCard
+import com.owlmedia.racecontrol.core.ui.TeamLogo
 import com.owlmedia.racecontrol.core.ui.RcDetailScaffold
 import com.owlmedia.racecontrol.core.ui.SectionHeader
 import com.owlmedia.racecontrol.core.ui.Sparkline
@@ -127,11 +128,14 @@ private fun DriverDetailContent(driver: DriverDetailDto) {
                             fontWeight = FontWeight.Bold,
                             color = RcTheme.colors.textPrimary,
                         )
-                        Text(
-                            text = driver.teamName.orEmpty(),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = accent,
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TeamLogo(url = driver.teamLogoUrl, size = 16.dp)
+                            Text(
+                                text = driver.teamName.orEmpty(),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = accent,
+                            )
+                        }
                         val nationality = driver.nationality
                         if (!nationality.isNullOrBlank()) {
                             Text(

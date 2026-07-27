@@ -174,6 +174,37 @@ fun DriverAvatar(
     }
 }
 
+/* ------------------------------------------------------------------ team logo */
+
+/**
+ * Team logo with a graceful no-op fallback when the URL is missing or fails
+ * to load. Neither FastF1 nor Ergast expose team logos, so the backend
+ * serves these from a hardcoded mapping onto F1.com's own media CDN (see
+ * `_team_logo_url`) — one that needs manual upkeep on renames or new
+ * entrants, so a broken URL should just render nothing rather than a
+ * broken-image glyph. The source marks are white PNGs, so they sit on a
+ * dark chip to stay legible against any background.
+ */
+@Composable
+fun TeamLogo(
+    url: String?,
+    modifier: Modifier = Modifier,
+    size: Dp = 24.dp,
+) {
+    if (url.isNullOrBlank()) return
+    SubcomposeAsyncImage(
+        model = url,
+        contentDescription = null, // the team name is always adjacent
+        loading = {},
+        error = {},
+        modifier = modifier
+            .size(size)
+            .clip(RoundedCornerShape(4.dp))
+            .background(Color.Black.copy(alpha = 0.8f))
+            .padding(2.dp),
+    )
+}
+
 /* ---------------------------------------------------------------- small pieces */
 
 /** Vertical team-livery stripe used down the left of result rows. */

@@ -53,6 +53,7 @@ import com.owlmedia.racecontrol.core.ui.PointsPill
 import com.owlmedia.racecontrol.core.ui.RcTabScaffold
 import com.owlmedia.racecontrol.core.ui.SeasonPickerChip
 import com.owlmedia.racecontrol.core.ui.TeamAccentBar
+import com.owlmedia.racecontrol.core.ui.TeamLogo
 import com.owlmedia.racecontrol.data.remote.dto.DriverDto
 import com.owlmedia.racecontrol.feature.AppState
 
@@ -197,13 +198,16 @@ private fun DriverRow(
                     )
                 }
             }
-            Text(
-                text = driver.teamName.orEmpty(),
-                style = MaterialTheme.typography.bodySmall,
-                color = RcTheme.colors.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TeamLogo(url = driver.teamLogoUrl, size = 14.dp)
+                Text(
+                    text = driver.teamName.orEmpty(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = RcTheme.colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
         PointsPill(points = driver.pointsString)
         FavoriteStar(isFavorite = isFavorite, onToggle = onToggleFavorite)

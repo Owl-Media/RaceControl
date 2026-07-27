@@ -129,7 +129,10 @@ struct CircuitDetailView: View {
                         .font(.headline)
                         .foregroundStyle(Theme.Palette.textPrimary)
                     if let team = fl.team {
-                        Text(team).font(.caption).foregroundStyle(accent)
+                        HStack(spacing: 4) {
+                            TeamLogoView(url: fl.teamLogoUrl, size: 14)
+                            Text(team).font(.caption).foregroundStyle(accent)
+                        }
                     }
                 }
                 Spacer()

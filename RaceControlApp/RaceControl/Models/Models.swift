@@ -55,6 +55,7 @@ struct ResultEntry: Codable, Identifiable, Hashable {
     let countryCode: String?
     let teamName: String?
     let teamId: String?
+    let teamLogoUrl: String?
     let teamColor: String?
     let gridPosition: Double?
     let status: String?
@@ -99,6 +100,7 @@ struct DriverStanding: Codable, Identifiable, Hashable {
     let dateOfBirth: String?
     let teamName: String?
     let teamId: String?
+    let teamLogoUrl: String?
 
     var id: String { driverId ?? UUID().uuidString }
     var fullName: String { "\(givenName ?? "") \(familyName ?? "")".trimmingCharacters(in: .whitespaces) }
@@ -111,6 +113,7 @@ struct ConstructorStanding: Codable, Identifiable, Hashable {
     let teamId: String?
     let teamName: String?
     let nationality: String?
+    let teamLogoUrl: String?
 
     var id: String { teamId ?? UUID().uuidString }
 }
@@ -127,6 +130,7 @@ struct Driver: Codable, Identifiable, Hashable {
     let dateOfBirth: String?
     let teamName: String?
     let teamId: String?
+    let teamLogoUrl: String?
     let teamColor: String?
     let headshotUrl: String?
     let countryCode: String?
@@ -152,6 +156,7 @@ struct DriverDetail: Codable {
     let dateOfBirth: String?
     let teamName: String?
     let teamId: String?
+    let teamLogoUrl: String?
     let teamColor: String?
     let headshotUrl: String?
     let countryCode: String?
@@ -186,6 +191,7 @@ struct Team: Codable, Identifiable, Hashable {
     let teamName: String?
     let nationality: String?
     let teamColor: String?
+    let teamLogoUrl: String?
     let drivers: [TeamDriver]
 
     var id: String { teamId ?? UUID().uuidString }
@@ -199,8 +205,11 @@ struct TeamDriver: Codable, Identifiable, Hashable {
     let code: String?
     let number: JSONValue?
     let headshotUrl: String?
+    let points: JSONValue?
 
     var id: String { driverId ?? name ?? UUID().uuidString }
+    var pointsValue: Double { points?.doubleValue ?? 0 }
+    var pointsLabel: String { points?.numberLabel ?? "0" }
 }
 
 // MARK: - Circuits
@@ -247,6 +256,7 @@ struct CircuitFastestLap: Codable, Hashable {
     let driver: String?
     let driverName: String?
     let team: String?
+    let teamLogoUrl: String?
     let teamColor: String?
     let time: String?
     let compound: String?
@@ -282,6 +292,7 @@ struct ReplayDriver: Codable, Identifiable, Hashable {
     let driverId: String?
     let fullName: String?
     let teamName: String?
+    let teamLogoUrl: String?
     let teamColor: String?
     let number: String?
     var id: String { code }
@@ -298,6 +309,7 @@ struct ReplayEntry: Codable, Identifiable, Hashable {
     let driverId: String?
     let teamColor: String?
     let teamName: String?
+    let teamLogoUrl: String?
     let lapTimeMs: Int?
     let lapTime: String?
     let compound: String?

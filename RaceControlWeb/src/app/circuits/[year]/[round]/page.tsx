@@ -2,6 +2,7 @@ import Link from "next/link";
 import { callBackend, BackendError } from "@/lib/server/backend";
 import type { CircuitMap } from "@/lib/types";
 import { TeamColorDot } from "@/components/StateViews";
+import { TeamLogo } from "@/components/TeamLogo";
 import { TrackMap } from "./TrackMap";
 import { ElevationProfile } from "./ElevationProfile";
 
@@ -39,6 +40,7 @@ export default async function CircuitDetailPage({
             <p className="text-xs font-medium uppercase tracking-wide text-muted">Fastest Lap</p>
             <div className="flex items-center gap-2">
               <TeamColorDot color={map.fastestLap.teamColor} />
+              <TeamLogo src={map.fastestLap.teamLogoUrl} name={map.fastestLap.team} sizeClassName="h-5 w-5" />
               <span className="font-semibold">{map.fastestLap.driverName ?? map.fastestLap.driver}</span>
               <span className="text-sm text-muted">({map.fastestLap.team})</span>
             </div>

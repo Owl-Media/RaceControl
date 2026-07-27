@@ -61,6 +61,33 @@ struct DriverAvatar: View {
     }
 }
 
+// MARK: - Team logo
+
+/// Team logo with a graceful fallback when the hardcoded F1.com CDN URL
+/// (see backend `_team_logo_url`) is missing or fails to load — no logo
+/// field exists in FastF1/Ergast, so this is a manually maintained mapping
+/// that renders nothing rather than a broken-image glyph if it's stale.
+/// The source marks are white PNGs, so they sit on a dark chip to stay
+/// legible against any background.
+struct TeamLogoView: View {
+    let url: String?
+    var size: CGFloat = 24
+
+    var body: some View {
+        if let url, let parsed = URL(string: url) {
+            AsyncImage(url: parsed) { phase in
+                if case .success(let image) = phase {
+                    image.resizable().scaledToFit()
+                        .padding(size * 0.12)
+                        .frame(width: size, height: size)
+                        .background(Color.black.opacity(0.8), in: RoundedRectangle(cornerRadius: 4))
+                }
+            }
+            .frame(width: size, height: size)
+        }
+    }
+}
+
 // MARK: - Team colour accent bar
 
 struct TeamAccentBar: View {

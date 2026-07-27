@@ -91,6 +91,7 @@ data class ResultEntryDto(
     val countryCode: String? = null,
     val teamName: String? = null,
     val teamId: String? = null,
+    val teamLogoUrl: String? = null,
     val teamColor: String? = null,
     val gridPosition: Double? = null,
     val status: String? = null,
@@ -163,6 +164,7 @@ data class DriverStandingDto(
     val dateOfBirth: String? = null,
     val teamName: String? = null,
     val teamId: String? = null,
+    val teamLogoUrl: String? = null,
 ) {
     val id: String get() = driverId ?: "${givenName.orEmpty()}${familyName.orEmpty()}"
     val fullName: String get() = "${givenName.orEmpty()} ${familyName.orEmpty()}".trim()
@@ -176,6 +178,7 @@ data class ConstructorStandingDto(
     val teamId: String? = null,
     val teamName: String? = null,
     val nationality: String? = null,
+    val teamLogoUrl: String? = null,
 ) {
     val id: String get() = teamId ?: teamName ?: "unknown"
 }
@@ -193,6 +196,7 @@ data class DriverDto(
     val dateOfBirth: String? = null,
     val teamName: String? = null,
     val teamId: String? = null,
+    val teamLogoUrl: String? = null,
     val teamColor: String? = null,
     val headshotUrl: String? = null,
     val countryCode: String? = null,
@@ -221,6 +225,7 @@ data class DriverDetailDto(
     val dateOfBirth: String? = null,
     val teamName: String? = null,
     val teamId: String? = null,
+    val teamLogoUrl: String? = null,
     val teamColor: String? = null,
     val headshotUrl: String? = null,
     val countryCode: String? = null,
@@ -260,6 +265,7 @@ data class TeamDto(
     val teamName: String? = null,
     val nationality: String? = null,
     val teamColor: String? = null,
+    val teamLogoUrl: String? = null,
     val drivers: List<TeamDriverDto> = emptyList(),
 ) {
     val id: String get() = teamId ?: teamName ?: "unknown"
@@ -274,11 +280,14 @@ data class TeamDriverDto(
     val code: String? = null,
     val number: JsonValue? = null,
     val headshotUrl: String? = null,
+    val points: JsonValue? = null,
 ) {
     val id: String get() = driverId ?: name ?: "unknown"
     val initials: String
         get() = code ?: name?.split(" ")?.mapNotNull { it.firstOrNull() }?.joinToString("")
             ?.take(2) ?: "?"
+    val pointsValue: Double get() = points?.doubleValue ?: 0.0
+    val pointsLabel: String get() = points?.numberLabel ?: "0"
 }
 
 /* ------------------------------------------------------------------ circuits */
@@ -344,6 +353,7 @@ data class CircuitFastestLapDto(
     val driver: String? = null,
     val driverName: String? = null,
     val team: String? = null,
+    val teamLogoUrl: String? = null,
     val teamColor: String? = null,
     val time: String? = null,
     val compound: String? = null,
@@ -367,6 +377,7 @@ data class ReplayDriverDto(
     val driverId: String? = null,
     val fullName: String? = null,
     val teamName: String? = null,
+    val teamLogoUrl: String? = null,
     val teamColor: String? = null,
     val number: String? = null,
 )
@@ -384,6 +395,7 @@ data class ReplayEntryDto(
     val driverId: String? = null,
     val teamColor: String? = null,
     val teamName: String? = null,
+    val teamLogoUrl: String? = null,
     val lapTimeMs: Int? = null,
     val lapTime: String? = null,
     val compound: String? = null,

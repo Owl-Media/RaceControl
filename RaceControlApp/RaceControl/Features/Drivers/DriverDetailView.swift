@@ -41,6 +41,7 @@ struct DriverDetailView: View {
                     if let num = driver.numberString {
                         Text("#\(num)").font(.headline).foregroundStyle(accent)
                     }
+                    TeamLogoView(url: driver.teamLogoUrl, size: 18)
                     Text(driver.teamName ?? "")
                         .font(.subheadline)
                         .foregroundStyle(Theme.Palette.textSecondary)

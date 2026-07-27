@@ -2,7 +2,8 @@ import Link from "next/link";
 import { callBackend, BackendError } from "@/lib/server/backend";
 import type { DriverDetail } from "@/lib/types";
 import { TeamColorDot } from "@/components/StateViews";
-import { driverInitials } from "@/lib/format";
+import { DriverAvatar } from "@/components/DriverAvatar";
+import { TeamLogo } from "@/components/TeamLogo";
 import { DriverFavoriteButton } from "./DriverFavoriteButton";
 
 export default async function DriverDetailPage({
@@ -26,20 +27,19 @@ export default async function DriverDetailPage({
       </Link>
 
       <div className="mb-6 flex items-center gap-4 rounded-lg border border-border bg-surface p-4">
-        {driver.headshotUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={driver.headshotUrl} alt="" className="h-16 w-16 rounded-full object-cover" />
-        ) : (
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-surface-raised text-lg font-semibold text-muted">
-            {driverInitials(`${driver.givenName} ${driver.familyName}`)}
-          </span>
-        )}
+        <DriverAvatar
+          src={driver.headshotUrl}
+          name={`${driver.givenName} ${driver.familyName}`}
+          sizeClassName="h-16 w-16"
+          textClassName="text-lg"
+        />
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold">
             {driver.givenName} {driver.familyName}
           </h1>
           <p className="flex items-center gap-1.5 text-sm text-muted">
             <TeamColorDot color={driver.teamColor} />
+            <TeamLogo src={driver.teamLogoUrl} name={driver.teamName} sizeClassName="h-4 w-4" />
             {driver.teamName ?? "—"} · #{driver.number ?? "—"} · {driver.nationality ?? "—"}
           </p>
         </div>

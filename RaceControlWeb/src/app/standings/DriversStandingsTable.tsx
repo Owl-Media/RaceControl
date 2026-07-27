@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useDriverStandings } from "@/lib/api";
-import { LoadingState, ErrorState, EmptyState, TeamColorDot } from "@/components/StateViews";
+import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
+import { TeamLogo } from "@/components/TeamLogo";
 
 export function DriversStandingsTable({ year }: { year: number }) {
   const { data, error, isLoading } = useDriverStandings(year);
@@ -35,7 +36,7 @@ export function DriversStandingsTable({ year }: { year: number }) {
               </td>
               <td className="px-3 py-2 text-muted">
                 <span className="inline-flex items-center gap-2">
-                  <TeamColorDot color={undefined} />
+                  <TeamLogo src={d.teamLogoUrl} name={d.teamName} />
                   {d.teamName ?? "—"}
                 </span>
               </td>

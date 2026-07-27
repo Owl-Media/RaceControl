@@ -107,4 +107,13 @@ enum ISO8601 {
             ?? naive.date(from: s)
             ?? dateOnly.date(from: s)
     }
+
+    /// Clock time in the device's local timezone, with the offset appended
+    /// (e.g. "1:20:00 PM GMT+1") so it's never ambiguous which zone is being
+    /// shown — race-control timestamps come from the timing feed in UTC, but
+    /// a race can be happening in any timezone, and the viewer is in another.
+    static func clockWithZone(_ string: String?) -> String? {
+        guard let date = flexible(string) else { return nil }
+        return date.formatted(.dateTime.hour().minute().second().timeZoneName(.short))
+    }
 }

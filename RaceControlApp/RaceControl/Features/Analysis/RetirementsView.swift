@@ -55,16 +55,26 @@ private struct RetirementRow: View {
                 Text(retirement.fullName ?? retirement.driver ?? "Unknown")
                     .font(.headline)
                     .foregroundStyle(Theme.Palette.textPrimary)
-                Text(retirement.teamName ?? "")
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.textSecondary)
+                HStack(spacing: 4) {
+                    TeamLogoView(url: retirement.teamLogoUrl, size: 16)
+                    Text(retirement.teamName ?? "")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.textSecondary)
+                }
             }
             Spacer()
-            Text(retirement.status ?? "DNF")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(category.color)
-                .padding(.horizontal, 8).padding(.vertical, 4)
-                .background(category.color.opacity(0.15), in: Capsule())
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(retirement.status ?? "DNF")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(category.color)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(category.color.opacity(0.15), in: Capsule())
+                if let laps = retirement.lapsCompleted {
+                    Text("Lap \(laps)")
+                        .font(.caption2)
+                        .foregroundStyle(Theme.Palette.textTertiary)
+                }
+            }
         }
         .padding(Theme.Space.md)
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.md))

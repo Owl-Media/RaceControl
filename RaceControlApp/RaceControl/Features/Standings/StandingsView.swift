@@ -63,7 +63,8 @@ struct StandingsView: View {
                         points: s.points?.numberLabel ?? "0",
                         wins: s.wins?.intValue ?? 0,
                         leaderPoints: standings.first?.points?.doubleValue,
-                        myPoints: s.points?.doubleValue
+                        myPoints: s.points?.doubleValue,
+                        logoUrl: s.teamLogoUrl
                     )
                 }
             }
@@ -84,7 +85,8 @@ struct StandingsView: View {
                         points: s.points?.numberLabel ?? "0",
                         wins: s.wins?.intValue ?? 0,
                         leaderPoints: standings.first?.points?.doubleValue,
-                        myPoints: s.points?.doubleValue
+                        myPoints: s.points?.doubleValue,
+                        logoUrl: s.teamLogoUrl
                     )
                 }
             }
@@ -103,6 +105,7 @@ private struct StandingRow: View {
     let wins: Int
     let leaderPoints: Double?
     let myPoints: Double?
+    var logoUrl: String? = nil
 
     private var isLeader: Bool { rank == 1 }
 
@@ -110,6 +113,7 @@ private struct StandingRow: View {
         VStack(spacing: Theme.Space.sm) {
             HStack(spacing: Theme.Space.md) {
                 PositionBadge(text: String(rank), highlight: rank <= 3)
+                TeamLogoView(url: logoUrl, size: 28)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)
                         .font(.headline)

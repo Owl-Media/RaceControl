@@ -74,6 +74,33 @@ def test_includes_non_flag_categories(monkeypatch):
     assert flags_only["events"][0]["category"] == "Flag"
 
 
+def test_time_is_serialised_as_unambiguous_utc(monkeypatch):
+    # FastF1's own `to_datetime` helper parses race-control timestamps into
+    # *naive* datetimes (no tzinfo) that represent UTC wall-clock time — this
+    # is what `session.race_control_messages["Time"]` actually looks like in
+    # production, not a tz-aware Timestamp. A naive value serialised with a
+    # plain `.isoformat()` produces a string with no 'Z'/offset, which
+    # browsers then parse as *local* time — silently shifting every
+    # timestamp by the viewer's UTC offset. The output must carry an
+    # explicit UTC marker so that can't happen.
+    naive = pd.Timestamp("2026-07-26T12:20:00")  # no tzinfo, mirrors FastF1's real output
+    assert naive.tzinfo is None
+    rcm = _rcm([
+        {"Time": naive, "Category": "Flag", "Message": "GREEN LIGHT", "Status": None,
+         "Flag": "GREEN", "Scope": "Track", "Sector": None, "RacingNumber": None, "Lap": 1},
+    ])
+    monkeypatch.setattr(svc, "_load_session", lambda *a, **k: _stub_session(rcm))
+
+    out = svc.get_race_control(2024, 1, "R")
+    time_str = out["messages"][0]["time"]
+    assert time_str is not None
+    assert time_str.endswith("+00:00") or time_str.endswith("Z"), (
+        f"expected an explicit UTC offset, got {time_str!r}"
+    )
+    # And it must round-trip to the exact instant intended, not a shifted one.
+    assert pd.Timestamp(time_str) == naive.tz_localize("UTC")
+
+
 def test_messages_are_chronological(monkeypatch):
     t0 = pd.Timestamp("2024-03-02T12:00:00Z")
     rcm = _rcm([

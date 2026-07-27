@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { formatMs } from "@/lib/format";
 import { TeamColorDot } from "@/components/StateViews";
+import { TeamLogo } from "@/components/TeamLogo";
 import type { SessionResults } from "@/lib/types";
 
 export function ResultsTable({ data, year, qualifying = false }: { data: SessionResults; year: number; qualifying?: boolean }) {
@@ -39,8 +40,13 @@ export function ResultsTable({ data, year, qualifying = false }: { data: Session
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {data.results.map((r) => (
-            <tr key={r.driverId ?? r.driverNumber} className="hover:bg-surface/60">
+          {data.results.map((r, i) => (
+            // `driverId`/`driverNumber` can both be missing or duplicated for
+            // reserve/no-time entries (and some upstream rows arrive with a
+            // literal "nan" string rather than a real value) — fold in the
+            // row index so the key is always unique regardless of what the
+            // data actually contains.
+            <tr key={`${r.driverId ?? r.driverNumber ?? "row"}-${i}`} className="hover:bg-surface/60">
               <td className="tabular px-3 py-2 text-muted">{r.classifiedPosition ?? r.position ?? "—"}</td>
               <td className="px-3 py-2 font-medium">
                 {r.driverId ? (
@@ -54,6 +60,7 @@ export function ResultsTable({ data, year, qualifying = false }: { data: Session
               <td className="px-3 py-2 text-muted">
                 <span className="inline-flex items-center gap-2">
                   <TeamColorDot color={r.teamColor} />
+                  <TeamLogo src={r.teamLogoUrl} name={r.teamName} sizeClassName="h-4 w-4" />
                   {r.teamName ?? "—"}
                 </span>
               </td>

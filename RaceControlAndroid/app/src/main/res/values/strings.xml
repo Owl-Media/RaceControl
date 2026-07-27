@@ -95,6 +95,9 @@
     <string name="stat_position">Position</string>
     <string name="stat_podiums">Podiums</string>
     <string name="stat_poles">Poles</string>
+    <string name="points_suffix">%1$s pts</string>
+    <string name="points_breakdown">POINTS BREAKDOWN</string>
+    <string name="points_breakdown_entry">%1$s: %2$s (%3$d%%)</string>
     <string name="stat_best">Best</string>
     <string name="stat_dnf">DNF</string>
     <string name="season_form">SEASON FORM</string>
@@ -226,6 +229,7 @@
     <!-- Retirements -->
     <string name="no_retirements_title">Everyone Finished</string>
     <string name="no_retirements_message">No retirements were recorded for this race.</string>
+    <string name="retirement_lap">Lap %d</string>
 
     <!-- Settings -->
     <string name="settings">Settings</string>

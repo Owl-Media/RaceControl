@@ -52,6 +52,8 @@ import com.owlmedia.racecontrol.data.remote.dto.FlagPeriodDto
 import com.owlmedia.racecontrol.data.remote.dto.FlagPeriodType
 import com.owlmedia.racecontrol.data.remote.dto.FlagsResponseDto
 import com.owlmedia.racecontrol.data.repository.RaceControlRepository
+import com.owlmedia.racecontrol.core.util.FlexibleDate
+import com.owlmedia.racecontrol.core.util.formatTimeWithZone
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -282,6 +284,14 @@ private fun FlagEventRow(event: FlagEventDto) {
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
                         color = RcTheme.colors.textSecondary,
+                    )
+                }
+                val timeText = remember(event.time) { FlexibleDate.parse(event.time)?.formatTimeWithZone() }
+                if (timeText != null) {
+                    Text(
+                        text = timeText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = RcTheme.colors.textTertiary,
                     )
                 }
             }

@@ -137,10 +137,7 @@ private struct RaceControlRow: View {
         .accessibilityElement(children: .combine)
     }
 
-    private var timeText: String? {
-        guard let date = ISO8601.flexible(message.time) else { return nil }
-        return date.formatted(date: .omitted, time: .standard)
-    }
+    private var timeText: String? { ISO8601.clockWithZone(message.time) }
 }
 
 @MainActor

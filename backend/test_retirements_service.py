@@ -23,18 +23,25 @@ def _results(rows):
     return pd.DataFrame(rows)
 
 
-def _stub_session(rows):
+def _stub_session(rows, laps_by_number=None):
+    laps_rows = []
+    for num, lap_no in (laps_by_number or {}).items():
+        for n in range(1, lap_no + 1):
+            laps_rows.append({"DriverNumber": num, "LapNumber": float(n)})
+    laps = pd.DataFrame(laps_rows, columns=["DriverNumber", "LapNumber"])
     return SimpleNamespace(
         event={"EventName": "Test Grand Prix"},
         results=_results(rows),
+        laps=laps,
     )
 
 
-def _row(abbr, status, classified_position):
+def _row(abbr, status, classified_position, number=None):
     return {
         "Abbreviation": abbr,
         "FullName": abbr,
         "DriverId": abbr.lower(),
+        "DriverNumber": number or abbr,
         "TeamName": "Test Team",
         "TeamColor": "FF0000",
         "Status": status,
@@ -76,6 +83,31 @@ def test_lapped_classified_finishers_excluded_from_retirements(monkeypatch):
     assert codes == {"PER", "SAI", "ALO"}
     assert "HAM" not in codes
     assert "LEC" not in codes
+
+
+def test_retirements_include_laps_completed(monkeypatch):
+    rows = [
+        _row("PER", "Accident", "R", number="11"),
+        _row("SAI", "Gearbox", "R", number="55"),
+        _row("VER", "Finished", "1", number="1"),
+    ]
+    session = _stub_session(rows, laps_by_number={"11": 23, "55": 40, "1": 58})
+    monkeypatch.setattr(svc, "_load_session", lambda *a, **k: session)
+
+    out = svc.get_retirements(2024, 1)
+    by_driver = {r["driver"]: r["lapsCompleted"] for r in out["retirements"]}
+    assert by_driver == {"PER": 23, "SAI": 40}
+
+
+def test_laps_completed_absent_when_lap_data_unavailable(monkeypatch):
+    # No laps dataframe entries for these drivers — should degrade to None
+    # rather than erroring or fabricating a number.
+    rows = [_row("PER", "Accident", "R", number="11")]
+    session = _stub_session(rows)  # no laps_by_number given
+    monkeypatch.setattr(svc, "_load_session", lambda *a, **k: session)
+
+    out = svc.get_retirements(2024, 1)
+    assert out["retirements"][0]["lapsCompleted"] is None
 
 
 def test_no_retirements_when_all_classified(monkeypatch):

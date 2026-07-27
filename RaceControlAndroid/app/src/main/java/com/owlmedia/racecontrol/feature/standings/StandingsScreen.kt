@@ -48,6 +48,7 @@ import com.owlmedia.racecontrol.core.ui.EmptyState
 import com.owlmedia.racecontrol.core.ui.LoadableContent
 import com.owlmedia.racecontrol.core.ui.RcTabScaffold
 import com.owlmedia.racecontrol.core.ui.SeasonPickerChip
+import com.owlmedia.racecontrol.core.ui.TeamLogo
 import com.owlmedia.racecontrol.feature.AppState
 
 @Composable
@@ -141,6 +142,7 @@ private fun DriversStandings(viewModel: StandingsViewModel, appState: AppState) 
                         points = entry.points?.numberLabel ?: "0",
                         wins = entry.wins?.intValue ?: 0,
                         fraction = fractionOf(entry.points?.doubleValue, leaderPoints),
+                        logoUrl = entry.teamLogoUrl,
                     )
                 }
             }
@@ -173,6 +175,7 @@ private fun ConstructorsStandings(viewModel: StandingsViewModel, appState: AppSt
                         points = entry.points?.numberLabel ?: "0",
                         wins = entry.wins?.intValue ?: 0,
                         fraction = fractionOf(entry.points?.doubleValue, leaderPoints),
+                        logoUrl = entry.teamLogoUrl,
                     )
                 }
             }
@@ -209,6 +212,7 @@ internal fun StandingRow(
     points: String,
     wins: Int,
     fraction: Float,
+    logoUrl: String? = null,
 ) {
     Row(
         modifier = Modifier
@@ -234,6 +238,7 @@ internal fun StandingRow(
             color = if (rank <= 3) RcTheme.colors.gold else RcTheme.colors.textSecondary,
             modifier = Modifier.width(28.dp),
         )
+        TeamLogo(url = logoUrl)
         Column(Modifier.weight(1f)) {
             Text(
                 text = title,

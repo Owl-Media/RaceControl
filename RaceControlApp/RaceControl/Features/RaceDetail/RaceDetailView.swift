@@ -132,10 +132,13 @@ private struct ResultRow: View {
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(Theme.Palette.textPrimary)
                     .lineLimit(1)
-                Text(entry.teamName ?? "")
-                    .font(.caption)
-                    .foregroundStyle(Theme.Palette.textSecondary)
-                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    TeamLogoView(url: entry.teamLogoUrl, size: 16)
+                    Text(entry.teamName ?? "")
+                        .font(.caption)
+                        .foregroundStyle(Theme.Palette.textSecondary)
+                        .lineLimit(1)
+                }
             }
             Spacer(minLength: 4)
 

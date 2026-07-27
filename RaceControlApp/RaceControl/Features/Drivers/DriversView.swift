@@ -121,10 +121,13 @@ private struct DriverRow: View {
                             .foregroundStyle(accent)
                     }
                 }
-                Text(driver.teamName ?? "")
-                    .font(.subheadline)
-                    .foregroundStyle(Theme.Palette.textSecondary)
-                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    TeamLogoView(url: driver.teamLogoUrl, size: 16)
+                    Text(driver.teamName ?? "")
+                        .font(.subheadline)
+                        .foregroundStyle(Theme.Palette.textSecondary)
+                        .lineLimit(1)
+                }
             }
             Spacer(minLength: 4)
             VStack(alignment: .trailing, spacing: 2) {

@@ -15,6 +15,7 @@ export function ReplayTrackMap({
   lapPositions,
   driverTeamColors,
   playing,
+  active = true,
 }: {
   circuit: CircuitMap | undefined;
   /** The track outline request is still in flight — distinct from "there is
@@ -27,6 +28,14 @@ export function ReplayTrackMap({
   lapPositions: ReplayLapPositions | undefined;
   driverTeamColors: Record<string, string | null>;
   playing: boolean;
+  /** Whether the map is actually visible right now. The per-frame animation
+   * loop below is real CPU work (trig + DOM writes on every driver, every
+   * frame) — on a phone, running it while the map is scrolled off or
+   * collapsed behind the "Show map" toggle is wasted battery/CPU that can
+   * fight the running-order list's own animations for frame budget.
+   * Defaults to true so callers that don't care (e.g. desktop, which never
+   * hides the map) don't need to pass anything. */
+  active?: boolean;
 }) {
   const { screenOutline, projector } = useMemo(() => {
     if (!circuit || circuit.outline.length === 0) return { screenOutline: [] as { x: number; y: number }[], projector: null };
@@ -50,7 +59,23 @@ export function ReplayTrackMap({
   const frameRef = useRef<number>(0);
 
   useEffect(() => {
+    // Not on screen right now (CSS-hidden behind the mobile "Show map"
+    // toggle) — skip both the immediate placement and the per-frame loop
+    // below entirely. There's nothing to sync visually while it's hidden;
+    // `place(0)` runs again as soon as `active` flips back to true.
+    if (!active) return;
+
     const start = performance.now();
+    // Hoisted out of the per-point loop below: `rotatePoints` recomputes
+    // sin/cos from scratch (plus an array + object allocation) for every
+    // single point, and this loop calls it for every driver on every
+    // animation frame — ~20 drivers x 60fps = over a thousand redundant
+    // trig calls a second. Computing theta once per effect run and inlining
+    // the rotation match keeps the same math with none of that per-frame
+    // waste, which matters more on weaker mobile CPUs than on desktop.
+    const theta = (rotation * Math.PI) / 180;
+    const cos = Math.cos(theta);
+    const sin = Math.sin(theta);
 
     function place(fraction: number) {
       if (!projector || !lapPositions) return;
@@ -62,8 +87,7 @@ export function ReplayTrackMap({
         if (!point) continue;
         const [x, y] = point;
         if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
-        const [rotated] = rotatePoints([{ x, y }], rotation);
-        const screen = projector.project(rotated);
+        const screen = projector.project({ x: x * cos - y * sin, y: x * sin + y * cos });
         el.setAttribute("transform", `translate(${screen.x}, ${screen.y})`);
       }
     }
@@ -81,7 +105,7 @@ export function ReplayTrackMap({
     }
     frameRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frameRef.current);
-  }, [playing, lapPositions, projector, rotation]);
+  }, [playing, lapPositions, projector, rotation, active]);
 
   // Only report missing data once the request has actually finished — while
   // it's in flight there is legitimately nothing to draw yet, and showing the

@@ -65,6 +65,7 @@ private struct TeamCard: View {
                     .monospacedDigit()
                     .foregroundStyle(accent)
                     .frame(width: 44)
+                TeamLogoView(url: team.teamLogoUrl, size: 32)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(team.teamName ?? "Unknown")
                         .font(.title3.weight(.bold))

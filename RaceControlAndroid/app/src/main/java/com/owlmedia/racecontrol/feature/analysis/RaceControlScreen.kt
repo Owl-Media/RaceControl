@@ -48,6 +48,8 @@ import com.owlmedia.racecontrol.core.ui.EmptyState
 import com.owlmedia.racecontrol.core.ui.LoadableContent
 import com.owlmedia.racecontrol.core.ui.RcDetailScaffold
 import com.owlmedia.racecontrol.core.ui.UiState
+import com.owlmedia.racecontrol.core.util.FlexibleDate
+import com.owlmedia.racecontrol.core.util.formatTimeWithZone
 import com.owlmedia.racecontrol.data.remote.dto.FlagPeriodType
 import com.owlmedia.racecontrol.data.remote.dto.RaceControlCategory
 import com.owlmedia.racecontrol.data.remote.dto.RaceControlMessageDto
@@ -275,6 +277,14 @@ private fun RaceControlMessageRow(message: RaceControlMessageDto) {
                             .clip(RcShapes.Small)
                             .background(RcTheme.colors.surfaceElevated)
                             .padding(horizontal = 6.dp, vertical = 2.dp),
+                    )
+                }
+                val timeText = remember(message.time) { FlexibleDate.parse(message.time)?.formatTimeWithZone() }
+                if (timeText != null) {
+                    Text(
+                        text = timeText,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = RcTheme.colors.textTertiary,
                     )
                 }
             }

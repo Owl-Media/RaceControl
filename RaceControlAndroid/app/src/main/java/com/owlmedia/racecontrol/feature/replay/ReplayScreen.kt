@@ -67,6 +67,7 @@ import com.owlmedia.racecontrol.core.ui.EmptyState
 import com.owlmedia.racecontrol.core.ui.LoadableContent
 import com.owlmedia.racecontrol.core.ui.RcDetailScaffold
 import com.owlmedia.racecontrol.core.ui.TeamAccentBar
+import com.owlmedia.racecontrol.core.ui.TeamLogo
 import com.owlmedia.racecontrol.core.ui.TyreBadge
 import com.owlmedia.racecontrol.data.remote.dto.RaceReplayDto
 import com.owlmedia.racecontrol.data.remote.dto.ReplayEntryDto
@@ -249,6 +250,8 @@ private fun ReplayRow(
             color = RcTheme.colors.textPrimary,
             modifier = Modifier.width(44.dp),
         )
+
+        TeamLogo(url = entry.teamLogoUrl, size = 18.dp)
 
         Text(
             text = entry.teamName.orEmpty(),

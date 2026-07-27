@@ -3,13 +3,7 @@
 import { useFlags } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { flagColor, flagLabel } from "@/lib/flags";
-
-function formatClock(iso: string | null): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-}
+import { formatClock } from "@/lib/format";
 
 export function FlagsTab({ year, round }: { year: number; round: number }) {
   const { data, error, isLoading } = useFlags(year, round);
@@ -51,7 +45,7 @@ export function FlagsTab({ year, round }: { year: number; round: number }) {
           <ul className="flex flex-col gap-1 border-t border-border px-4 py-3">
             {data.events.map((e, i) => (
               <li key={i} className="flex items-start gap-3 py-1 text-xs">
-                <span className="tabular w-16 shrink-0 text-muted">{formatClock(e.time)}</span>
+                <span className="tabular w-32 shrink-0 text-muted">{formatClock(e.time)}</span>
                 <span className="w-12 shrink-0 text-muted">{e.lap != null ? `Lap ${e.lap}` : "—"}</span>
                 <span className="min-w-0 flex-1 text-foreground">{e.message ?? e.category ?? "—"}</span>
               </li>

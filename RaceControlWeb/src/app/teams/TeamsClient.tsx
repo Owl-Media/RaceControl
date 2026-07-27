@@ -7,6 +7,7 @@ import { useTeams } from "@/lib/api";
 import { useFavorites } from "@/components/FavoritesProvider";
 import { SeasonPicker } from "@/components/SeasonPicker";
 import { LoadingState, ErrorState, EmptyState, TeamColorDot, StarButton } from "@/components/StateViews";
+import { TeamLogo } from "@/components/TeamLogo";
 
 export function TeamsClient({ defaultYear }: { defaultYear: number }) {
   const [year, setYear] = useYearParam(defaultYear);
@@ -44,6 +45,7 @@ export function TeamsClient({ defaultYear }: { defaultYear: number }) {
                 style={{ borderLeft: `3px solid ${t.teamColor || "var(--border)"}` }}
               >
                 <TeamColorDot color={t.teamColor} />
+                <TeamLogo src={t.teamLogoUrl} name={t.teamName} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{t.teamName}</p>
                   <p className="truncate text-sm text-muted">{t.drivers.map((d) => d.code ?? d.name).join(" · ")}</p>

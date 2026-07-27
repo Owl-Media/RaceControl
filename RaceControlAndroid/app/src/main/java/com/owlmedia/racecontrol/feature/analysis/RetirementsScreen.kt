@@ -41,6 +41,7 @@ import com.owlmedia.racecontrol.core.ui.LoadableContent
 import com.owlmedia.racecontrol.core.ui.RcDetailScaffold
 import com.owlmedia.racecontrol.core.ui.SectionHeader
 import com.owlmedia.racecontrol.core.ui.TeamAccentBar
+import com.owlmedia.racecontrol.core.ui.TeamLogo
 import com.owlmedia.racecontrol.core.ui.UiState
 import com.owlmedia.racecontrol.data.remote.dto.RetirementCause
 import com.owlmedia.racecontrol.data.remote.dto.RetirementDto
@@ -161,6 +162,7 @@ private fun RetirementRow(retirement: RetirementDto, causeColor: Color) {
         horizontalArrangement = Arrangement.spacedBy(Dimens.SM),
     ) {
         TeamAccentBar(color = accent, height = 36.dp)
+        TeamLogo(url = retirement.teamLogoUrl, size = 20.dp)
         Column(Modifier.weight(1f)) {
             Text(
                 text = retirement.fullName ?: retirement.driver.orEmpty(),
@@ -176,11 +178,20 @@ private fun RetirementRow(retirement: RetirementDto, causeColor: Color) {
                 color = RcTheme.colors.textSecondary,
             )
         }
-        Text(
-            text = retirement.status.orEmpty(),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.Medium,
-            color = causeColor,
-        )
+        Column(horizontalAlignment = Alignment.End) {
+            Text(
+                text = retirement.status.orEmpty(),
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Medium,
+                color = causeColor,
+            )
+            retirement.lapsCompleted?.let { laps ->
+                Text(
+                    text = stringResource(R.string.retirement_lap, laps),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = RcTheme.colors.textTertiary,
+                )
+            }
+        }
     }
 }

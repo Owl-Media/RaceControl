@@ -42,6 +42,7 @@ import com.owlmedia.racecontrol.core.ui.RcCard
 import com.owlmedia.racecontrol.core.ui.RcDetailScaffold
 import com.owlmedia.racecontrol.core.ui.SectionHeader
 import com.owlmedia.racecontrol.core.ui.StatCell
+import com.owlmedia.racecontrol.core.ui.TeamLogo
 import com.owlmedia.racecontrol.core.ui.TyreBadge
 import com.owlmedia.racecontrol.core.ui.UiState
 import com.owlmedia.racecontrol.data.remote.dto.CircuitMapDto
@@ -168,11 +169,14 @@ fun CircuitDetailScreen(
                                     fontWeight = FontWeight.SemiBold,
                                     color = RcTheme.colors.textPrimary,
                                 )
-                                Text(
-                                    text = lap.team.orEmpty(),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = accent,
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    TeamLogo(url = lap.teamLogoUrl, size = 14.dp)
+                                    Text(
+                                        text = lap.team.orEmpty(),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = accent,
+                                    )
+                                }
                             }
                             lap.compound?.let { TyreBadge(compound = it, size = 24.dp) }
                             Text(

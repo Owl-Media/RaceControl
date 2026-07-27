@@ -53,8 +53,8 @@ function useApi<T>(path: string | null, params?: Record<string, string | number 
 
 export const useSeasons = () => useApi<number[]>("/api/seasons");
 export const useSchedule = (year: number) => useApi<ScheduleEvent[]>(`/api/schedule/${year}`);
-export const useResults = (year: number, rnd: number, session: string) =>
-  useApi<SessionResults>(`/api/results/${year}/${rnd}/${session}`);
+export const useResults = (year: number, rnd: number | null, session: string) =>
+  useApi<SessionResults>(rnd != null ? `/api/results/${year}/${rnd}/${session}` : null);
 export const useDriverStandings = (year: number) => useApi<DriverStanding[]>(`/api/standings/drivers/${year}`);
 export const useConstructorStandings = (year: number) =>
   useApi<ConstructorStanding[]>(`/api/standings/constructors/${year}`);
@@ -65,14 +65,15 @@ export const useTeams = (year: number) => useApi<Team[]>(`/api/teams/${year}`);
 export const useTeamDetail = (year: number, teamId: string | null) =>
   useApi<Team>(teamId ? `/api/teams/${year}/${teamId}` : null);
 export const useCircuits = (year: number) => useApi<Circuit[]>(`/api/circuits/${year}`);
-export const useCircuitMap = (year: number, rnd: number) => useApi<CircuitMap>(`/api/circuit/${year}/${rnd}`);
+export const useCircuitMap = (year: number, rnd: number | null) =>
+  useApi<CircuitMap>(rnd != null ? `/api/circuit/${year}/${rnd}` : null);
 export const useReplay = (year: number, rnd: number) => useApi<RaceReplay>(`/api/replay/${year}/${rnd}`);
 export const useReplayPositions = (year: number, rnd: number) =>
   useApi<ReplayPositions>(`/api/replay-positions/${year}/${rnd}`);
 export const useLapTimes = (year: number, rnd: number) => useApi<LapTimesResponse>(`/api/laptimes/${year}/${rnd}`);
 export const useStrategy = (year: number, rnd: number) => useApi<StrategyResponse>(`/api/strategy/${year}/${rnd}`);
-export const useWeather = (year: number, rnd: number, session: string) =>
-  useApi<WeatherResponse>(`/api/weather/${year}/${rnd}/${session}`);
+export const useWeather = (year: number, rnd: number | null, session: string) =>
+  useApi<WeatherResponse>(rnd != null ? `/api/weather/${year}/${rnd}/${session}` : null);
 export const useRaceDrivers = (year: number, rnd: number) => useApi<RaceDriver[]>(`/api/racedrivers/${year}/${rnd}`);
 export const useTelemetry = (year: number, rnd: number, driver: string | null, lap = "fastest") =>
   useApi<TelemetryResponse>(driver ? `/api/telemetry/${year}/${rnd}/${driver}` : null, { lap });

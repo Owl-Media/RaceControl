@@ -45,8 +45,11 @@ struct HeadToHeadView: View {
             Text(driver?.code ?? placeholder)
                 .font(.subheadline.weight(.bold))
                 .foregroundStyle(Theme.Palette.textPrimary)
-            Text(driver?.teamName ?? "Tap a driver below")
-                .font(.caption2).foregroundStyle(Theme.Palette.textSecondary).lineLimit(1)
+            HStack(spacing: 3) {
+                TeamLogoView(url: driver?.teamLogoUrl, size: 12)
+                Text(driver?.teamName ?? "Tap a driver below")
+                    .font(.caption2).foregroundStyle(Theme.Palette.textSecondary).lineLimit(1)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(Theme.Space.sm)

@@ -148,10 +148,7 @@ private struct FlagEventRow: View {
         .padding(.vertical, 4)
     }
 
-    private var timeText: String? {
-        guard let date = ISO8601.flexible(event.time) else { return nil }
-        return date.formatted(date: .omitted, time: .standard)
-    }
+    private var timeText: String? { ISO8601.clockWithZone(event.time) }
 }
 
 @MainActor

@@ -47,6 +47,7 @@ import com.owlmedia.racecontrol.core.ui.PointsPill
 import com.owlmedia.racecontrol.core.ui.RcTabScaffold
 import com.owlmedia.racecontrol.core.ui.SeasonPickerChip
 import com.owlmedia.racecontrol.core.ui.TeamAccentBar
+import com.owlmedia.racecontrol.core.ui.TeamLogo
 import com.owlmedia.racecontrol.core.ui.UiState
 import com.owlmedia.racecontrol.data.local.FavoritesStore
 import com.owlmedia.racecontrol.data.remote.dto.TeamDto
@@ -194,6 +195,7 @@ internal fun TeamRow(
                 )
             }
             TeamAccentBar(color = accent, height = 36.dp)
+            TeamLogo(url = team.teamLogoUrl, size = 28.dp)
             Column(Modifier.weight(1f)) {
                 Text(
                     text = team.teamName.orEmpty(),

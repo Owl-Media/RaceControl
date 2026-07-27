@@ -6,6 +6,7 @@ import clsx from "clsx";
 import { useHelpDrawer } from "@/components/HelpDrawerProvider";
 
 const TABS = [
+  { href: "/", label: "Home" },
   { href: "/schedule", label: "Schedule" },
   { href: "/drivers", label: "Drivers" },
   { href: "/teams", label: "Teams" },
@@ -16,13 +17,15 @@ const TABS = [
 export function NavBar() {
   const pathname = usePathname();
   const { toggle: toggleHelp } = useHelpDrawer();
-  const isActive = (href: string) => pathname === href || pathname?.startsWith(href + "/");
+  // "/" would otherwise match every route via the startsWith fallback below.
+  const isActive = (href: string) =>
+    href === "/" ? pathname === "/" : pathname === href || pathname?.startsWith(href + "/");
 
   return (
     <>
       <header className="sticky top-0 z-20 border-b border-border bg-background/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center gap-6 px-4 py-3">
-          <Link href="/schedule" className="flex items-center gap-2 font-bold tracking-tight">
+          <Link href="/" className="flex items-center gap-2 font-bold tracking-tight">
             {/* Plain <img>, not next/image: this is a fixed-size static asset and the
                 production container doesn't ship `sharp`, so routing it through the
                 on-demand /_next/image optimizer is unnecessary risk for no benefit. */}

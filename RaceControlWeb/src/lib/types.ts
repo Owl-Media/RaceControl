@@ -33,6 +33,7 @@ export interface ResultRow {
   countryCode: string | null;
   teamName: string | null;
   teamId: string | null;
+  teamLogoUrl: string | null;
   teamColor: string | null;
   gridPosition: number | null;
   status: string | null;
@@ -66,6 +67,7 @@ export interface DriverStanding {
   dateOfBirth: string | null;
   teamName: string | null;
   teamId: string | null;
+  teamLogoUrl: string | null;
 }
 
 export interface ConstructorStanding {
@@ -75,6 +77,7 @@ export interface ConstructorStanding {
   teamId: string;
   teamName: string | null;
   nationality: string | null;
+  teamLogoUrl: string | null;
 }
 
 export interface Driver {
@@ -87,6 +90,7 @@ export interface Driver {
   dateOfBirth: string | null;
   teamName: string | null;
   teamId: string | null;
+  teamLogoUrl: string | null;
   teamColor: string | null;
   headshotUrl: string | null;
   countryCode: string | null;
@@ -114,6 +118,7 @@ export interface TeamRosterEntry {
   code: string | null;
   number: string | null;
   headshotUrl: string | null;
+  points: number | null;
 }
 
 export interface Team extends ConstructorStanding {
@@ -166,6 +171,7 @@ export interface CircuitMap {
     driver: string | null;
     driverName: string | null;
     team: string | null;
+    teamLogoUrl: string | null;
     teamColor: string | null;
     time: string | null;
     compound: string | null;
@@ -178,6 +184,7 @@ export interface ReplayEntry {
   driverId: string | null;
   teamColor: string | null;
   teamName: string | null;
+  teamLogoUrl: string | null;
   lapTimeMs: number | null;
   lapTime: string | null;
   compound: string | null;
@@ -194,7 +201,7 @@ export interface RaceReplay {
   round: number;
   eventName: string | null;
   totalLaps: number;
-  drivers: { code: string; driverId: string | null; fullName: string | null; teamName: string | null; teamColor: string | null; number: string | null }[];
+  drivers: { code: string; driverId: string | null; fullName: string | null; teamName: string | null; teamLogoUrl: string | null; teamColor: string | null; number: string | null }[];
   frames: ReplayFrame[];
 }
 
@@ -209,7 +216,7 @@ export interface ReplayPositions {
   round: number;
   eventName: string | null;
   totalLaps: number;
-  drivers: { code: string; driverId: string | null; fullName: string | null; teamName: string | null; teamColor: string | null; number: string | null }[];
+  drivers: { code: string; driverId: string | null; fullName: string | null; teamName: string | null; teamLogoUrl: string | null; teamColor: string | null; number: string | null }[];
   laps: ReplayLapPositions[];
 }
 
@@ -328,9 +335,12 @@ export interface Retirement {
   fullName: string | null;
   driverId: string | null;
   teamName: string | null;
+  teamId: string | null;
+  teamLogoUrl: string | null;
   teamColor: string | null;
   status: string;
   classifiedPosition: string | null;
+  lapsCompleted: number | null;
 }
 
 export interface RetirementsResponse {
@@ -345,6 +355,7 @@ export interface ReliabilityEntry {
   teamId?: string;
   name?: string;
   teamName?: string;
+  teamLogoUrl?: string | null;
   finished: number;
   mechanical: number;
   accident: number;
@@ -372,6 +383,8 @@ export interface CompareDriver {
   driverId: string;
   name: string;
   teamName: string | null;
+  teamId: string | null;
+  teamLogoUrl: string | null;
   points: number;
   wins: number;
   podiums: number;

@@ -50,6 +50,10 @@ private val dateLong: DateTimeFormatter =
 private val timeShort: DateTimeFormatter =
     DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
 
+/** "2:24:07 PM GMT+1" — pattern "O" is a localized zone offset. */
+private val timeWithZone: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("h:mm:ss a O", Locale.getDefault())
+
 /** "12 Jul 2026" — the abbreviated style used in race rows. */
 fun ZonedDateTime.formatDateMedium(): String =
     withZoneSameInstant(ZoneId.systemDefault()).format(dateMedium)
@@ -61,6 +65,15 @@ fun ZonedDateTime.formatDateLong(): String =
 /** "14:00" in the user's locale and timezone. */
 fun ZonedDateTime.formatTime(): String =
     withZoneSameInstant(ZoneId.systemDefault()).format(timeShort)
+
+/**
+ * "2:24:07 PM GMT+1" — clock time with the offset spelled out, so it's never
+ * ambiguous which zone is being shown. Used for race-control timestamps:
+ * they come from the timing feed in UTC, but a race can be happening in any
+ * timezone and the viewer is in another again.
+ */
+fun ZonedDateTime.formatTimeWithZone(): String =
+    withZoneSameInstant(ZoneId.systemDefault()).format(timeWithZone)
 
 /** "Sat 14:00" — used in weekend schedules and day-before reminders. */
 fun ZonedDateTime.formatWeekdayTime(): String {

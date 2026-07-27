@@ -57,6 +57,7 @@ import com.owlmedia.racecontrol.core.ui.PositionBadge
 import com.owlmedia.racecontrol.core.ui.RcCard
 import com.owlmedia.racecontrol.core.ui.RcDetailScaffold
 import com.owlmedia.racecontrol.core.ui.TeamAccentBar
+import com.owlmedia.racecontrol.core.ui.TeamLogo
 import com.owlmedia.racecontrol.core.ui.UiState
 import com.owlmedia.racecontrol.core.util.formatDateLong
 import com.owlmedia.racecontrol.core.util.pointsLabel
@@ -327,13 +328,16 @@ private fun ResultRow(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
-            Text(
-                text = entry.teamName.orEmpty(),
-                style = MaterialTheme.typography.bodySmall,
-                color = RcTheme.colors.textSecondary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                TeamLogo(url = entry.teamLogoUrl, size = 14.dp)
+                Text(
+                    text = entry.teamName.orEmpty(),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = RcTheme.colors.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
         }
 
         Column(horizontalAlignment = Alignment.End) {

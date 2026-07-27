@@ -5,6 +5,7 @@ import clsx from "clsx";
 import { useRaceControl } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { flagColor, flagLabel } from "@/lib/flags";
+import { formatClock } from "@/lib/format";
 import type { RaceControlCategory, RaceControlMessage } from "@/lib/types";
 
 const CATEGORY_COLORS: Record<RaceControlCategory, string> = {
@@ -31,13 +32,6 @@ function messageColor(m: RaceControlMessage): string {
 function messageBadgeLabel(m: RaceControlMessage): string {
   if (m.category === "Flag" && m.flag) return flagLabel(m.flag);
   return CATEGORY_LABELS[m.category] ?? m.category;
-}
-
-function formatClock(iso: string | null): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return "—";
-  return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
 type FilterKey = "all" | "Flag" | "SafetyCar" | "Drs" | "Incidents";

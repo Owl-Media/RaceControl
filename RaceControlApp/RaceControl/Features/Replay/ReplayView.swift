@@ -157,6 +157,8 @@ private struct ReplayRow: View {
                 .foregroundStyle(Theme.Palette.textPrimary)
                 .frame(width: 48, alignment: .leading)
 
+            TeamLogoView(url: entry.teamLogoUrl, size: 18)
+
             Text(entry.teamName ?? "")
                 .font(.caption)
                 .foregroundStyle(Theme.Palette.textSecondary)
