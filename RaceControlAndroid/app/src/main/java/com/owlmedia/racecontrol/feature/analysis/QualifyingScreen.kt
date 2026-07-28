@@ -174,9 +174,9 @@ private fun QualifyingRow(entry: ResultEntryDto, poleMillis: Long?) {
                 overflow = TextOverflow.Ellipsis,
             )
             Row(horizontalArrangement = Arrangement.spacedBy(Dimens.SM)) {
-                SegmentTime("Q1", entry.q1)
-                SegmentTime("Q2", entry.q2)
-                SegmentTime("Q3", entry.q3)
+                SegmentTime("Q1", entry.q1, entry.q1Gap)
+                SegmentTime("Q2", entry.q2, entry.q2Gap)
+                SegmentTime("Q3", entry.q3, entry.q3Gap)
             }
             eliminatedIn?.let {
                 Text(
@@ -207,12 +207,21 @@ private fun QualifyingRow(entry: ResultEntryDto, poleMillis: Long?) {
 }
 
 @Composable
-private fun SegmentTime(label: String, time: String?) {
-    Text(
-        text = "$label ${time ?: "–"}",
-        style = MaterialTheme.typography.labelSmall.tabular(),
-        color = if (time == null) RcTheme.colors.textTertiary else RcTheme.colors.textSecondary,
-    )
+private fun SegmentTime(label: String, time: String?, gap: String?) {
+    Column {
+        Text(
+            text = "$label ${time ?: "–"}",
+            style = MaterialTheme.typography.labelSmall.tabular(),
+            color = if (time == null) RcTheme.colors.textTertiary else RcTheme.colors.textSecondary,
+        )
+        if (gap != null) {
+            Text(
+                text = gap,
+                style = MaterialTheme.typography.labelSmall.tabular(),
+                color = RcTheme.colors.textTertiary,
+            )
+        }
+    }
 }
 
 /**

@@ -66,9 +66,9 @@ export function ResultsTable({ data, year, qualifying = false }: { data: Session
               </td>
               {qualifying ? (
                 <>
-                  <td className="tabular px-3 py-2 text-right">{r.q1 ?? "—"}</td>
-                  <td className="tabular px-3 py-2 text-right">{r.q2 ?? "—"}</td>
-                  <td className="tabular px-3 py-2 text-right">{r.q3 ?? "—"}</td>
+                  <QualifyingTimeCell time={r.q1} gap={r.q1Gap} />
+                  <QualifyingTimeCell time={r.q2} gap={r.q2Gap} />
+                  <QualifyingTimeCell time={r.q3} gap={r.q3Gap} />
                 </>
               ) : (
                 <>
@@ -83,5 +83,17 @@ export function ResultsTable({ data, year, qualifying = false }: { data: Session
         </tbody>
       </table>
     </div>
+  );
+}
+
+/** A Q1/Q2/Q3 time with its gap to the segment's fastest time underneath —
+    no gap shown for whoever set that fastest time, or for a driver with no
+    time in that segment at all (knocked out earlier). */
+function QualifyingTimeCell({ time, gap }: { time: string | null; gap: string | null }) {
+  return (
+    <td className="tabular px-3 py-2 text-right">
+      <div>{time ?? "—"}</div>
+      {gap && <div className="text-[11px] text-muted">{gap}</div>}
+    </td>
   );
 }

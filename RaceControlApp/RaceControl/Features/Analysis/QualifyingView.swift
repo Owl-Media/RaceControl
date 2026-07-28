@@ -80,21 +80,26 @@ private struct QualiRow: View {
             }
             // Q1/Q2/Q3 breakdown
             HStack(spacing: Theme.Space.sm) {
-                segment("Q1", entry.q1)
-                segment("Q2", entry.q2)
-                segment("Q3", entry.q3)
+                segment("Q1", entry.q1, entry.q1Gap)
+                segment("Q2", entry.q2, entry.q2Gap)
+                segment("Q3", entry.q3, entry.q3Gap)
             }
         }
         .padding(Theme.Space.sm)
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.md))
     }
 
-    private func segment(_ label: String, _ time: String?) -> some View {
+    private func segment(_ label: String, _ time: String?, _ gap: String?) -> some View {
         VStack(spacing: 1) {
             Text(label).font(.caption2.weight(.bold)).foregroundStyle(Theme.Palette.textTertiary)
             Text(time ?? "—")
                 .font(.system(.caption2, design: .monospaced))
                 .foregroundStyle(time == nil ? Theme.Palette.textTertiary : Theme.Palette.textSecondary)
+            if let gap {
+                Text(gap)
+                    .font(.caption2)
+                    .foregroundStyle(Theme.Palette.textTertiary)
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 4)

@@ -167,7 +167,7 @@ final class LapTimesViewModel: ObservableObject {
         do {
             let data = try await APIClient.shared.lapTimes(year: year, round: round)
             // Preselect the first few drivers so the chart isn't empty.
-            selected = Set(data.drivers.prefix(5).map(\.code))
+            selected = Set(data.drivers.prefix(3).map(\.code))
             state = .loaded(data)
         } catch {
             state = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)

@@ -42,6 +42,9 @@ export interface ResultRow {
   q1: string | null;
   q2: string | null;
   q3: string | null;
+  q1Gap: string | null;
+  q2Gap: string | null;
+  q3Gap: string | null;
 }
 
 export interface SessionResults {
@@ -257,6 +260,8 @@ export interface DriverStrategy {
   teamColor: string | null;
   pitStops: number;
   stints: StrategyStint[];
+  status: string | null;
+  retired: boolean;
 }
 
 export interface StrategyResponse {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useStrategy } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState, TeamColorDot } from "@/components/StateViews";
 import { TyreLegend } from "@/components/TyreLegend";
@@ -16,9 +17,23 @@ export function StrategyTab({ year, round }: { year: number; round: number }) {
     <div className="flex flex-col gap-1.5">
       {data.drivers.map((d) => (
         <div key={d.code} className="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2">
-          <div className="flex w-32 shrink-0 items-center gap-2">
+          <div className="flex w-32 shrink-0 items-center gap-1.5">
             <TeamColorDot color={d.teamColor} />
-            <span className="text-sm font-medium">{d.code}</span>
+            {d.driverId ? (
+              <Link href={`/drivers/${year}/${d.driverId}`} className="text-sm font-medium hover:text-racing-red">
+                {d.code}
+              </Link>
+            ) : (
+              <span className="text-sm font-medium">{d.code}</span>
+            )}
+            {d.retired && (
+              <span
+                className="shrink-0 rounded-full bg-racing-red/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-racing-red"
+                title={d.status ?? "Retired"}
+              >
+                DNF
+              </span>
+            )}
           </div>
           <div className="flex h-5 flex-1 overflow-hidden rounded-sm bg-surface-raised">
             {d.stints.map((s, i) => (

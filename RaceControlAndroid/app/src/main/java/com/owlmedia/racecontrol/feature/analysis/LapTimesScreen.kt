@@ -84,9 +84,9 @@ class LapTimesViewModel @Inject constructor(
             repository.lapTimes(year, round)
                 .onSuccess { data ->
                     _state.value = UiState.Loaded(data)
-                    // Six lines is about the limit of what reads on a phone;
+                    // Three lines is about the limit of what reads on a phone;
                     // starting with the whole field is unreadable noise.
-                    _selected.value = data.drivers.take(6).map { it.code }.toSet()
+                    _selected.value = data.drivers.take(3).map { it.code }.toSet()
                 }
                 .onFailure { _state.value = UiState.Failed(repository.messageFor(it)) }
         }

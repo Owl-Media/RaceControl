@@ -33,7 +33,8 @@ struct StrategyView: View {
                     .padding(.horizontal, Theme.Space.md)
                     .padding(.top, Theme.Space.sm)
                 ForEach(data.drivers) { driver in
-                    StrategyRow(driver: driver, totalLaps: max(data.totalLaps, 1))
+                    StrategyRow(driver: driver, totalLaps: max(data.totalLaps, 1),
+                                year: year, driversById: vm.driversById)
                 }
                 Text("\(data.totalLaps) laps")
                     .font(.footnote)
@@ -60,13 +61,29 @@ struct StrategyView: View {
 private struct StrategyRow: View {
     let driver: StrategyDriver
     let totalLaps: Int
+    let year: Int
+    let driversById: [String: Driver]
+
+    private var matchedDriver: Driver? {
+        guard let id = driver.driverId else { return nil }
+        return driversById[id]
+    }
 
     var body: some View {
         HStack(spacing: Theme.Space.sm) {
             VStack(alignment: .leading, spacing: 1) {
-                Text(driver.code)
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(Theme.Palette.textPrimary)
+                HStack(spacing: 4) {
+                    codeLabel
+                    if driver.retired {
+                        Text("DNF")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(Theme.Palette.negative)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1)
+                            .background(Theme.Palette.negative.opacity(0.15), in: Capsule())
+                            .accessibilityLabel(driver.status ?? "Did not finish")
+                    }
+                }
                 Text("\(driver.pitStops) stop\(driver.pitStops == 1 ? "" : "s")")
                     .font(.caption2)
                     .foregroundStyle(Theme.Palette.textTertiary)
@@ -94,11 +111,29 @@ private struct StrategyRow: View {
         }
         .padding(.vertical, 4)
     }
+
+    @ViewBuilder
+    private var codeLabel: some View {
+        if let matchedDriver {
+            NavigationLink {
+                DriverDetailView(year: year, driver: matchedDriver)
+            } label: {
+                Text(driver.code)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Theme.Palette.textPrimary)
+            }
+        } else {
+            Text(driver.code)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Theme.Palette.textPrimary)
+        }
+    }
 }
 
 @MainActor
 final class StrategyViewModel: ObservableObject {
     @Published var state: Loadable<StrategyResponse> = .idle
+    @Published var driversById: [String: Driver] = [:]
 
     func load(year: Int, round: Int) async {
         if case .loaded = state { return }
@@ -107,6 +142,10 @@ final class StrategyViewModel: ObservableObject {
             state = .loaded(try await APIClient.shared.strategy(year: year, round: round))
         } catch {
             state = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)
+        }
+        // Secondary lookup for driver-detail navigation; failure shouldn't block the screen.
+        if let drivers = try? await APIClient.shared.drivers(year: year) {
+            driversById = Dictionary(uniqueKeysWithValues: drivers.map { ($0.driverId, $0) })
         }
     }
 }

@@ -53,6 +53,8 @@ data class StrategyDriverDto(
     val teamColor: String? = null,
     val pitStops: Int = 0,
     val stints: List<StintDto> = emptyList(),
+    val status: String? = null,
+    val retired: Boolean = false,
 )
 
 @Serializable

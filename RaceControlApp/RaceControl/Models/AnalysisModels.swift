@@ -43,6 +43,8 @@ struct StrategyDriver: Codable, Identifiable, Hashable {
     let teamColor: String?
     let pitStops: Int
     let stints: [Stint]
+    let status: String?
+    let retired: Bool
     var id: String { code }
 }
 

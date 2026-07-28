@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CartesianGrid, Legend, Line, LineChart, ReferenceArea, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { useLapTimes, useFlags } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
@@ -12,6 +12,7 @@ export function LapTimesTab({ year, round }: { year: number; round: number }) {
   const { data, error, isLoading } = useLapTimes(year, round);
   const { data: flagsData } = useFlags(year, round);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const defaultedRef = useRef(false);
 
   const { chartData, drivers, median } = useMemo(() => {
     if (!data || data.drivers.length === 0) return { chartData: [], drivers: [], median: 0 };
@@ -28,13 +29,31 @@ export function LapTimesTab({ year, round }: { year: number; round: number }) {
     return { chartData: Object.values(rows), drivers: data.drivers, median: med };
   }, [data]);
 
+  // Selecting every driver by default makes the chart an unreadable tangle —
+  // start with just the first 3 shown (typically the leaders) and let the
+  // driver chips below adjust from there. Only runs once per mount (guarded
+  // by the ref) so it doesn't fight the user's own toggling afterward.
+  useEffect(() => {
+    if (!defaultedRef.current && drivers.length > 0) {
+      defaultedRef.current = true;
+      setHidden(new Set(drivers.slice(3).map((d) => d.code)));
+    }
+  }, [drivers]);
+
   if (isLoading) return <LoadingState label="Loading lap times…" />;
   if (error) return <ErrorState message="Lap time data isn't available for this race." />;
   if (!data || drivers.length === 0) return <EmptyState message="No lap time data available." />;
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap gap-1.5">
+      <div className="mb-3 flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => setHidden(new Set(drivers.map((d) => d.code)))}
+          className="rounded-full border border-border px-2.5 py-1 text-xs font-medium text-muted transition-colors hover:text-foreground"
+        >
+          Clear
+        </button>
         {drivers.map((d) => (
           <button
             key={d.code}

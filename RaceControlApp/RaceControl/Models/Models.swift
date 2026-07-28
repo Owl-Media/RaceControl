@@ -64,6 +64,9 @@ struct ResultEntry: Codable, Identifiable, Hashable {
     let q1: String?
     let q2: String?
     let q3: String?
+    let q1Gap: String?
+    let q2Gap: String?
+    let q3Gap: String?
 
     var id: String { (driverId ?? abbreviation ?? UUID().uuidString) }
 

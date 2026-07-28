@@ -100,6 +100,9 @@ data class ResultEntryDto(
     val q1: String? = null,
     val q2: String? = null,
     val q3: String? = null,
+    val q1Gap: String? = null,
+    val q2Gap: String? = null,
+    val q3Gap: String? = null,
 ) {
     val id: String get() = driverId ?: abbreviation ?: fullName ?: "unknown"
 

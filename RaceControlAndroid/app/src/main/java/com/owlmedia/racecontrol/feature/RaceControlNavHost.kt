@@ -187,7 +187,13 @@ private fun NavGraphBuilder.analysisDestinations(navController: NavHostControlle
     }
     composable<Routes.Strategy> { entry ->
         val route = entry.toRoute<Routes.Strategy>()
-        StrategyScreen(route.year, route.round, route.title, navController::popBackStack)
+        StrategyScreen(
+            year = route.year,
+            round = route.round,
+            title = route.title,
+            onBack = navController::popBackStack,
+            onOpenDriver = { driverId -> navController.navigate(Routes.DriverDetail(route.year, driverId)) },
+        )
     }
     composable<Routes.Qualifying> { entry ->
         val route = entry.toRoute<Routes.Qualifying>()

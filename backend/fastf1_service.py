@@ -121,6 +121,18 @@ def _fmt_lap(value: Any) -> Optional[str]:
     return f"{minutes}:{seconds:02d}.{millis:03d}"
 
 
+def _fmt_gap(ms: Optional[int], best_ms: Optional[int]) -> Optional[str]:
+    """Gap to the fastest time set in the same column, e.g. "+0.234" — None
+    for whoever set that fastest time (nothing to show relative to itself)
+    and for anyone without a time in that column at all."""
+    if ms is None or ms <= 0 or best_ms is None:
+        return None
+    diff = ms - best_ms
+    if diff <= 0:
+        return None
+    return f"+{diff / 1000:.3f}"
+
+
 def _row(series: pd.Series, mapping: dict[str, str]) -> dict[str, Any]:
     """Pull mapped columns out of a pandas row, cleaning each value."""
     out: dict[str, Any] = {}
@@ -334,12 +346,30 @@ def get_results(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
         session = _load_session(year, rnd, identifier, with_laps=True, force=True)
         results = _safe_results(session)
 
+    result_rows = list(results.iterrows()) if results is not None else []
+    # Session-best per qualifying segment, so each row can show its gap to
+    # pole in that segment rather than just its raw time — computed as a
+    # separate pass since a row can't know the field-wide best on its own.
+    q1_ms_all = [_td_ms(r.get("Q1")) for _, r in result_rows]
+    q2_ms_all = [_td_ms(r.get("Q2")) for _, r in result_rows]
+    q3_ms_all = [_td_ms(r.get("Q3")) for _, r in result_rows]
+    best_q1 = min((v for v in q1_ms_all if v is not None and v > 0), default=None)
+    best_q2 = min((v for v in q2_ms_all if v is not None and v > 0), default=None)
+    best_q3 = min((v for v in q3_ms_all if v is not None and v > 0), default=None)
+
     rows: list[dict[str, Any]] = []
-    for _, r in (results.iterrows() if results is not None else []):
+    for idx, ((_, r), q1_ms, q2_ms, q3_ms) in enumerate(zip(result_rows, q1_ms_all, q2_ms_all, q3_ms_all)):
         time_ms = _td_ms(r.get("Time"))
+        # Qualifying (and sprint-qualifying) results don't reliably carry a
+        # "Position" value the way race results do — FastF1 already returns
+        # the rows in classification order, so the row's own place in that
+        # order is a safe fallback rather than leaving the column blank.
+        position = _clean(r.get("Position"))
+        if position is None:
+            position = idx + 1
         rows.append(
             {
-                "position": _clean(r.get("Position")),
+                "position": position,
                 "classifiedPosition": _clean(r.get("ClassifiedPosition")),
                 "driverNumber": _clean(r.get("DriverNumber")),
                 "abbreviation": _clean(r.get("Abbreviation")),
@@ -360,6 +390,9 @@ def get_results(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
                 "q1": _fmt_lap(r.get("Q1")),
                 "q2": _fmt_lap(r.get("Q2")),
                 "q3": _fmt_lap(r.get("Q3")),
+                "q1Gap": _fmt_gap(q1_ms, best_q1),
+                "q2Gap": _fmt_gap(q2_ms, best_q2),
+                "q3Gap": _fmt_gap(q3_ms, best_q3),
             }
         )
 
@@ -1084,6 +1117,25 @@ def get_strategy(year: int, rnd: int) -> dict[str, Any]:
     order = list(session.results["Abbreviation"]) if session.results is not None else []
     abbrs = [a for a in order if a in set(laps["Driver"])] or sorted(set(laps["Driver"]))
 
+    # Same classification `get_retirements` uses, so "retired" here means the
+    # same thing it means there — including the ClassifiedPosition nuance
+    # (a driver a lap down is NOT a retirement even though their raw Status
+    # text isn't a clean "Finished").
+    status_by_abbr: dict[str, dict[str, Any]] = {}
+    try:
+        for _, r in session.results.iterrows():
+            abbr_r = _clean(r.get("Abbreviation"))
+            if not abbr_r:
+                continue
+            status = _clean(r.get("Status")) or ""
+            classified_position = _clean(r.get("ClassifiedPosition"))
+            status_by_abbr[abbr_r] = {
+                "status": _retirement_display_status(status) if status else None,
+                "retired": not _is_finish_status(status, classified_position),
+            }
+    except Exception as exc:  # noqa: BLE001
+        log.warning("strategy status unavailable %s r%s: %s", year, rnd, exc)
+
     for abbr in abbrs:
         d_laps = laps[laps["Driver"] == abbr].sort_values("LapNumber")
         if d_laps.empty:
@@ -1105,6 +1157,7 @@ def get_strategy(year: int, rnd: int) -> dict[str, Any]:
             })
         pit_stops = max(len(stints) - 1, 0)
         m = meta.get(abbr, {})
+        st = status_by_abbr.get(abbr, {})
         drivers.append({
             "code": abbr,
             "driverId": m.get("driverId"),
@@ -1112,6 +1165,8 @@ def get_strategy(year: int, rnd: int) -> dict[str, Any]:
             "teamColor": m.get("teamColor"),
             "pitStops": pit_stops,
             "stints": sorted(stints, key=lambda s: s["startLap"]),
+            "status": st.get("status"),
+            "retired": st.get("retired", False),
         })
 
     return {"year": year, "round": rnd,

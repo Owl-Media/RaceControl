@@ -1,6 +1,7 @@
 package com.owlmedia.racecontrol.feature.analysis
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.MaterialTheme
@@ -81,6 +83,7 @@ fun StrategyScreen(
     round: Int,
     title: String,
     onBack: () -> Unit,
+    onOpenDriver: (String) -> Unit = {},
     viewModel: StrategyViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -109,7 +112,7 @@ fun StrategyScreen(
                         key = { it.code },
                         contentType = { "strategy" },
                     ) { driver ->
-                        StrategyRow(driver = driver, totalLaps = data.totalLaps)
+                        StrategyRow(driver = driver, totalLaps = data.totalLaps, onOpenDriver = onOpenDriver)
                     }
                 }
             }
@@ -147,7 +150,11 @@ private fun CompoundLegend() {
 }
 
 @Composable
-private fun StrategyRow(driver: StrategyDriverDto, totalLaps: Int) {
+private fun StrategyRow(
+    driver: StrategyDriverDto,
+    totalLaps: Int,
+    onOpenDriver: (String) -> Unit,
+) {
     val segments = driver.stints.map { stint ->
         BarSegment(
             value = stint.laps.toFloat().coerceAtLeast(1f),
@@ -164,6 +171,9 @@ private fun StrategyRow(driver: StrategyDriverDto, totalLaps: Int) {
                     "laps ${stint.startLap} to ${stint.endLap}. "
             )
         }
+        if (driver.retired) {
+            append("Retired${driver.status?.let { ": $it" } ?: ""}. ")
+        }
     }
 
     Column(
@@ -179,14 +189,39 @@ private fun StrategyRow(driver: StrategyDriverDto, totalLaps: Int) {
                 text = driver.code,
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.Bold,
-                color = RcTheme.colors.textPrimary,
-                modifier = Modifier.width(48.dp),
+                color = if (driver.driverId != null) RcTheme.colors.info else RcTheme.colors.textPrimary,
+                modifier = Modifier
+                    .width(48.dp)
+                    .clickable(enabled = driver.driverId != null) {
+                        onOpenDriver(driver.driverId ?: return@clickable)
+                    },
             )
+            if (driver.retired) {
+                Box(
+                    modifier = Modifier
+                        .padding(start = 4.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(RcTheme.colors.racingRed.copy(alpha = 0.2f))
+                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                        .semantics {
+                            contentDescription = driver.status ?: "Retired"
+                        },
+                ) {
+                    Text(
+                        text = "DNF",
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = RcTheme.colors.racingRed,
+                    )
+                }
+            }
             Text(
                 text = driver.teamName.orEmpty(),
                 style = MaterialTheme.typography.bodySmall,
                 color = RcTheme.colors.textSecondary,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = Dimens.SM),
             )
             Text(
                 text = if (driver.pitStops == 1) {
