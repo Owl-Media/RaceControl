@@ -283,7 +283,7 @@ def get_schedule(year: int) -> list[dict[str, Any]]:
                 sessions.append(
                     {
                         "name": _clean(name),
-                        "date": _clean(date),
+                        "date": _clean_utc(date),
                         "identifier": _session_identifier(str(name)),
                     }
                 )
@@ -298,7 +298,7 @@ def get_schedule(year: int) -> list[dict[str, Any]]:
                 "officialName": _clean(ev.get("OfficialEventName")),
                 "country": _clean(ev.get("Country")),
                 "location": _clean(ev.get("Location")),
-                "date": _clean(event_date),
+                "date": _clean_utc(event_date),
                 "format": _clean(ev.get("EventFormat")),
                 "sessions": sessions,
                 "completed": completed,

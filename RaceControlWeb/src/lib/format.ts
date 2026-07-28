@@ -45,6 +45,22 @@ export function formatClock(iso: string | null | undefined): string {
   });
 }
 
+/**
+ * Compact date+time for a session in a weekend schedule list (e.g. "Fri 1:30 PM GMT+1"),
+ * shown in the viewer's local timezone with the offset made explicit — see `formatClock`.
+ */
+export function formatSessionTime(iso: string | null | undefined): string {
+  if (!iso) return "TBC";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "TBC";
+  return d.toLocaleString(undefined, {
+    weekday: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "shortOffset",
+  });
+}
+
 export function ordinal(n: number | null | undefined): string {
   if (n == null) return "—";
   const s = ["th", "st", "nd", "rd"];
