@@ -79,6 +79,7 @@ def test_time_penalty_extracts_driver_type_and_reason(monkeypatch):
     p = out["penalties"][0]
     assert p["type"] == "Time Penalty"
     assert p["driverCode"] == "HAM"
+    assert p["driverId"] == "hamilton"
     assert p["driverName"] == "Lewis Hamilton"
     assert p["teamName"] == "Mercedes"
     assert p["teamLogoUrl"] is not None

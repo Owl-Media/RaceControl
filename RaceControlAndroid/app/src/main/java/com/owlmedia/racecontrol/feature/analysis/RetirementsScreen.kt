@@ -1,6 +1,7 @@
 package com.owlmedia.racecontrol.feature.analysis
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -79,6 +80,7 @@ fun RetirementsScreen(
     round: Int,
     title: String,
     onBack: () -> Unit,
+    onOpenDriver: (String) -> Unit = {},
     viewModel: RetirementsViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -122,7 +124,11 @@ fun RetirementsScreen(
                         key = { "${cause.name}-${it.id}" },
                         contentType = { "retirement" },
                     ) { retirement ->
-                        RetirementRow(retirement = retirement, causeColor = cause.color())
+                        RetirementRow(
+                            retirement = retirement,
+                            causeColor = cause.color(),
+                            onOpenDriver = onOpenDriver,
+                        )
                     }
                 }
             }
@@ -149,7 +155,11 @@ private fun RetirementCause.color(): Color = when (this) {
 }
 
 @Composable
-private fun RetirementRow(retirement: RetirementDto, causeColor: Color) {
+private fun RetirementRow(
+    retirement: RetirementDto,
+    causeColor: Color,
+    onOpenDriver: (String) -> Unit,
+) {
     val accent = teamColor(retirement.teamColor).legibleOnSurface()
 
     Row(
@@ -168,9 +178,12 @@ private fun RetirementRow(retirement: RetirementDto, causeColor: Color) {
                 text = retirement.fullName ?: retirement.driver.orEmpty(),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = RcTheme.colors.textPrimary,
+                color = if (retirement.driverId != null) RcTheme.colors.info else RcTheme.colors.textPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.clickable(enabled = retirement.driverId != null) {
+                    onOpenDriver(retirement.driverId ?: return@clickable)
+                },
             )
             Text(
                 text = retirement.teamName.orEmpty(),

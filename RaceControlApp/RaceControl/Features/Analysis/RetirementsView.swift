@@ -25,7 +25,7 @@ struct RetirementsView: View {
                             .padding(.horizontal, Theme.Space.md)
                             .padding(.top, Theme.Space.sm)
                         ForEach(data.retirements) { r in
-                            RetirementRow(retirement: r)
+                            RetirementRow(retirement: r, year: year, driversById: vm.driversById)
                         }
                     }
                     .padding(Theme.Space.md)
@@ -41,8 +41,15 @@ struct RetirementsView: View {
 
 private struct RetirementRow: View {
     let retirement: Retirement
+    let year: Int
+    let driversById: [String: Driver]
     private var accent: Color { .team(retirement.teamColor) }
     private var category: RetirementCategory { RetirementCategory(status: retirement.status) }
+
+    private var matchedDriver: Driver? {
+        guard let id = retirement.driverId else { return nil }
+        return driversById[id]
+    }
 
     var body: some View {
         HStack(spacing: Theme.Space.md) {
@@ -52,9 +59,7 @@ private struct RetirementRow: View {
                 .frame(width: 32)
             TeamAccentBar(color: accent).frame(height: 36)
             VStack(alignment: .leading, spacing: 2) {
-                Text(retirement.fullName ?? retirement.driver ?? "Unknown")
-                    .font(.headline)
-                    .foregroundStyle(Theme.Palette.textPrimary)
+                nameLabel
                 HStack(spacing: 4) {
                     TeamLogoView(url: retirement.teamLogoUrl, size: 16)
                     Text(retirement.teamName ?? "")
@@ -78,6 +83,23 @@ private struct RetirementRow: View {
         }
         .padding(Theme.Space.md)
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.md))
+    }
+
+    @ViewBuilder
+    private var nameLabel: some View {
+        if let matchedDriver {
+            NavigationLink {
+                DriverDetailView(year: year, driver: matchedDriver)
+            } label: {
+                Text(retirement.fullName ?? retirement.driver ?? "Unknown")
+                    .font(.headline)
+                    .foregroundStyle(Theme.Palette.textPrimary)
+            }
+        } else {
+            Text(retirement.fullName ?? retirement.driver ?? "Unknown")
+                .font(.headline)
+                .foregroundStyle(Theme.Palette.textPrimary)
+        }
     }
 }
 
@@ -119,6 +141,7 @@ enum RetirementCategory {
 @MainActor
 final class RetirementsViewModel: ObservableObject {
     @Published var state: Loadable<RetirementsResponse> = .idle
+    @Published var driversById: [String: Driver] = [:]
 
     func load(year: Int, round: Int) async {
         if case .loaded = state { return }
@@ -127,6 +150,10 @@ final class RetirementsViewModel: ObservableObject {
             state = .loaded(try await APIClient.shared.retirements(year: year, round: round))
         } catch {
             state = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)
+        }
+        // Secondary lookup for driver-detail navigation; failure shouldn't block the screen.
+        if let drivers = try? await APIClient.shared.drivers(year: year) {
+            driversById = Dictionary(uniqueKeysWithValues: drivers.map { ($0.driverId, $0) })
         }
     }
 }

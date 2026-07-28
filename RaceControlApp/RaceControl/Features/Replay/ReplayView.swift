@@ -64,7 +64,8 @@ struct ReplayView: View {
         ScrollView {
             VStack(spacing: 6) {
                 ForEach(vm.frame?.order ?? []) { entry in
-                    ReplayRow(entry: entry, previousPosition: vm.previousPosition(for: entry.driver))
+                    ReplayRow(entry: entry, previousPosition: vm.previousPosition(for: entry.driver),
+                              year: year, driversById: vm.driversById)
                         .transition(.opacity)
                 }
             }
@@ -133,11 +134,17 @@ struct ReplayView: View {
 private struct ReplayRow: View {
     let entry: ReplayEntry
     let previousPosition: Int?
+    let year: Int
+    let driversById: [String: Driver]
 
     private var accent: Color { .team(entry.teamColor) }
     private var movement: Int? {
         guard let prev = previousPosition else { return nil }
         return prev - entry.position // positive = moved up
+    }
+    private var matchedDriver: Driver? {
+        guard let id = entry.driverId else { return nil }
+        return driversById[id]
     }
 
     var body: some View {
@@ -152,9 +159,7 @@ private struct ReplayRow: View {
 
             TeamAccentBar(color: accent).frame(height: 28)
 
-            Text(entry.driver)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(Theme.Palette.textPrimary)
+            driverLabel
                 .frame(width: 48, alignment: .leading)
 
             TeamLogoView(url: entry.teamLogoUrl, size: 18)
@@ -181,6 +186,22 @@ private struct ReplayRow: View {
         .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: Theme.Radius.sm))
     }
 
+    @ViewBuilder private var driverLabel: some View {
+        if let matchedDriver {
+            NavigationLink {
+                DriverDetailView(year: year, driver: matchedDriver)
+            } label: {
+                Text(entry.driver)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Theme.Palette.textPrimary)
+            }
+        } else {
+            Text(entry.driver)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Theme.Palette.textPrimary)
+        }
+    }
+
     @ViewBuilder private var movementIndicator: some View {
         Group {
             if let m = movement, m > 0 {
@@ -201,6 +222,7 @@ final class ReplayViewModel: ObservableObject {
     @Published var state: Loadable<RaceReplay> = .idle
     @Published var currentLap: Int = 1
     @Published var isPlaying = false
+    @Published var driversById: [String: Driver] = [:]
     @Published var speed: Double = 1.0 {
         didSet { if isPlaying { restartTimer() } }
     }
@@ -222,6 +244,10 @@ final class ReplayViewModel: ObservableObject {
             state = .loaded(data)
         } catch {
             state = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)
+        }
+        // Secondary lookup for driver-detail navigation; failure shouldn't block the screen.
+        if let drivers = try? await APIClient.shared.drivers(year: year) {
+            driversById = Dictionary(uniqueKeysWithValues: drivers.map { ($0.driverId, $0) })
         }
     }
 

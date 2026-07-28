@@ -175,7 +175,13 @@ fun RaceControlNavHost(
 private fun NavGraphBuilder.analysisDestinations(navController: NavHostController) {
     composable<Routes.Replay> { entry ->
         val route = entry.toRoute<Routes.Replay>()
-        ReplayScreen(route.year, route.round, route.title, navController::popBackStack)
+        ReplayScreen(
+            year = route.year,
+            round = route.round,
+            title = route.title,
+            onBack = navController::popBackStack,
+            onOpenDriver = { driverId -> navController.navigate(Routes.DriverDetail(route.year, driverId)) },
+        )
     }
     composable<Routes.Telemetry> { entry ->
         val route = entry.toRoute<Routes.Telemetry>()
@@ -209,7 +215,13 @@ private fun NavGraphBuilder.analysisDestinations(navController: NavHostControlle
     }
     composable<Routes.Retirements> { entry ->
         val route = entry.toRoute<Routes.Retirements>()
-        RetirementsScreen(route.year, route.round, route.title, navController::popBackStack)
+        RetirementsScreen(
+            year = route.year,
+            round = route.round,
+            title = route.title,
+            onBack = navController::popBackStack,
+            onOpenDriver = { driverId -> navController.navigate(Routes.DriverDetail(route.year, driverId)) },
+        )
     }
     composable<Routes.Flags> { entry ->
         val route = entry.toRoute<Routes.Flags>()
@@ -221,6 +233,12 @@ private fun NavGraphBuilder.analysisDestinations(navController: NavHostControlle
     }
     composable<Routes.Penalties> { entry ->
         val route = entry.toRoute<Routes.Penalties>()
-        PenaltiesScreen(route.year, route.round, route.title, navController::popBackStack)
+        PenaltiesScreen(
+            year = route.year,
+            round = route.round,
+            title = route.title,
+            onBack = navController::popBackStack,
+            onOpenDriver = { driverId -> navController.navigate(Routes.DriverDetail(route.year, driverId)) },
+        )
     }
 }

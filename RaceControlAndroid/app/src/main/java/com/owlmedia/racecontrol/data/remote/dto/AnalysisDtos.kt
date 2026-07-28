@@ -303,6 +303,7 @@ data class PenaltyDto(
     val message: String? = null,
     val driverCode: String? = null,
     val driverName: String? = null,
+    val driverId: String? = null,
     val teamName: String? = null,
     val teamLogoUrl: String? = null,
     val teamColor: String? = null,

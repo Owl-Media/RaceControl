@@ -499,6 +499,7 @@ export interface Penalty {
   reason: string | null;
   message: string | null;
   driverCode: string | null;
+  driverId: string | null;
   driverName: string | null;
   teamName: string | null;
   teamLogoUrl: string | null;

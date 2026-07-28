@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "motion/react";
 import { useReplay, useReplayPositions, useCircuitMap } from "@/lib/api";
@@ -139,7 +140,16 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
                   <span className="tabular w-6 shrink-0 text-center font-semibold">{entry.position}</span>
                   <TeamColorDot color={entry.teamColor} />
                   <TeamLogo src={entry.teamLogoUrl} name={entry.teamName} sizeClassName="h-5 w-5" />
-                  <span className="w-14 shrink-0 font-medium">{entry.driver}</span>
+                  {entry.driverId ? (
+                    <Link
+                      href={`/drivers/${year}/${entry.driverId}`}
+                      className="w-14 shrink-0 font-medium hover:text-racing-red"
+                    >
+                      {entry.driver}
+                    </Link>
+                  ) : (
+                    <span className="w-14 shrink-0 font-medium">{entry.driver}</span>
+                  )}
                   <span className="min-w-0 flex-1 truncate text-sm text-muted">{entry.teamName}</span>
                   {entry.compound && (
                     <span

@@ -251,7 +251,13 @@ function PodiumCard({
               <span className="tabular w-4 shrink-0 text-sm font-bold text-muted">{i + 1}</span>
               <DriverAvatar src={r.headshotUrl} name={r.fullName ?? r.abbreviation ?? ""} sizeClassName="h-9 w-9" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{r.fullName ?? r.abbreviation}</p>
+                {r.driverId ? (
+                  <Link href={`/drivers/${year}/${r.driverId}`} className="block truncate text-sm font-medium hover:text-racing-red">
+                    {r.fullName ?? r.abbreviation}
+                  </Link>
+                ) : (
+                  <p className="truncate text-sm font-medium">{r.fullName ?? r.abbreviation}</p>
+                )}
                 <p className="truncate text-xs text-muted">{r.teamName}</p>
               </div>
               <TeamColorDot color={r.teamColor} />

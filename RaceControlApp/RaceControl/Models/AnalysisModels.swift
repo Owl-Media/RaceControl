@@ -250,6 +250,7 @@ struct Penalty: Codable, Identifiable, Hashable {
     let reason: String?
     let message: String?
     let driverCode: String?
+    let driverId: String?
     let driverName: String?
     let teamName: String?
     let teamLogoUrl: String?

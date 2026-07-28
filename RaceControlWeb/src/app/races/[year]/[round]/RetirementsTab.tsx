@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRetirements } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState, TeamColorDot } from "@/components/StateViews";
 import { TeamLogo } from "@/components/TeamLogo";
@@ -18,7 +19,13 @@ export function RetirementsTab({ year, round }: { year: number; round: number })
           <TeamColorDot color={r.teamColor} />
           <TeamLogo src={r.teamLogoUrl} name={r.teamName} sizeClassName="h-6 w-6" />
           <div className="min-w-0 flex-1">
-            <p className="truncate font-medium">{r.fullName ?? r.driver}</p>
+            {r.driverId ? (
+              <Link href={`/drivers/${year}/${r.driverId}`} className="block truncate font-medium hover:text-racing-red">
+                {r.fullName ?? r.driver}
+              </Link>
+            ) : (
+              <p className="truncate font-medium">{r.fullName ?? r.driver}</p>
+            )}
             <p className="truncate text-sm text-muted">{r.teamName ?? "—"}</p>
           </div>
           {r.lapsCompleted != null && (

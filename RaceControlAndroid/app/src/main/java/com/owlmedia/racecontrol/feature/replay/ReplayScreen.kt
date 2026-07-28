@@ -3,6 +3,7 @@
 package com.owlmedia.racecontrol.feature.replay
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -81,6 +82,7 @@ fun ReplayScreen(
     round: Int,
     title: String,
     onBack: () -> Unit,
+    onOpenDriver: (String) -> Unit = {},
     viewModel: ReplayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -110,7 +112,12 @@ fun ReplayScreen(
                     message = stringResource(R.string.replay_empty_message),
                 )
             } else {
-                ReplayContent(replay = replay, title = title, viewModel = viewModel)
+                ReplayContent(
+                    replay = replay,
+                    title = title,
+                    viewModel = viewModel,
+                    onOpenDriver = onOpenDriver,
+                )
             }
         }
     }
@@ -121,6 +128,7 @@ private fun ReplayContent(
     replay: RaceReplayDto,
     title: String,
     viewModel: ReplayViewModel,
+    onOpenDriver: (String) -> Unit,
 ) {
     val currentLap by viewModel.currentLap.collectAsStateWithLifecycle()
     val isPlaying by viewModel.isPlaying.collectAsStateWithLifecycle()
@@ -151,6 +159,7 @@ private fun ReplayContent(
                 ReplayRow(
                     entry = entry,
                     previousPosition = viewModel.previousPosition(entry.driver, currentLap),
+                    onOpenDriver = onOpenDriver,
                     modifier = Modifier.animateItem(),
                 )
             }
@@ -217,6 +226,7 @@ private fun LapHeader(eventName: String, currentLap: Int, totalLaps: Int) {
 private fun ReplayRow(
     entry: ReplayEntryDto,
     previousPosition: Int?,
+    onOpenDriver: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val accent = teamColor(entry.teamColor).legibleOnSurface()
@@ -247,8 +257,12 @@ private fun ReplayRow(
             text = entry.driver,
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Bold,
-            color = RcTheme.colors.textPrimary,
-            modifier = Modifier.width(44.dp),
+            color = if (entry.driverId != null) RcTheme.colors.info else RcTheme.colors.textPrimary,
+            modifier = Modifier
+                .width(44.dp)
+                .clickable(enabled = entry.driverId != null) {
+                    onOpenDriver(entry.driverId ?: return@clickable)
+                },
         )
 
         TeamLogo(url = entry.teamLogoUrl, size = 18.dp)

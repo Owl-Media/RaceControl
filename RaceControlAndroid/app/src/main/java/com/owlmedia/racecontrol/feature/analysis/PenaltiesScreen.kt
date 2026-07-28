@@ -1,6 +1,7 @@
 package com.owlmedia.racecontrol.feature.analysis
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -89,6 +90,7 @@ fun PenaltiesScreen(
     round: Int,
     title: String,
     onBack: () -> Unit,
+    onOpenDriver: (String) -> Unit = {},
     viewModel: PenaltiesViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -126,7 +128,7 @@ fun PenaltiesScreen(
                     key = { "${it.time}-${it.driverCode}-${it.type}" },
                     contentType = { "penalty" },
                 ) { penalty ->
-                    PenaltyRow(penalty)
+                    PenaltyRow(penalty = penalty, onOpenDriver = onOpenDriver)
                 }
             }
         }
@@ -154,7 +156,7 @@ private fun penaltyColor(type: PenaltyType): Color = when (type) {
 }
 
 @Composable
-private fun PenaltyRow(penalty: PenaltyDto) {
+private fun PenaltyRow(penalty: PenaltyDto, onOpenDriver: (String) -> Unit) {
     val type = penalty.penaltyType
     val color = penaltyColor(type)
 
@@ -194,11 +196,14 @@ private fun PenaltyRow(penalty: PenaltyDto) {
                         text = driverLabel,
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.Bold,
-                        color = RcTheme.colors.textSecondary,
+                        color = if (penalty.driverId != null) RcTheme.colors.info else RcTheme.colors.textSecondary,
                         modifier = Modifier
                             .clip(RcShapes.Small)
                             .background(RcTheme.colors.surfaceElevated)
-                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                            .clickable(enabled = penalty.driverId != null) {
+                                onOpenDriver(penalty.driverId ?: return@clickable)
+                            },
                     )
                 }
                 val timeText = remember(penalty.time) { FlexibleDate.parse(penalty.time)?.formatTimeWithZone() }

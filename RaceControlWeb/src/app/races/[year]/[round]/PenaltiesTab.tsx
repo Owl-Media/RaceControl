@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePenalties } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState, TeamColorDot } from "@/components/StateViews";
 import { TeamLogo } from "@/components/TeamLogo";
@@ -32,13 +33,13 @@ export function PenaltiesTab({ year, round }: { year: number; round: number }) {
   return (
     <ul className="flex flex-col gap-2">
       {data.penalties.map((p, i) => (
-        <PenaltyRow key={i} penalty={p} />
+        <PenaltyRow key={i} year={year} penalty={p} />
       ))}
     </ul>
   );
 }
 
-function PenaltyRow({ penalty: p }: { penalty: Penalty }) {
+function PenaltyRow({ year, penalty: p }: { year: number; penalty: Penalty }) {
   const color = typeColor(p.type);
 
   return (
@@ -47,7 +48,13 @@ function PenaltyRow({ penalty: p }: { penalty: Penalty }) {
         <TeamColorDot color={p.teamColor} />
         <TeamLogo src={p.teamLogoUrl} name={p.teamName} sizeClassName="h-6 w-6" />
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium">{p.driverName ?? p.driverCode ?? "Unknown driver"}</p>
+          {p.driverId ? (
+            <Link href={`/drivers/${year}/${p.driverId}`} className="block truncate font-medium hover:text-racing-red">
+              {p.driverName ?? p.driverCode ?? "Unknown driver"}
+            </Link>
+          ) : (
+            <p className="truncate font-medium">{p.driverName ?? p.driverCode ?? "Unknown driver"}</p>
+          )}
           <p className="truncate text-sm text-muted">{p.teamName ?? "—"}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">

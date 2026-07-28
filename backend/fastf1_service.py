@@ -1385,6 +1385,7 @@ def get_penalties(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
             "reason": _penalty_reason(message),
             "message": message,
             "driverCode": abbr,
+            "driverId": m.get("driverId"),
             "driverName": m.get("fullName"),
             "teamName": m.get("teamName"),
             "teamLogoUrl": m.get("teamLogoUrl"),
