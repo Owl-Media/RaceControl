@@ -242,6 +242,59 @@ def test_sparse_trace_is_reported_in_outline_samples(monkeypatch):
     assert out["outlineSamples"] == 20
 
 
+def test_marshal_lights_sectors_and_corner_extras_are_extracted(monkeypatch):
+    lap = _FakeLap(_circle_telemetry(samples=1200))
+
+    class _Laps:
+        def __len__(self):
+            return 1
+
+        def pick_fastest(self):
+            return lap
+
+        def iterrows(self):
+            return iter([(0, lap)])
+
+    corners = pd.DataFrame({
+        "Number": [1, 2],
+        "Letter": ["", "A"],
+        "X": [1000.0, -1000.0],
+        "Y": [0.0, 0.0],
+        "Angle": [90.0, -45.0],
+        "Distance": [0.0, 2200.0],
+    })
+    marshal_lights = pd.DataFrame({"Number": [1, 2], "X": [500.0, -500.0], "Y": [10.0, -10.0]})
+    marshal_sectors = pd.DataFrame({"Number": [1, 2], "X": [700.0, -700.0], "Y": [20.0, -20.0]})
+
+    session = SimpleNamespace(
+        event={"EventName": "Test Grand Prix", "Location": "Testville", "Country": "Testland"},
+        laps=_Laps(),
+        get_driver=lambda abbr: {"FullName": "Max Verstappen", "TeamName": "Red Bull Racing", "TeamColor": "3671C6"},
+        get_circuit_info=lambda: SimpleNamespace(
+            rotation=0.0, corners=corners, marshal_lights=marshal_lights, marshal_sectors=marshal_sectors,
+        ),
+    )
+    monkeypatch.setattr(svc, "_load_session", lambda *a, **k: session)
+
+    out = svc.get_circuit_map(2024, 1)
+
+    assert len(out["corners"]) == 2
+    c0 = out["corners"][0]
+    assert c0["number"] == 1
+    assert c0["angle"] == 90.0
+    assert c0["distanceMeters"] == 0.0
+    assert c0["speed"] is not None  # cross-referenced from the points trace
+
+    assert out["marshalLights"] == [
+        {"number": 1, "x": 500.0, "y": 10.0},
+        {"number": 2, "x": -500.0, "y": -10.0},
+    ]
+    assert out["marshalSectors"] == [
+        {"number": 1, "x": 700.0, "y": 20.0},
+        {"number": 2, "x": -700.0, "y": -20.0},
+    ]
+
+
 def test_empty_session_returns_empty_outline(monkeypatch):
     laps = SimpleNamespace(__len__=lambda self=None: 0)
 

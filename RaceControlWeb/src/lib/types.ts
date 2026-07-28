@@ -152,6 +152,18 @@ export interface CircuitCorner {
   letter: string;
   x: number;
   y: number;
+  /** Turn angle in degrees, when FastF1 provides it. */
+  angle: number | null;
+  /** Distance along the lap (metres) at this corner. */
+  distanceMeters: number | null;
+  /** Approximate speed (km/h) at this corner, cross-referenced from the fastest lap's trace. */
+  speed: number | null;
+}
+
+export interface CircuitMarker {
+  number: number;
+  x: number;
+  y: number;
 }
 
 export interface CircuitMap {
@@ -163,6 +175,8 @@ export interface CircuitMap {
   outline: { x: number; y: number }[];
   points: CircuitMapPoint[];
   corners: CircuitCorner[];
+  marshalLights: CircuitMarker[];
+  marshalSectors: CircuitMarker[];
   rotation: number;
   lengthMeters: number | null;
   minElevation: number | null;

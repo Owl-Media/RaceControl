@@ -734,6 +734,8 @@ def get_circuit_map(year: int, rnd: int) -> dict[str, Any]:
         "outline": [],
         "points": [],
         "corners": [],
+        "marshalLights": [],
+        "marshalSectors": [],
         "rotation": 0,
         "lengthMeters": None,
         "minElevation": None,
@@ -844,13 +846,55 @@ def get_circuit_map(year: int, rnd: int) -> dict[str, Any]:
     try:
         info = session.get_circuit_info()
         payload["rotation"] = float(info.rotation)
+
+        # Corner markers double as hover targets on the frontend, so pull
+        # everything FastF1 gives us per corner (not just position): `Angle`
+        # is the corner's turn angle in degrees, `Distance` is how far along
+        # the lap it sits (metres) — both let us cross-reference the fastest
+        # lap's speed trace to show an approximate cornering speed.
+        points_for_lookup = payload.get("points") or []
         for _, c in info.corners.iterrows():
+            distance_raw = c.get("Distance")
+            distance_val = (
+                float(distance_raw) if distance_raw is not None and not pd.isna(distance_raw) else None
+            )
+            angle_raw = c.get("Angle")
+            angle_val = float(angle_raw) if angle_raw is not None and not pd.isna(angle_raw) else None
+            speed_val = None
+            if distance_val is not None and points_for_lookup:
+                nearest = min(points_for_lookup, key=lambda p: abs(p["distance"] - distance_val))
+                speed_val = nearest["speed"]
             payload["corners"].append(
                 {
                     "number": int(c["Number"]),
                     "letter": _clean(c.get("Letter")) or "",
                     "x": float(c["X"]),
                     "y": float(c["Y"]),
+                    "angle": angle_val,
+                    "distanceMeters": distance_val,
+                    "speed": speed_val,
+                }
+            )
+
+        # Marshal posts (light panels) and marshal sectors (the boundaries
+        # stewards use to divide the circuit for flag/incident reporting) —
+        # same coordinate space as the track outline and corners.
+        for _, m in info.marshal_lights.iterrows():
+            num_raw = m.get("Number")
+            payload["marshalLights"].append(
+                {
+                    "number": int(num_raw) if num_raw is not None and not pd.isna(num_raw) else 0,
+                    "x": float(m["X"]),
+                    "y": float(m["Y"]),
+                }
+            )
+        for _, s in info.marshal_sectors.iterrows():
+            num_raw = s.get("Number")
+            payload["marshalSectors"].append(
+                {
+                    "number": int(num_raw) if num_raw is not None and not pd.isna(num_raw) else 0,
+                    "x": float(s["X"]),
+                    "y": float(s["Y"]),
                 }
             )
     except Exception as exc:  # noqa: BLE001
