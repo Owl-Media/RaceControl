@@ -42,28 +42,28 @@ function PenaltyRow({ penalty: p }: { penalty: Penalty }) {
   const color = typeColor(p.type);
 
   return (
-    <li className="flex items-start gap-3 rounded-lg border border-border bg-surface px-4 py-3">
-      <span className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} aria-hidden />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
+    <li className="flex flex-col gap-2 rounded-lg border border-border bg-surface px-4 py-3">
+      <div className="flex items-center gap-3">
+        <TeamColorDot color={p.teamColor} />
+        <TeamLogo src={p.teamLogoUrl} name={p.teamName} sizeClassName="h-6 w-6" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-medium">{p.driverName ?? p.driverCode ?? "Unknown driver"}</p>
+          <p className="truncate text-sm text-muted">{p.teamName ?? "—"}</p>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          <span className="tabular text-xs text-muted">
+            {formatClock(p.time)}
+            {p.lap != null ? ` · Lap ${p.lap}` : ""}
+          </span>
           <span
-            className="tabular shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold"
+            className="shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
             style={{ backgroundColor: `${color}26`, color }}
           >
             {p.value ? `${p.type} (${p.value})` : p.type}
           </span>
-          {p.driverCode && (
-            <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-border px-2 py-0.5 text-xs font-semibold text-foreground">
-              <TeamColorDot color={p.teamColor} />
-              <TeamLogo src={p.teamLogoUrl} name={p.teamName} sizeClassName="h-3.5 w-3.5" />
-              {p.driverName ?? p.driverCode}
-            </span>
-          )}
-          <span className="tabular shrink-0 text-xs text-muted">{formatClock(p.time)}</span>
-          <span className="shrink-0 text-xs text-muted">{p.lap != null ? `Lap ${p.lap}` : "—"}</span>
         </div>
-        <p className="mt-1 text-sm text-foreground">{p.reason ?? p.message ?? "—"}</p>
       </div>
+      <p className="text-sm text-foreground">{p.reason ?? p.message ?? "—"}</p>
     </li>
   );
 }
