@@ -107,7 +107,7 @@ private struct PenaltyRow: View {
                             .background(Theme.Palette.surfaceElevated, in: Capsule())
                     }
                     Spacer()
-                    Text(penalty.type)
+                    Text(penalty.value.map { "\(penalty.type) (\($0))" } ?? penalty.type)
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(color)
                         .padding(.horizontal, 6)

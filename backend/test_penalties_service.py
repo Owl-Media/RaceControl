@@ -84,6 +84,7 @@ def test_time_penalty_extracts_driver_type_and_reason(monkeypatch):
     assert p["teamLogoUrl"] is not None
     assert p["reason"] == "Causing a collision with car 16 (lec)"
     assert p["lap"] == 12
+    assert p["value"] == "5 seconds"
 
 
 def test_multi_car_message_attributes_to_first_car_named(monkeypatch):
@@ -101,6 +102,21 @@ def test_multi_car_message_attributes_to_first_car_named(monkeypatch):
     assert len(out["penalties"]) == 1
     assert out["penalties"][0]["driverCode"] == "LEC"
     assert out["penalties"][0]["type"] == "Drive Through Penalty"
+
+
+def test_extracts_penalty_value(monkeypatch):
+    t0 = pd.Timestamp("2024-03-02T12:00:00Z")
+    rcm = _rcm([
+        _row("FIA STEWARDS: 10 SECOND STOP AND GO PENALTY FOR CAR 44 (HAM) - SPEEDING IN THE PIT LANE", t0),
+        _row("FIA STEWARDS: 1 SECOND TIME PENALTY FOR CAR 44 (HAM) - TRACK LIMITS", t0),
+        _row("FIA STEWARDS: THREE PLACE GRID PENALTY FOR CAR 44 (HAM) - IMPEDING ANOTHER DRIVER", t0),
+        _row("FIA STEWARDS: 5 PLACE GRID PENALTY FOR CAR 44 (HAM) - CAUSING A COLLISION", t0),
+        _row("FIA STEWARDS: REPRIMAND FOR CAR 44 (HAM) - CAUSING A COLLISION", t0),
+    ])
+    monkeypatch.setattr(svc, "_load_session", lambda *a, **k: _stub_session(rcm))
+    out = svc.get_penalties(2024, 1, "R")
+    values = [p["value"] for p in out["penalties"]]
+    assert values == ["10 seconds", "1 second", "3 places", "5 places", None]
 
 
 def test_recognises_stop_and_go_grid_reprimand_and_disqualification(monkeypatch):

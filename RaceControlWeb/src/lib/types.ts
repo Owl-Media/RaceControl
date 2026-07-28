@@ -490,6 +490,7 @@ export interface Penalty {
   time: string | null;
   lap: number | null;
   type: PenaltyType;
+  value: string | null;
   reason: string | null;
   message: string | null;
   driverCode: string | null;

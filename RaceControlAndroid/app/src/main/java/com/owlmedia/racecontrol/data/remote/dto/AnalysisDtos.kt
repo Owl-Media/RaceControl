@@ -296,6 +296,7 @@ data class PenaltyDto(
     val time: String? = null,
     val lap: Int? = null,
     val type: String = "",
+    val value: String? = null,
     val reason: String? = null,
     val message: String? = null,
     val driverCode: String? = null,

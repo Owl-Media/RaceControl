@@ -211,7 +211,7 @@ private fun PenaltyRow(penalty: PenaltyDto) {
                 }
             }
             Text(
-                text = penalty.type,
+                text = penalty.value?.let { "${penalty.type} ($it)" } ?: penalty.type,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
                 color = color,

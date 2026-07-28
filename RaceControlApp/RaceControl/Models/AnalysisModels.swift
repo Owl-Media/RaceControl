@@ -244,6 +244,7 @@ struct Penalty: Codable, Identifiable, Hashable {
     let time: String?
     let lap: Int?
     let type: String
+    let value: String?
     let reason: String?
     let message: String?
     let driverCode: String?

@@ -50,7 +50,7 @@ function PenaltyRow({ penalty: p }: { penalty: Penalty }) {
             className="tabular shrink-0 rounded-full px-2.5 py-0.5 text-xs font-semibold"
             style={{ backgroundColor: `${color}26`, color }}
           >
-            {p.type}
+            {p.value ? `${p.type} (${p.value})` : p.type}
           </span>
           {p.driverCode && (
             <span className="flex shrink-0 items-center gap-1.5 rounded-full bg-border px-2 py-0.5 text-xs font-semibold text-foreground">

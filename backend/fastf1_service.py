@@ -1254,6 +1254,35 @@ def _penalty_reason(message: str) -> str | None:
     return None
 
 
+_NUMBER_WORDS = {
+    "ONE": "1", "TWO": "2", "THREE": "3", "FOUR": "4", "FIVE": "5",
+    "SIX": "6", "SEVEN": "7", "EIGHT": "8", "NINE": "9", "TEN": "10",
+}
+_SECONDS_RE = re.compile(r"(\d+)\s*SECONDS?", re.I)
+_PLACES_RE = re.compile(
+    r"(\d+|ONE|TWO|THREE|FOUR|FIVE|SIX|SEVEN|EIGHT|NINE|TEN)\s*PLACES?", re.I
+)
+
+
+def _penalty_value(message: str, penalty_type: str) -> str | None:
+    """The size of the penalty — "5 second" for a time penalty or stop-and-go,
+    "3 place" for a grid penalty — pulled from the part of the message the
+    reason-extraction above deliberately skips (everything before the first
+    " - "). Not every message states one explicitly (a Reprimand or
+    Disqualification usually doesn't carry a duration), hence Optional."""
+    if penalty_type in ("Time Penalty", "Stop & Go Penalty"):
+        m = _SECONDS_RE.search(message)
+        if m:
+            n = m.group(1)
+            return f"{n} second{'' if n == '1' else 's'}"
+    elif penalty_type == "Grid Penalty":
+        m = _PLACES_RE.search(message)
+        if m:
+            n = _NUMBER_WORDS.get(m.group(1).upper(), m.group(1))
+            return f"{n} place{'' if n == '1' else 's'}"
+    return None
+
+
 def get_penalties(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
     """Driver penalties — time penalties, drive-throughs, stop-and-gos, grid
     penalties, reprimands and disqualifications — issued during a session,
@@ -1297,6 +1326,7 @@ def get_penalties(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
             "time": r["time"],
             "lap": r["lap"],
             "type": penalty_type,
+            "value": _penalty_value(message, penalty_type),
             "reason": _penalty_reason(message),
             "message": message,
             "driverCode": abbr,
