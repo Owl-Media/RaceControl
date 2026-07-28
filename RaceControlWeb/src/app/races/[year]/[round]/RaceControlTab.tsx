@@ -109,7 +109,7 @@ export function RaceControlTab({ year, round }: { year: number; round: number })
                   <span className="tabular shrink-0 text-xs text-muted">{formatClock(m.time)}</span>
                   <span className="shrink-0 text-xs text-muted">{m.lap != null ? `Lap ${m.lap}` : "—"}</span>
                 </div>
-                <p className="mt-1 truncate text-sm text-foreground">{m.message ?? "—"}</p>
+                <p className="mt-1 break-words text-sm text-foreground">{m.message ?? "—"}</p>
               </div>
             </li>
           ))}
