@@ -275,6 +275,54 @@ enum class RaceControlCategory {
     }
 }
 
+/* ------------------------------------------------------------------ penalties */
+
+/**
+ * Stewards' penalties and reprimands for a session — a focused subset of what
+ * [RaceControlResponseDto] carries, with driver/team identity already resolved
+ * server-side so the row can render without a lookup.
+ */
+@Serializable
+data class PenaltiesResponseDto(
+    val year: Int = 0,
+    val round: Int = 0,
+    val session: String = "",
+    val eventName: String? = null,
+    val penalties: List<PenaltyDto> = emptyList(),
+)
+
+@Serializable
+data class PenaltyDto(
+    val time: String? = null,
+    val lap: Int? = null,
+    val type: String = "",
+    val reason: String? = null,
+    val message: String? = null,
+    val driverCode: String? = null,
+    val driverName: String? = null,
+    val teamName: String? = null,
+    val teamLogoUrl: String? = null,
+    val teamColor: String? = null,
+) {
+    val penaltyType: PenaltyType get() = PenaltyType.from(type)
+}
+
+enum class PenaltyType {
+    TIME, STOP_AND_GO, DRIVE_THROUGH, GRID, REPRIMAND, DISQUALIFICATION;
+
+    companion object {
+        fun from(raw: String?): PenaltyType = when (raw) {
+            "Time Penalty" -> TIME
+            "Stop & Go Penalty" -> STOP_AND_GO
+            "Drive Through Penalty" -> DRIVE_THROUGH
+            "Grid Penalty" -> GRID
+            "Reprimand" -> REPRIMAND
+            "Disqualification" -> DISQUALIFICATION
+            else -> TIME
+        }
+    }
+}
+
 /* ------------------------------------------------------- race driver pickers */
 
 @Serializable

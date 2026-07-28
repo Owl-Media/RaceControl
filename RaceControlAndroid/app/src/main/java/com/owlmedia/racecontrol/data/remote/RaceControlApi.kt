@@ -9,6 +9,7 @@ import com.owlmedia.racecontrol.data.remote.dto.DriverDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverStandingDto
 import com.owlmedia.racecontrol.data.remote.dto.FlagsResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.LapTimesResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.PenaltiesResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceControlResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceDriverDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceEventDto
@@ -153,6 +154,13 @@ interface RaceControlApi {
         @Path("round") round: Int,
         @Query("session") session: String = "R",
     ): RaceControlResponseDto
+
+    @GET("api/penalties/{year}/{round}")
+    suspend fun penalties(
+        @Path("year") year: Int,
+        @Path("round") round: Int,
+        @Query("session") session: String = "R",
+    ): PenaltiesResponseDto
 
     @GET("api/reliability/{year}")
     suspend fun reliability(@Path("year") year: Int): ReliabilityResponseDto

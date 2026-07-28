@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.Block
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Map
@@ -68,6 +69,7 @@ fun RaceAnalysisGrid(
         AnalysisTile(R.string.analysis_weather, Icons.Filled.Cloud, RcTheme.colors.info, Routes.Weather(year, round, title)),
         AnalysisTile(R.string.analysis_retirements, Icons.Filled.WarningAmber, RcTheme.colors.negative, Routes.Retirements(year, round, title)),
         AnalysisTile(R.string.analysis_flags, Icons.Filled.Flag, RcTheme.colors.warning, Routes.Flags(year, round, title)),
+        AnalysisTile(R.string.analysis_penalties, Icons.Filled.Block, RcTheme.colors.racingRed, Routes.Penalties(year, round, title)),
         AnalysisTile(R.string.analysis_race_control, Icons.Filled.Article, RcTheme.colors.info, Routes.RaceControl(year, round, title)),
     )
 

@@ -229,6 +229,32 @@ struct RaceControlMessage: Codable, Identifiable, Hashable {
     var id: String { "\(time ?? "-")|\(lap ?? -1)|\(category ?? "")|\(flag ?? "")|\(message ?? "")" }
 }
 
+// MARK: - Penalties
+
+struct PenaltiesResponse: Codable {
+    let year: Int
+    let round: Int
+    let session: String
+    let eventName: String?
+    let penalties: [Penalty]
+}
+
+/// A single stewards' penalty decision, parsed from the race-control log.
+struct Penalty: Codable, Identifiable, Hashable {
+    let time: String?
+    let lap: Int?
+    let type: String
+    let reason: String?
+    let message: String?
+    let driverCode: String?
+    let driverName: String?
+    let teamName: String?
+    let teamLogoUrl: String?
+    let teamColor: String?
+
+    var id: String { "\(time ?? "")-\(driverCode ?? "")-\(type)" }
+}
+
 // MARK: - Reliability
 
 struct ReliabilityResponse: Codable {

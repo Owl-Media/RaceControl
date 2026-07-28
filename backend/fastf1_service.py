@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import math
 import os
+import re
 from datetime import datetime, timedelta
 from functools import lru_cache
 from typing import Any, Optional
@@ -1213,6 +1214,101 @@ def get_race_control(year: int, rnd: int, identifier: str = "R") -> dict[str, An
     return {"year": year, "round": rnd, "session": identifier,
             "eventName": _clean(session.event.get("EventName")),
             "totalLaps": _session_total_laps(session), "messages": rows}
+
+
+# Ordered so more specific phrasing is checked before generic "penalty" text —
+# e.g. "STOP AND GO" and "TIME PENALTY" can both appear in the same message,
+# and stewards' wording isn't perfectly consistent year to year.
+_PENALTY_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"\bDISQUALIFIED\b", re.I), "Disqualification"),
+    (re.compile(r"STOP[\s/-]?AND[\s/-]?GO", re.I), "Stop & Go Penalty"),
+    (re.compile(r"DRIVE[\s-]?THROUGH", re.I), "Drive Through Penalty"),
+    (re.compile(r"GRID PENALTY|PLACE(?:S)?\s+GRID", re.I), "Grid Penalty"),
+    (re.compile(r"TIME PENALTY", re.I), "Time Penalty"),
+    (re.compile(r"\bREPRIMAND\b", re.I), "Reprimand"),
+]
+
+# Race-control messages name the car under penalty as e.g. "CAR 44 (HAM)" —
+# when a message involves multiple cars (a collision between two of them),
+# the FIRST one mentioned is consistently the penalized driver by FIA
+# convention ("... PENALTY FOR CAR 44 (HAM) - CAUSING A COLLISION WITH CAR
+# 16 (LEC)"), so taking the first regex match is deliberate, not incidental.
+_CAR_RE = re.compile(r"CAR\s+(\d+)\s*\(([A-Z]{2,3})\)")
+
+
+def _classify_penalty(message: str) -> str | None:
+    for pattern, label in _PENALTY_PATTERNS:
+        if pattern.search(message):
+            return label
+    return None
+
+
+def _penalty_reason(message: str) -> str | None:
+    """The stewards' stated reason is everything after the first " - " —
+    e.g. "5 SECOND TIME PENALTY FOR CAR 44 (HAM) - CAUSING A COLLISION"
+    becomes "Causing a collision". Falls back to the full message if that
+    dash-separated convention isn't present."""
+    if " - " in message:
+        reason = message.split(" - ", 1)[1].strip().rstrip(".")
+        return reason[:1].upper() + reason[1:].lower() if reason else None
+    return None
+
+
+def get_penalties(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
+    """Driver penalties — time penalties, drive-throughs, stop-and-gos, grid
+    penalties, reprimands and disqualifications — issued during a session,
+    derived from the race-control message log with the stewards' stated
+    reasoning attached. There's no structured "penalty" field in the source
+    data; these are FIA race-control messages (Category "Other") classified
+    by their wording, same as a viewer reading the live timing feed would."""
+    session = _load_session(year, rnd, identifier, with_laps=True, with_messages=True)
+    empty = {"year": year, "round": rnd, "session": identifier,
+             "eventName": _clean(session.event.get("EventName")),
+             "penalties": []}
+    try:
+        rows = _race_control_rows(session)
+        if not rows:
+            return empty
+    except Exception as exc:  # noqa: BLE001
+        log.warning("penalties unavailable %s r%s %s: %s", year, rnd, identifier, exc)
+        return empty
+
+    meta = _driver_meta(session)
+    number_to_abbr = {v.get("number"): k for k, v in meta.items() if v.get("number")}
+
+    penalties: list[dict[str, Any]] = []
+    for r in rows:
+        if r["category"] != "Other":
+            continue
+        message = r["message"] or ""
+        penalty_type = _classify_penalty(message)
+        if not penalty_type:
+            continue
+
+        abbr = None
+        car_match = _CAR_RE.search(message)
+        if car_match:
+            abbr = number_to_abbr.get(car_match.group(1)) or car_match.group(2)
+        if not abbr:
+            abbr = r["driverCode"]
+        m = meta.get(abbr, {}) if abbr else {}
+
+        penalties.append({
+            "time": r["time"],
+            "lap": r["lap"],
+            "type": penalty_type,
+            "reason": _penalty_reason(message),
+            "message": message,
+            "driverCode": abbr,
+            "driverName": m.get("fullName"),
+            "teamName": m.get("teamName"),
+            "teamLogoUrl": m.get("teamLogoUrl"),
+            "teamColor": m.get("teamColor"),
+        })
+
+    return {"year": year, "round": rnd, "session": identifier,
+            "eventName": _clean(session.event.get("EventName")),
+            "penalties": penalties}
 
 
 def _flag_periods(events: list[dict[str, Any]], total_laps: int) -> list[dict[str, Any]]:

@@ -14,6 +14,7 @@ import { ReplayTab } from "./ReplayTab";
 import { TelemetryTab } from "./TelemetryTab";
 import { FlagsTab } from "./FlagsTab";
 import { RaceControlTab } from "./RaceControlTab";
+import { PenaltiesTab } from "./PenaltiesTab";
 
 const TABS = [
   { key: "results", label: "Results" },
@@ -22,6 +23,7 @@ const TABS = [
   { key: "strategy", label: "Strategy" },
   { key: "weather", label: "Weather" },
   { key: "retirements", label: "Retirements" },
+  { key: "penalties", label: "Penalties" },
   { key: "flags", label: "Flags" },
   { key: "racecontrol", label: "Race Control" },
   { key: "telemetry", label: "Telemetry" },
@@ -52,6 +54,7 @@ export function RaceDetailClient({
       {tab === "strategy" && <StrategyTab year={year} round={round} />}
       {tab === "weather" && <WeatherTab year={year} round={round} />}
       {tab === "retirements" && <RetirementsTab year={year} round={round} />}
+      {tab === "penalties" && <PenaltiesTab year={year} round={round} />}
       {tab === "flags" && <FlagsTab year={year} round={round} />}
       {tab === "racecontrol" && <RaceControlTab year={year} round={round} />}
       {tab === "telemetry" && <TelemetryTab year={year} round={round} />}

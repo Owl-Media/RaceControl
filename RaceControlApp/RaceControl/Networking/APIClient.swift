@@ -149,6 +149,9 @@ extension APIClient {
     func raceControl(year: Int, round: Int, session: String = "R") async throws -> RaceControlResponse {
         try await get("api/racecontrol/\(year)/\(round)?session=\(session)", as: RaceControlResponse.self)
     }
+    func penalties(year: Int, round: Int, session: String = "R") async throws -> PenaltiesResponse {
+        try await get("api/penalties/\(year)/\(round)?session=\(session)", as: PenaltiesResponse.self)
+    }
     func reliability(year: Int) async throws -> ReliabilityResponse {
         try await get("api/reliability/\(year)", as: ReliabilityResponse.self)
     }

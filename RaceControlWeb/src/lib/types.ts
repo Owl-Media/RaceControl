@@ -477,3 +477,32 @@ export interface RaceControlResponse {
   totalLaps: number | null;
   messages: RaceControlMessage[];
 }
+
+export type PenaltyType =
+  | "Time Penalty"
+  | "Stop & Go Penalty"
+  | "Drive Through Penalty"
+  | "Grid Penalty"
+  | "Reprimand"
+  | "Disqualification";
+
+export interface Penalty {
+  time: string | null;
+  lap: number | null;
+  type: PenaltyType;
+  reason: string | null;
+  message: string | null;
+  driverCode: string | null;
+  driverName: string | null;
+  teamName: string | null;
+  teamLogoUrl: string | null;
+  teamColor: string | null;
+}
+
+export interface PenaltiesResponse {
+  year: number;
+  round: number;
+  session: string;
+  eventName: string | null;
+  penalties: Penalty[];
+}

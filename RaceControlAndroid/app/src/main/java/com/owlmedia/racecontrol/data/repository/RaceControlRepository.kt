@@ -14,6 +14,7 @@ import com.owlmedia.racecontrol.data.remote.dto.DriverDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverStandingDto
 import com.owlmedia.racecontrol.data.remote.dto.FlagsResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.LapTimesResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.PenaltiesResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceControlResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceDriverDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceEventDto
@@ -137,6 +138,9 @@ class RaceControlRepository @Inject constructor(
         round: Int,
         session: String = "R",
     ): Result<RaceControlResponseDto> = call { api.raceControl(year, round, session) }
+
+    suspend fun penalties(year: Int, round: Int, session: String = "R"): Result<PenaltiesResponseDto> =
+        call { api.penalties(year, round, session) }
 
     suspend fun reliability(year: Int): Result<ReliabilityResponseDto> =
         call { api.reliability(year) }

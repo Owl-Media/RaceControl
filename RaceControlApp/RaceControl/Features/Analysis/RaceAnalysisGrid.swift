@@ -46,6 +46,9 @@ struct RaceAnalysisGrid: View {
                 tile("Flags", "flag.checkered", Theme.Palette.flagYellow) {
                     FlagsView(year: event.year, round: event.round, title: event.displayName)
                 }
+                tile("Penalties", "exclamationmark.octagon.fill", Theme.Palette.negative) {
+                    PenaltiesView(year: event.year, round: event.round, title: event.displayName)
+                }
                 tile("Race Control", "list.bullet.clipboard.fill", Theme.Palette.info) {
                     RaceControlView(year: event.year, round: event.round, title: event.displayName)
                 }

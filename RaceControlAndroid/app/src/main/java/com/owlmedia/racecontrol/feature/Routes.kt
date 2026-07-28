@@ -51,6 +51,7 @@ object Routes {
     @Serializable data class Retirements(val year: Int, val round: Int, val title: String)
     @Serializable data class Flags(val year: Int, val round: Int, val title: String)
     @Serializable data class RaceControl(val year: Int, val round: Int, val title: String)
+    @Serializable data class Penalties(val year: Int, val round: Int, val title: String)
 
     @Serializable data object Settings
 

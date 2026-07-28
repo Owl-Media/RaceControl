@@ -11,6 +11,7 @@ import type {
   Driver,
   FlagsResponse,
   LapTimesResponse,
+  PenaltiesResponse,
   RaceDriver,
   RaceReplay,
   ReplayPositions,
@@ -84,6 +85,8 @@ export const useFlags = (year: number, rnd: number, session = "R") =>
   useApi<FlagsResponse>(`/api/flags/${year}/${rnd}`, { session });
 export const useRaceControl = (year: number, rnd: number, session = "R") =>
   useApi<RaceControlResponse>(`/api/racecontrol/${year}/${rnd}`, { session });
+export const usePenalties = (year: number, rnd: number, session = "R") =>
+  useApi<PenaltiesResponse>(`/api/penalties/${year}/${rnd}`, { session });
 export const useReliability = (year: number) => useApi<ReliabilityResponse>(`/api/reliability/${year}`);
 export const useCompare = (year: number, d1: string | null, d2: string | null) =>
   useApi<CompareResponse>(d1 && d2 ? `/api/compare/${year}/${d1}/${d2}` : null);

@@ -10,6 +10,7 @@ import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import com.owlmedia.racecontrol.feature.analysis.FlagsScreen
 import com.owlmedia.racecontrol.feature.analysis.LapTimesScreen
+import com.owlmedia.racecontrol.feature.analysis.PenaltiesScreen
 import com.owlmedia.racecontrol.feature.analysis.QualifyingScreen
 import com.owlmedia.racecontrol.feature.analysis.RaceControlScreen
 import com.owlmedia.racecontrol.feature.analysis.RetirementsScreen
@@ -211,5 +212,9 @@ private fun NavGraphBuilder.analysisDestinations(navController: NavHostControlle
     composable<Routes.RaceControl> { entry ->
         val route = entry.toRoute<Routes.RaceControl>()
         RaceControlScreen(route.year, route.round, route.title, navController::popBackStack)
+    }
+    composable<Routes.Penalties> { entry ->
+        val route = entry.toRoute<Routes.Penalties>()
+        PenaltiesScreen(route.year, route.round, route.title, navController::popBackStack)
     }
 }

@@ -17,7 +17,7 @@ export function Tabs({
   onChange: (key: string) => void;
 }) {
   return (
-    <div className="flex gap-1 overflow-x-auto rounded-lg bg-surface p-1" role="tablist">
+    <div className="flex flex-wrap gap-1 rounded-lg bg-surface p-1" role="tablist">
       {tabs.map((tab) => (
         <button
           key={tab.key}

@@ -213,6 +213,11 @@
     <string name="race_control_filter_drs">DRS</string>
     <string name="race_control_filter_incidents">Incidents</string>
 
+    <!-- Penalties -->
+    <string name="analysis_penalties">Penalties</string>
+    <string name="no_penalties_title">No Penalties</string>
+    <string name="no_penalties_message">No penalties were issued in this session.</string>
+
     <!-- Weather -->
     <string name="weather_air">Air</string>
     <string name="weather_track">Track</string>

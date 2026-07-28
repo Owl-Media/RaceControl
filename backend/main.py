@@ -391,6 +391,12 @@ def race_control(year: int, rnd: int, session: str = "R") -> Any:
     return cached(key, lambda: _guard(lambda: svc.get_race_control(year, rnd, session), "race control"))
 
 
+@app.get("/api/penalties/{year}/{rnd}")
+def penalties(year: int, rnd: int, session: str = "R") -> Any:
+    key = f"penalties:{year}:{rnd}:{session}"
+    return cached(key, lambda: _guard(lambda: svc.get_penalties(year, rnd, session), "penalties"))
+
+
 @app.get("/api/racedrivers/{year}/{rnd}")
 def race_drivers(year: int, rnd: int) -> Any:
     key = f"racedrivers:{year}:{rnd}"
