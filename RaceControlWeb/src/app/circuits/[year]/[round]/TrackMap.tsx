@@ -264,34 +264,32 @@ export function TrackMap({ map }: { map: CircuitMap }) {
           {start && <circle cx={start.x} cy={start.y} r={7} fill="#f2f2f4" stroke="#0a0a0c" strokeWidth={2} />}
 
           {/* corner markers */}
-          {corners.map((c) => (
-            <g
-              key={c.number}
-              onMouseEnter={() => setHovered(c)}
-              onMouseLeave={() => setHovered((h) => (h?.number === c.number ? null : h))}
-              onClick={() => setHovered((h) => (h?.number === c.number ? null : c))}
-              className="cursor-pointer"
-            >
-              <circle
-                cx={c.screen.x}
-                cy={c.screen.y}
-                r={9}
-                fill={hovered?.number === c.number ? "var(--racing-red)" : "var(--surface-raised)"}
-                stroke="var(--border)"
-                strokeWidth={1}
-              />
-              <text
-                x={c.screen.x}
-                y={c.screen.y + 3.5}
-                textAnchor="middle"
-                fontSize={9}
-                fill={hovered?.number === c.number ? "#fff" : "var(--muted)"}
+          {corners.map((c) => {
+            const key = `${c.number}${c.letter}`;
+            const isHovered = hovered != null && `${hovered.number}${hovered.letter}` === key;
+            return (
+              <g
+                key={key}
+                onMouseEnter={() => setHovered(c)}
+                onMouseLeave={() => setHovered((h) => (h != null && `${h.number}${h.letter}` === key ? null : h))}
+                onClick={() => setHovered((h) => (h != null && `${h.number}${h.letter}` === key ? null : c))}
+                className="cursor-pointer"
               >
-                {c.number}
-                {c.letter}
-              </text>
-            </g>
-          ))}
+                <circle
+                  cx={c.screen.x}
+                  cy={c.screen.y}
+                  r={9}
+                  fill={isHovered ? "var(--racing-red)" : "var(--surface-raised)"}
+                  stroke="var(--border)"
+                  strokeWidth={1}
+                />
+                <text x={c.screen.x} y={c.screen.y + 3.5} textAnchor="middle" fontSize={9} fill={isHovered ? "#fff" : "var(--muted)"}>
+                  {c.number}
+                  {c.letter}
+                </text>
+              </g>
+            );
+          })}
         </svg>
 
         {hovered && (
