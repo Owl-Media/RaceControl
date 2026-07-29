@@ -1,10 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { useRaceDrivers, useTelemetry, useTelemetryCompare, useFlags, useLapTimes } from "@/lib/api";
+import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { useRaceDrivers, useTelemetry, useTelemetryCompare, useFlags, useLapTimes, useCircuitMap } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
-import type { FlagPeriod, FlagsResponse, TelemetryTrace } from "@/lib/types";
+import type { CircuitCorner, FlagPeriod, FlagsResponse, TelemetryTrace } from "@/lib/types";
 import { flagColor, flagLabel } from "@/lib/flags";
 import { formatMs } from "@/lib/format";
 import { TelemetryMiniMap } from "./TelemetryMiniMap";
@@ -38,12 +38,18 @@ function MetricChart({
   traces,
   metricKey,
   onScrub,
+  corners,
+  showCornerLabels = false,
+  scrubDistance,
 }: {
   title: string;
   unit: string;
   traces: TelemetryTrace[];
   metricKey: "speed" | "throttle" | "gear" | "rpm";
   onScrub: (distance: number | null) => void;
+  corners: CircuitCorner[];
+  showCornerLabels?: boolean;
+  scrubDistance: number | null;
 }) {
   return (
     <div>
@@ -52,7 +58,7 @@ function MetricChart({
       </p>
       <ResponsiveContainer width="100%" height={120}>
         <LineChart
-          margin={{ top: 4, right: 8, bottom: 0, left: 0 }}
+          margin={{ top: showCornerLabels ? 12 : 4, right: 8, bottom: 0, left: 0 }}
           onMouseMove={(s) => onScrub(typeof s.activeLabel === "number" ? s.activeLabel : null)}
           onMouseLeave={() => onScrub(null)}
         >
@@ -63,6 +69,27 @@ function MetricChart({
             contentStyle={{ background: "var(--surface-raised)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
             labelFormatter={(v) => `${Math.round(Number(v))}m`}
           />
+          {/* Corner markers, so a dip in the trace can be read against the
+              part of the circuit it belongs to. Only the top chart carries
+              labels — repeating them on all four is just noise. */}
+          {corners.map((c) => (
+            <ReferenceLine
+              key={`${c.number}${c.letter}`}
+              x={c.distanceMeters as number}
+              stroke="var(--border)"
+              strokeDasharray="2 3"
+              label={
+                showCornerLabels
+                  ? { value: `${c.number}${c.letter}`, position: "top", fontSize: 9, fill: "var(--muted)" }
+                  : undefined
+              }
+            />
+          ))}
+          {/* Where the pointer is — either scrubbed on a chart, or hovered on
+              the mini-map, which reports the same lap distance back. */}
+          {scrubDistance != null && (
+            <ReferenceLine x={scrubDistance} stroke="var(--racing-red)" strokeWidth={1.5} />
+          )}
           {traces.map((t) => (
             <Line
               key={t.code}
@@ -95,6 +122,13 @@ export function TelemetryTab({ year, round }: { year: number; round: number }) {
   const { traces, isLoading, error, available } = useSyncedTraces(year, round, effectiveD1, effectiveD2, compare, selectedLap);
   const { data: flagsData } = useFlags(year, round);
   const { data: lapTimesData } = useLapTimes(year, round);
+  const { data: circuit } = useCircuitMap(year, round);
+
+  // Only corners FastF1 gave a lap distance for can be placed on the x-axis.
+  const corners = useMemo(
+    () => (circuit?.corners ?? []).filter((c) => c.distanceMeters != null),
+    [circuit],
+  );
 
   const d1Laps = useMemo(
     () => lapTimesData?.drivers.find((d) => d.code === effectiveD1)?.laps ?? [],
@@ -190,13 +224,33 @@ export function TelemetryTab({ year, round }: { year: number; round: number }) {
       {traces.length > 0 && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_260px]">
           <div className="flex flex-col gap-3">
-            <MetricChart title="Speed" unit="(km/h)" traces={traces} metricKey="speed" onScrub={setScrubDistance} />
-            <MetricChart title="Throttle" unit="(%)" traces={traces} metricKey="throttle" onScrub={setScrubDistance} />
-            <MetricChart title="Gear" unit="" traces={traces} metricKey="gear" onScrub={setScrubDistance} />
-            <MetricChart title="RPM" unit="" traces={traces} metricKey="rpm" onScrub={setScrubDistance} />
+            <MetricChart
+              title="Speed"
+              unit="(km/h)"
+              traces={traces}
+              metricKey="speed"
+              onScrub={setScrubDistance}
+              corners={corners}
+              showCornerLabels
+              scrubDistance={scrubDistance}
+            />
+            <MetricChart title="Throttle" unit="(%)" traces={traces} metricKey="throttle" onScrub={setScrubDistance} corners={corners} scrubDistance={scrubDistance} />
+            <MetricChart title="Gear" unit="" traces={traces} metricKey="gear" onScrub={setScrubDistance} corners={corners} scrubDistance={scrubDistance} />
+            <MetricChart title="RPM" unit="" traces={traces} metricKey="rpm" onScrub={setScrubDistance} corners={corners} scrubDistance={scrubDistance} />
           </div>
-          <div className="aspect-square rounded-lg border border-border bg-surface p-3">
-            <TelemetryMiniMap year={year} round={round} traces={traces} scrubDistance={scrubDistance} />
+          <div className="flex flex-col gap-2">
+            <div className="aspect-square rounded-lg border border-border bg-surface p-3">
+              <TelemetryMiniMap
+                year={year}
+                round={round}
+                traces={traces}
+                scrubDistance={scrubDistance}
+                onHoverDistance={setScrubDistance}
+              />
+            </div>
+            <p className="text-center text-xs text-muted">
+              Hover the track or a chart to line them up
+            </p>
           </div>
         </div>
       )}
