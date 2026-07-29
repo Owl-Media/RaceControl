@@ -168,7 +168,7 @@ def test_through_round_uses_historical_points_not_live_standings(monkeypatch):
     assert by_id["verstappen"]["points"] == 43
     assert by_id["norris"]["points"] == 36
     # "Remaining" as of round 2 means every later round (3, 4, 5) even though
-    # round 3 has actually since been run — the whole point of the time
+    # round 3 has actually since been run: the whole point of the time
     # machine is answering "as of round 2", not "as of today".
     assert out["roundsRemaining"] == 3
 

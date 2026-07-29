@@ -246,6 +246,9 @@ final class WdcCalculatorViewModel: ObservableObject {
     /// Wrapped so we can distinguish "never loaded" (nil) from "loaded for
     /// live standings" (Optional(nil)).
     private var loadedRound: Int?? = nil
+    /// Tracks which year we've already fired the background cache warm-up
+    /// for, so it only happens once per year rather than on every reload.
+    private var warmedYear: Int?
 
     func load(year: Int) async {
         await load(year: year, through: selectedRound)
@@ -269,6 +272,22 @@ final class WdcCalculatorViewModel: ObservableObject {
         }
         if let schedule = try? await APIClient.shared.schedule(year: year) {
             completedRounds = schedule.filter(\.completed).sorted { $0.round < $1.round }
+        }
+        warmTimeMachineCache(year: year)
+    }
+
+    /// Fires a background, best-effort request for a historical round as
+    /// soon as we know the season has one, so the backend's shared
+    /// per-season computation happens during page load instead of during
+    /// the user's first slider drag. The backend caches that computation per
+    /// year regardless of which round is requested, so warming any single
+    /// round makes the *entire* scrubber fast, not just that one round. This
+    /// result is discarded, it's purely to warm the server-side cache.
+    private func warmTimeMachineCache(year: Int) {
+        guard warmedYear != year, let lastRound = completedRounds.last?.round else { return }
+        warmedYear = year
+        Task.detached {
+            _ = try? await APIClient.shared.wdcCalculator(year: year, throughRound: lastRound)
         }
     }
 }

@@ -53,6 +53,9 @@ class StandingsViewModel @Inject constructor(
     private var loadedYear: Int? = null
     private var wdcScheduleYear: Int? = null
 
+    /** Which year we've already fired the WDC time-machine cache warm-up for. */
+    private var wdcWarmedYear: Int? = null
+
     fun setMode(value: StandingsMode) {
         _mode.value = value
     }
@@ -144,8 +147,29 @@ class StandingsViewModel @Inject constructor(
         wdcScheduleYear = year
         viewModelScope.launch {
             repository.schedule(year)
-                .onSuccess { events -> _wdcCompletedRounds.value = events.filter { it.completed } }
+                .onSuccess { events ->
+                    val completed = events.filter { it.completed }
+                    _wdcCompletedRounds.value = completed
+                    warmWdcTimeMachineCache(year, completed)
+                }
                 .onFailure { _wdcCompletedRounds.value = emptyList() }
+        }
+    }
+
+    /**
+     * Fires a background, best-effort request for a historical round as soon as we know the
+     * season has one, so the backend's shared per-season computation happens during page load
+     * instead of during the user's first slider drag. The backend caches that computation per
+     * year regardless of which round is requested, so warming any single round makes the
+     * *entire* scrubber fast, not just that one round. The result is discarded, this is purely
+     * to warm the server-side cache.
+     */
+    private fun warmWdcTimeMachineCache(year: Int, completedRounds: List<RaceEventDto>) {
+        if (wdcWarmedYear == year) return
+        val lastRound = completedRounds.maxOfOrNull { it.round } ?: return
+        wdcWarmedYear = year
+        viewModelScope.launch {
+            repository.wdcCalculator(year, lastRound)
         }
     }
 

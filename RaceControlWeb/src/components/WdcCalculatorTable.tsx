@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useSchedule, useWdcCalculator } from "@/lib/api";
+import { useSchedule, useWdcCalculator, warmWdcCalculatorCache } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { TeamColorDot } from "@/components/StateViews";
 import { TeamLogo } from "@/components/TeamLogo";
@@ -38,6 +38,18 @@ export function WdcCalculatorTable({ year }: { year: number }) {
   const lastCompletedRound = completedRounds.at(-1)?.round ?? 0;
   const isLive = throughRound === null;
   const viewingEvent = throughRound != null ? completedRounds.find((e) => e.round === throughRound) : null;
+
+  // Warm the backend's shared per-season cache as soon as we know the season
+  // has a history to scrub through, rather than waiting for the user's first
+  // slider drag to pay for it. One request for any round is enough: the
+  // backend computes the whole season's progression once and reuses it for
+  // every round, so this warms the entire slider, not just this one round.
+  const warmedYearRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (lastCompletedRound === 0 || warmedYearRef.current === year) return;
+    warmedYearRef.current = year;
+    warmWdcCalculatorCache(year, lastCompletedRound);
+  }, [year, lastCompletedRound]);
 
   if (isLoading) return <LoadingState label="Loading title-decider…" />;
   if (error) return <ErrorState message="Couldn't load title-decider data." />;

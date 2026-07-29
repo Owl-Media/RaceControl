@@ -1,6 +1,6 @@
 "use client";
 
-import useSWR, { SWRConfiguration } from "swr";
+import useSWR, { SWRConfiguration, preload } from "swr";
 import type {
   CircuitMap,
   Circuit,
@@ -65,6 +65,22 @@ export const useWdcCalculator = (year: number, throughRound?: number | null) =>
   useApi<WdcCalculator>(`/api/wdc-calculator/${year}`, {
     through_round: throughRound ?? undefined,
   });
+
+/**
+ * Warms the WDC calculator cache for a historical round in the background.
+ *
+ * The backend shares one expensive per-season computation across every
+ * `through_round` value, so a single warm-up call for any completed round is
+ * enough to make the *entire* time-machine slider fast, not just that one
+ * round: without this, the first scrub of a page visit pays for that shared
+ * computation, which is what made dragging the slider feel janky until the
+ * cache filled in. `preload` both kicks off the request and seeds SWR's
+ * cache under the exact same key `useWdcCalculator` will look up, so if the
+ * user's first scrub happens to land on this round, it resolves instantly.
+ */
+export function warmWdcCalculatorCache(year: number, throughRound: number) {
+  void preload(buildPath(`/api/wdc-calculator/${year}`, { through_round: throughRound }), fetcher);
+}
 export const useDriverDetail = (year: number, driverId: string | null) =>
   useApi<DriverDetail>(driverId ? `/api/drivers/${year}/${driverId}` : null);
 export const useTeams = (year: number) => useApi<Team[]>(`/api/teams/${year}`);

@@ -16,6 +16,7 @@ import logging
 import math
 import os
 import re
+import time
 from datetime import datetime, timedelta
 from functools import lru_cache
 from typing import Any, Optional
@@ -585,7 +586,7 @@ def _max_points_remaining(year: int, after_round: Optional[int] = None) -> tuple
 
     With `after_round=None`, "remaining" means events not yet completed
     (live/current view). With `after_round=N`, it means every event later
-    than round N, regardless of whether it's actually happened yet — this is
+    than round N, regardless of whether it's actually happened yet: this is
     what powers the WDC calculator's historical "as of round N" time-machine
     view, where "remaining" means "remaining from that point in the season".
     """
@@ -611,7 +612,7 @@ def _wdc_snapshot_at_round(year: int, through_round: int) -> list[dict[str, Any]
     Sourced from `_points_progression`'s per-round series rather than live
     standings, so a driver who has since retired mid-season, or who a team
     swapped out for a reserve, still shows exactly what they had at that
-    point in time — the whole point of a "time machine" view.
+    point in time: the whole point of a "time machine" view.
     """
     progression = _points_progression(year)
     extras = {d["driverId"]: d for d in get_drivers(year)}  # logos/headshots/teamId, best-effort
@@ -652,7 +653,7 @@ def get_wdc_calculator(year: int, through_round: Optional[int] = None) -> dict[s
 
     if through_round is not None and rounds_in_season > 0:
         # Clamp to a valid, already-run round rather than erroring on a bad
-        # query param — the picker driving this should only ever send values
+        # query param: the picker driving this should only ever send values
         # in range, but a stale/hand-typed one shouldn't 500.
         through_round = max(1, min(int(through_round), rounds_in_season))
         drivers = _wdc_snapshot_at_round(year, through_round)
@@ -2131,8 +2132,22 @@ def get_compare(year: int, d1: str, d2: str) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 #  Standings evolution (cumulative points per round)
 # --------------------------------------------------------------------------- #
+# In-process memo cache for `_points_progression`. Without this, scrubbing
+# the WDC calculator's time-machine slider across N different rounds meant N
+# independent full re-fetches of the season's race + sprint results from
+# Ergast/Jolpica (each one paginated, each one slow): every round was a
+# fresh cache miss even though they all need the exact same underlying data.
+# The per-endpoint response cache in main.py doesn't help here because its
+# cache key includes `through_round`, so each round gets its own entry; this
+# cache sits one layer lower, keyed only by year, so the expensive fetch
+# happens once and every round after that is a cheap in-memory scan. TTL
+# matches main.py's default endpoint-cache TTL.
+_PROGRESSION_CACHE_TTL_SECONDS = 60 * 60 * 6
+_progression_cache: dict[int, tuple[float, dict[str, Any]]] = {}
+
+
 def _points_progression(year: int) -> dict[str, Any]:
-    """Shared round-by-round cumulative-points computation.
+    """Shared round-by-round cumulative-points computation (memoized per year).
 
     Combines race and sprint points from Ergast/Jolpica so the progression
     matches the official championship. Powers both `get_standings_evolution`
@@ -2141,9 +2156,19 @@ def _points_progression(year: int) -> dict[str, Any]:
     had at any given point in the season.
 
     Returns {"rounds": [...], "drivers": {driverId: {givenName, familyName,
-    code, teamName, teamColor, series: [{round, points}]}}} — `series` is
+    code, teamName, teamColor, series: [{round, points}]}}}. `series` is
     cumulative and has one entry per round the driver was present for.
     """
+    now = time.time()
+    hit = _progression_cache.get(year)
+    if hit and (now - hit[0]) < _PROGRESSION_CACHE_TTL_SECONDS:
+        return hit[1]
+    value = _compute_points_progression(year)
+    _progression_cache[year] = (now, value)
+    return value
+
+
+def _compute_points_progression(year: int) -> dict[str, Any]:
     race_resp = _ergast.get_race_results(season=year, limit=100)
     race_contents, race_desc = _collect_multi(race_resp)
 
