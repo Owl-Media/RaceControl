@@ -2,7 +2,7 @@
 
 import { useMemo, useRef } from "react";
 import { useCircuitMap } from "@/lib/api";
-import { createProjector, densifyTrace, nearestIndexByDistance, rotatePoints, type RawPoint } from "@/lib/trackGeometry";
+import { createProjector, densifyTrace, interpolateXYAtDistance, rotatePoints, type RawPoint } from "@/lib/trackGeometry";
 import type { TelemetryTrace } from "@/lib/types";
 
 const VB = 260;
@@ -77,8 +77,11 @@ export function TelemetryMiniMap({
   const scrubDots = useMemo(() => {
     if (scrubDistance == null || !projector) return [];
     return traces.map((t) => {
-      const idx = nearestIndexByDistance(t.distance, scrubDistance);
-      const [rotated] = rotatePoints([{ x: t.x[idx], y: t.y[idx] }], rotation);
+      // Interpolated rather than snapped to the nearest sample, so the marker
+      // glides as the pointer moves instead of hopping between position
+      // updates (which are far coarser than the rest of the telemetry).
+      const exact = interpolateXYAtDistance(t.distance, t.x, t.y, scrubDistance);
+      const [rotated] = rotatePoints([exact], rotation);
       return { color: t.teamColor || "#e10600", code: t.code, point: projector.project(rotated) };
     });
   }, [traces, scrubDistance, projector, rotation]);

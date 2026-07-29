@@ -165,6 +165,37 @@ export function densifyTrace<T extends RawPoint>(points: T[], subdivisions = 6):
   return out;
 }
 
+/**
+ * Position at an exact distance along a trace, interpolated between the two
+ * bracketing samples.
+ *
+ * Snapping to the nearest sample instead makes a scrubbed marker visibly jump
+ * from sample to sample, which is especially obvious on the position channel:
+ * it updates far more slowly than the rest of the telemetry, so consecutive
+ * samples can be tens of metres apart on track.
+ */
+export function interpolateXYAtDistance(
+  distances: number[],
+  xs: number[],
+  ys: number[],
+  target: number,
+): ScreenPoint {
+  const n = Math.min(distances.length, xs.length, ys.length);
+  if (n === 0) return { x: 0, y: 0 };
+  if (n === 1) return { x: xs[0], y: ys[0] };
+
+  const hi = nearestIndexByDistance(distances.slice(0, n), target);
+  if (hi <= 0) return { x: xs[0], y: ys[0] };
+
+  const lo = hi - 1;
+  const span = distances[hi] - distances[lo];
+  const t = span > 0 ? Math.min(1, Math.max(0, (target - distances[lo]) / span)) : 0;
+  return {
+    x: xs[lo] + (xs[hi] - xs[lo]) * t,
+    y: ys[lo] + (ys[hi] - ys[lo]) * t,
+  };
+}
+
 /** Nearest-index lookup by cumulative distance, for scrubbing telemetry traces. */
 export function nearestIndexByDistance(distances: number[], target: number): number {
   let lo = 0;
