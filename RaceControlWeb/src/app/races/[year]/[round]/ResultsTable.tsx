@@ -4,7 +4,22 @@ import Link from "next/link";
 import { formatMs } from "@/lib/format";
 import { TeamColorDot } from "@/components/StateViews";
 import { TeamLogo } from "@/components/TeamLogo";
-import type { SessionResults } from "@/lib/types";
+import type { ResultRow, SessionResults } from "@/lib/types";
+
+/**
+ * The displayed finishing/grid position.
+ *
+ * `classifiedPosition` is preferred (it carries "R"/"D"/"NC" style outcomes
+ * for races), but FastF1 leaves it *blank* for non-race sessions. A blank
+ * string is not null, so `??` sails straight past it and renders an empty
+ * cell — which is why the qualifying "Pos" column showed nothing even though
+ * `position` was populated. Treat blank as missing.
+ */
+function displayPosition(r: ResultRow): string {
+  const classified = r.classifiedPosition?.trim();
+  if (classified) return classified;
+  return r.position != null ? String(r.position) : "—";
+}
 
 export function ResultsTable({ data, year, qualifying = false }: { data: SessionResults; year: number; qualifying?: boolean }) {
   if (data.results.length === 0) {
@@ -47,7 +62,7 @@ export function ResultsTable({ data, year, qualifying = false }: { data: Session
             // row index so the key is always unique regardless of what the
             // data actually contains.
             <tr key={`${r.driverId ?? r.driverNumber ?? "row"}-${i}`} className="hover:bg-surface/60">
-              <td className="tabular px-3 py-2 text-muted">{r.classifiedPosition ?? r.position ?? "—"}</td>
+              <td className="tabular px-3 py-2 text-muted">{displayPosition(r)}</td>
               <td className="px-3 py-2 font-medium">
                 {r.driverId ? (
                   <Link href={`/drivers/${year}/${r.driverId}`} className="hover:text-racing-red">

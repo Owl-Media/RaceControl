@@ -126,6 +126,48 @@ def test_real_position_is_not_overridden(monkeypatch):
     assert out["results"][0]["position"] == 3
 
 
+def test_blank_classified_position_is_nulled(monkeypatch):
+    """FastF1 leaves `ClassifiedPosition` as an empty *string* for non-race
+    sessions, not None. Clients prefer that field and fall back with `??`,
+    which only triggers on null — so a blank string sailed through and left
+    the qualifying "Pos" column empty even though `position` was populated.
+    It must be normalised to null so the fallback actually fires.
+    """
+    results = _results([
+        {"Position": None, "ClassifiedPosition": "", "DriverNumber": "1", "Abbreviation": "VER",
+         "DriverId": "max_verstappen", "FirstName": "Max", "LastName": "Verstappen",
+         "FullName": "Max Verstappen", "HeadshotUrl": None, "CountryCode": "NED",
+         "TeamName": "Red Bull", "TeamId": "red_bull", "TeamColor": "3671C6",
+         "GridPosition": None, "Status": None, "Points": None, "Time": pd.NaT,
+         "Q1": _td(90.0), "Q2": _td(89.0), "Q3": _td(88.0)},
+        {"Position": None, "ClassifiedPosition": "   ", "DriverNumber": "44", "Abbreviation": "HAM",
+         "DriverId": "hamilton", "FirstName": "Lewis", "LastName": "Hamilton",
+         "FullName": "Lewis Hamilton", "HeadshotUrl": None, "CountryCode": "GBR",
+         "TeamName": "Mercedes", "TeamId": "mercedes", "TeamColor": "27F4D2",
+         "GridPosition": None, "Status": None, "Points": None, "Time": pd.NaT,
+         "Q1": _td(90.5), "Q2": _td(89.4), "Q3": _td(88.4)},
+    ])
+    monkeypatch.setattr(svc, "_load_session", lambda *a, **k: _stub_session(results))
+    out = svc.get_results(2024, 1, "Q")
+    assert [r["classifiedPosition"] for r in out["results"]] == [None, None]
+    assert [r["position"] for r in out["results"]] == [1, 2]
+
+
+def test_race_classified_position_still_passes_through(monkeypatch):
+    """The blank-string normalisation must not eat real values like "R"."""
+    results = _results([
+        {"Position": 20, "ClassifiedPosition": "R", "DriverNumber": "1", "Abbreviation": "VER",
+         "DriverId": "max_verstappen", "FirstName": "Max", "LastName": "Verstappen",
+         "FullName": "Max Verstappen", "HeadshotUrl": None, "CountryCode": "NED",
+         "TeamName": "Red Bull", "TeamId": "red_bull", "TeamColor": "3671C6",
+         "GridPosition": 1, "Status": "Accident", "Points": 0, "Time": pd.NaT,
+         "Q1": None, "Q2": None, "Q3": None},
+    ])
+    monkeypatch.setattr(svc, "_load_session", lambda *a, **k: _stub_session(results))
+    out = svc.get_results(2024, 1, "R")
+    assert out["results"][0]["classifiedPosition"] == "R"
+
+
 def test_no_results_returns_empty_list(monkeypatch):
     monkeypatch.setattr(svc, "_load_session", lambda *a, **k: _stub_session(None))
     out = svc.get_results(2024, 1, "Q")

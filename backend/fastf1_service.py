@@ -74,6 +74,14 @@ def _clean(value: Any) -> Any:
     # artifact; treat it the same way here for every field.
     if isinstance(value, str) and value.strip().lower() in ("nan", "nat", "none", "<na>"):
         return None
+    # An empty/whitespace-only string is a non-value too, and must become null
+    # for the same reason: clients fall back with `?? other` / `?: other`,
+    # which only triggers on null — an empty string sails straight through and
+    # renders as a blank cell. FastF1 leaves `ClassifiedPosition` blank for
+    # non-race sessions, which is exactly how the qualifying "Pos" column
+    # ended up empty despite `position` being populated.
+    if isinstance(value, str) and not value.strip():
+        return None
     return value
 
 
