@@ -196,7 +196,7 @@ export function TelemetryTab({ year, round }: { year: number; round: number }) {
             <MetricChart title="RPM" unit="" traces={traces} metricKey="rpm" onScrub={setScrubDistance} />
           </div>
           <div className="aspect-square rounded-lg border border-border bg-surface p-3">
-            <TelemetryMiniMap traces={traces} scrubDistance={scrubDistance} />
+            <TelemetryMiniMap year={year} round={round} traces={traces} scrubDistance={scrubDistance} />
           </div>
         </div>
       )}
