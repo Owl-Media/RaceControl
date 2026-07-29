@@ -17,9 +17,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,8 +43,10 @@ import com.owlmedia.racecontrol.core.design.tabular
 import com.owlmedia.racecontrol.core.ui.EmptyState
 import com.owlmedia.racecontrol.core.ui.LoadableContent
 import com.owlmedia.racecontrol.core.ui.TeamLogo
+import com.owlmedia.racecontrol.data.remote.dto.RaceEventDto
 import com.owlmedia.racecontrol.data.remote.dto.WdcDriverDto
 import com.owlmedia.racecontrol.feature.AppState
+import kotlin.math.roundToInt
 
 /**
  * Who can still mathematically win the drivers' championship.
@@ -57,6 +64,8 @@ fun WdcCalculatorView(
     onOpenDriver: (String) -> Unit = {},
 ) {
     val state by viewModel.wdc.collectAsStateWithLifecycle()
+    val throughRound by viewModel.wdcThroughRound.collectAsStateWithLifecycle()
+    val completedRounds by viewModel.wdcCompletedRounds.collectAsStateWithLifecycle()
 
     LoadableContent(
         state = state,
@@ -77,6 +86,15 @@ fun WdcCalculatorView(
             contentPadding = PaddingValues(Dimens.MD),
             verticalArrangement = Arrangement.spacedBy(Dimens.SM),
         ) {
+            if (completedRounds.isNotEmpty()) {
+                item(key = "wdc-time-machine") {
+                    WdcTimeMachine(
+                        completedRounds = completedRounds,
+                        throughRound = throughRound,
+                        onThroughRoundChange = viewModel::setWdcThroughRound,
+                    )
+                }
+            }
             item(key = "wdc-header") {
                 WdcHeader(
                     decided = data.decided,
@@ -93,6 +111,87 @@ fun WdcCalculatorView(
                 WdcDriverRow(driver = driver, onOpenDriver = onOpenDriver)
             }
         }
+    }
+}
+
+/**
+ * "Time machine" round scrubber. Once a season is over, the live calculator degenerates to
+ * "only the leader can win" for every round, which isn't interesting: this lets a user scrub
+ * back to any completed round and see the calculator as it stood then, using that round's
+ * actual cumulative points rather than final-season standings.
+ *
+ * The slider's valid positions are 1..lastCompletedRound, plus one extra stop past the end
+ * that represents live standings (throughRound = null). [onThroughRoundChange] only fires when
+ * the drag ends, not on every intermediate value, so scrubbing does not spam the network.
+ */
+@Composable
+private fun WdcTimeMachine(
+    completedRounds: List<RaceEventDto>,
+    throughRound: Int?,
+    onThroughRoundChange: (Int?) -> Unit,
+) {
+    val lastRound = completedRounds.maxOf { it.round }
+    val liveStop = (lastRound + 1).toFloat()
+    val committedValue = throughRound?.toFloat() ?: liveStop
+
+    var sliderValue by remember(committedValue) { mutableFloatStateOf(committedValue) }
+    val displayedRound = sliderValue.roundToInt()
+    val isLive = displayedRound > lastRound
+
+    val label = if (isLive) {
+        "Viewing: live standings"
+    } else {
+        val event = completedRounds.find { it.round == displayedRound }
+        "Viewing: as of Round $displayedRound (${event?.displayName ?: "Round $displayedRound"})"
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RcShapes.Medium)
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(Dimens.SM),
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = RcTheme.colors.textPrimary,
+                modifier = Modifier.weight(1f),
+            )
+            if (!isLive) {
+                TextButton(onClick = {
+                    sliderValue = liveStop
+                    onThroughRoundChange(null)
+                }) {
+                    Text("Jump to live")
+                }
+            }
+        }
+        Slider(
+            value = sliderValue,
+            onValueChange = { sliderValue = it },
+            onValueChangeFinished = {
+                val round = sliderValue.roundToInt()
+                onThroughRoundChange(if (round > lastRound) null else round)
+            },
+            valueRange = 1f..liveStop,
+            steps = (liveStop.toInt() - 1) - 1,
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics {
+                    contentDescription = if (isLive) {
+                        "Round scrubber, live standings"
+                    } else {
+                        "Round scrubber, round $displayedRound of $lastRound"
+                    }
+                },
+        )
     }
 }
 

@@ -580,26 +580,93 @@ _SPRINT_POINTS_TOTAL = 8 + 25 + 1  # sprint win + race win + fastest lap
 _CONVENTIONAL_POINTS_TOTAL = 25 + 1  # race win + fastest lap
 
 
-def _max_points_remaining(year: int) -> tuple[int, int, int]:
-    """Returns (rounds_remaining, max_points_remaining, sprint_rounds_remaining)."""
+def _max_points_remaining(year: int, after_round: Optional[int] = None) -> tuple[int, int, int]:
+    """Returns (rounds_remaining, max_points_remaining, sprint_rounds_remaining).
+
+    With `after_round=None`, "remaining" means events not yet completed
+    (live/current view). With `after_round=N`, it means every event later
+    than round N, regardless of whether it's actually happened yet — this is
+    what powers the WDC calculator's historical "as of round N" time-machine
+    view, where "remaining" means "remaining from that point in the season".
+    """
     try:
         events = get_schedule(year)
     except Exception as exc:  # noqa: BLE001
         log.warning("schedule unavailable for wdc calculator %s: %s", year, exc)
         return 0, 0, 0
 
-    remaining = [e for e in events if e.get("round", 0) > 0 and not e.get("completed")]
+    if after_round is None:
+        remaining = [e for e in events if e.get("round", 0) > 0 and not e.get("completed")]
+    else:
+        remaining = [e for e in events if e.get("round", 0) > after_round]
     sprint_remaining = sum(1 for e in remaining if str(e.get("format") or "").startswith("sprint"))
     conventional_remaining = len(remaining) - sprint_remaining
     max_points = sprint_remaining * _SPRINT_POINTS_TOTAL + conventional_remaining * _CONVENTIONAL_POINTS_TOTAL
     return len(remaining), max_points, sprint_remaining
 
 
-def get_wdc_calculator(year: int) -> dict[str, Any]:
-    drivers = sorted(get_drivers(year), key=lambda d: (d.get("position") is None, d.get("position")))
+def _wdc_snapshot_at_round(year: int, through_round: int) -> list[dict[str, Any]]:
+    """Every driver's identity + cumulative points as of the end of `through_round`.
+
+    Sourced from `_points_progression`'s per-round series rather than live
+    standings, so a driver who has since retired mid-season, or who a team
+    swapped out for a reserve, still shows exactly what they had at that
+    point in time — the whole point of a "time machine" view.
+    """
+    progression = _points_progression(year)
+    extras = {d["driverId"]: d for d in get_drivers(year)}  # logos/headshots/teamId, best-effort
+
+    snapshot = []
+    for did, d in progression["drivers"].items():
+        points = 0.0
+        for point in d["series"]:
+            if point["round"] > through_round:
+                break
+            points = point["points"]
+        extra = extras.get(did, {})
+        snapshot.append(
+            {
+                "driverId": did,
+                "code": d.get("code") or extra.get("code"),
+                "givenName": d.get("givenName") or extra.get("givenName"),
+                "familyName": d.get("familyName") or extra.get("familyName"),
+                "teamName": d.get("teamName") or extra.get("teamName"),
+                "teamId": extra.get("teamId"),
+                "teamLogoUrl": extra.get("teamLogoUrl"),
+                "teamColor": d.get("teamColor") or extra.get("teamColor"),
+                "headshotUrl": extra.get("headshotUrl"),
+                "points": points,
+            }
+        )
+    snapshot.sort(key=lambda d: -d["points"])
+    for i, d in enumerate(snapshot):
+        d["position"] = i + 1
+    return snapshot
+
+
+def get_wdc_calculator(year: int, through_round: Optional[int] = None) -> dict[str, Any]:
+    try:
+        rounds_in_season = max((e.get("round") or 0) for e in get_schedule(year))
+    except Exception:  # noqa: BLE001
+        rounds_in_season = 0
+
+    if through_round is not None and rounds_in_season > 0:
+        # Clamp to a valid, already-run round rather than erroring on a bad
+        # query param — the picker driving this should only ever send values
+        # in range, but a stale/hand-typed one shouldn't 500.
+        through_round = max(1, min(int(through_round), rounds_in_season))
+        drivers = _wdc_snapshot_at_round(year, through_round)
+        rounds_remaining, max_remaining, sprint_remaining = _max_points_remaining(year, after_round=through_round)
+    else:
+        through_round = None
+        drivers = sorted(get_drivers(year), key=lambda d: (d.get("position") is None, d.get("position")))
+        rounds_remaining, max_remaining, sprint_remaining = _max_points_remaining(year)
+
     if not drivers:
         return {
             "year": year,
+            "throughRound": through_round,
+            "roundsInSeason": rounds_in_season,
             "roundsRemaining": 0,
             "maxRemainingPoints": 0,
             "leaderPoints": 0,
@@ -607,7 +674,6 @@ def get_wdc_calculator(year: int) -> dict[str, Any]:
             "drivers": [],
         }
 
-    rounds_remaining, max_remaining, sprint_remaining = _max_points_remaining(year)
     leader_points = float(drivers[0].get("points") or 0)
 
     out_drivers = []
@@ -639,6 +705,8 @@ def get_wdc_calculator(year: int) -> dict[str, Any]:
 
     return {
         "year": year,
+        "throughRound": through_round,
+        "roundsInSeason": rounds_in_season,
         "roundsRemaining": rounds_remaining,
         "sprintRoundsRemaining": sprint_remaining,
         "maxRemainingPoints": max_remaining,
@@ -2063,11 +2131,18 @@ def get_compare(year: int, d1: str, d2: str) -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 #  Standings evolution (cumulative points per round)
 # --------------------------------------------------------------------------- #
-def get_standings_evolution(year: int) -> dict[str, Any]:
-    """Round-by-round cumulative championship points per driver.
+def _points_progression(year: int) -> dict[str, Any]:
+    """Shared round-by-round cumulative-points computation.
 
     Combines race and sprint points from Ergast/Jolpica so the progression
-    matches the official championship.
+    matches the official championship. Powers both `get_standings_evolution`
+    (the progress chart) and the WDC calculator's "as of round N" historical
+    snapshots, so both features agree on exactly how many points each driver
+    had at any given point in the season.
+
+    Returns {"rounds": [...], "drivers": {driverId: {givenName, familyName,
+    code, teamName, teamColor, series: [{round, points}]}}} — `series` is
+    cumulative and has one entry per round the driver was present for.
     """
     race_resp = _ergast.get_race_results(season=year, limit=100)
     race_contents, race_desc = _collect_multi(race_resp)
@@ -2117,7 +2192,8 @@ def get_standings_evolution(year: int) -> dict[str, Any]:
             running[did] = running.get(did, 0.0) + gained
             meta[did] = {
                 "driverId": did,
-                "name": f'{_clean(r.get("givenName")) or ""} {_clean(r.get("familyName")) or ""}'.strip(),
+                "givenName": _clean(r.get("givenName")),
+                "familyName": _clean(r.get("familyName")),
                 "code": _clean(r.get("driverCode")),
                 "teamName": _clean(r.get("constructorName")),
                 "teamColor": colors.get(did),
@@ -2127,9 +2203,29 @@ def get_standings_evolution(year: int) -> dict[str, Any]:
         for did in meta:
             series.setdefault(did, []).append({"round": rnd, "points": round(running.get(did, 0.0), 1)})
 
+    drivers = {did: {**m, "series": series.get(did, [])} for did, m in meta.items()}
+    return {"rounds": rounds, "drivers": drivers}
+
+
+def get_standings_evolution(year: int) -> dict[str, Any]:
+    """Round-by-round cumulative championship points per driver."""
+    progression = _points_progression(year)
+
     drivers = []
-    for did, m in meta.items():
-        drivers.append({**m, "points": round(running.get(did, 0.0), 1), "series": series.get(did, [])})
+    for did, d in progression["drivers"].items():
+        name = f'{d.get("givenName") or ""} {d.get("familyName") or ""}'.strip()
+        points = d["series"][-1]["points"] if d["series"] else 0.0
+        drivers.append(
+            {
+                "driverId": did,
+                "name": name,
+                "code": d.get("code"),
+                "teamName": d.get("teamName"),
+                "teamColor": d.get("teamColor"),
+                "points": points,
+                "series": d["series"],
+            }
+        )
     drivers.sort(key=lambda d: -d["points"])
 
-    return {"year": year, "rounds": rounds, "drivers": drivers}
+    return {"year": year, "rounds": progression["rounds"], "drivers": drivers}

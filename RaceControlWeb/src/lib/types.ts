@@ -547,6 +547,10 @@ export interface WdcDriver {
 
 export interface WdcCalculator {
   year: number;
+  /** Round the snapshot is "as of"; null means the live, current-day view. */
+  throughRound: number | null;
+  /** Total rounds on the season's calendar, for building a round picker. */
+  roundsInSeason: number;
   roundsRemaining: number;
   sprintRoundsRemaining: number;
   maxRemainingPoints: number;

@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { useWdcCalculator } from "@/lib/api";
+import { useSchedule, useWdcCalculator } from "@/lib/api";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { TeamColorDot } from "@/components/StateViews";
 import { TeamLogo } from "@/components/TeamLogo";
@@ -16,11 +17,27 @@ const CAN_WIN_COLOR = "#22c55e";
  * Qualifying) with column headers, rather than the dashboard card's compact
  * row-list, since this is the detail view rather than a preview.
  *
+ * Includes a "time machine" round scrubber: once a season wraps up, the live
+ * calculator collapses to "only the leader could win" for every round, which
+ * isn't interesting to look back on. Scrubbing to an earlier round replays
+ * the calculator using that round's actual cumulative points instead, so you
+ * can see how the title picture genuinely evolved.
+ *
  * See WdcCalculatorList.tsx for the method this is built on (FastF1's own
  * "who can still win the WDC" worked example) and its caveats.
  */
 export function WdcCalculatorTable({ year }: { year: number }) {
-  const { data, isLoading, error } = useWdcCalculator(year);
+  const [throughRound, setThroughRound] = useState<number | null>(null);
+  const { data, isLoading, error } = useWdcCalculator(year, throughRound);
+  const { data: schedule } = useSchedule(year);
+
+  const completedRounds = (schedule ?? [])
+    .filter((e) => e.completed)
+    .slice()
+    .sort((a, b) => a.round - b.round);
+  const lastCompletedRound = completedRounds.at(-1)?.round ?? 0;
+  const isLive = throughRound === null;
+  const viewingEvent = throughRound != null ? completedRounds.find((e) => e.round === throughRound) : null;
 
   if (isLoading) return <LoadingState label="Loading title-decider…" />;
   if (error) return <ErrorState message="Couldn't load title-decider data." />;
@@ -30,6 +47,40 @@ export function WdcCalculatorTable({ year }: { year: number }) {
 
   return (
     <div>
+      {lastCompletedRound > 0 && (
+        <div className="mb-4 rounded-lg border border-border bg-surface p-3">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-sm font-medium">
+              {isLive
+                ? "Viewing: live standings"
+                : `Viewing: as of Round ${throughRound}${viewingEvent ? ` (${viewingEvent.name})` : ""}`}
+            </span>
+            {!isLive && (
+              <button
+                type="button"
+                onClick={() => setThroughRound(null)}
+                className="rounded-md bg-surface-raised px-2 py-1 text-xs font-semibold text-racing-red hover:bg-border"
+              >
+                Jump to live
+              </button>
+            )}
+          </div>
+          <input
+            type="range"
+            min={1}
+            max={lastCompletedRound}
+            value={throughRound ?? lastCompletedRound}
+            onChange={(e) => setThroughRound(Number(e.target.value))}
+            className="w-full accent-racing-red"
+            aria-label="Round"
+          />
+          <div className="mt-1 flex justify-between text-[11px] text-muted">
+            <span>Round 1</span>
+            <span>Round {lastCompletedRound} (latest)</span>
+          </div>
+        </div>
+      )}
+
       <p className="mb-1 text-sm text-muted">
         {data.decided
           ? data.roundsRemaining === 0

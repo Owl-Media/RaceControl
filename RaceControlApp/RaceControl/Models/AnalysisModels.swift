@@ -332,6 +332,8 @@ struct WdcCalculator: Codable {
     let leaderPoints: Double
     let decided: Bool
     let drivers: [WdcDriverEntry]
+    let throughRound: Int?
+    let roundsInSeason: Int
 }
 
 struct WdcDriverEntry: Codable, Identifiable {

@@ -61,7 +61,10 @@ export const useDriverStandings = (year: number) => useApi<DriverStanding[]>(`/a
 export const useConstructorStandings = (year: number) =>
   useApi<ConstructorStanding[]>(`/api/standings/constructors/${year}`);
 export const useDrivers = (year: number) => useApi<Driver[]>(`/api/drivers/${year}`);
-export const useWdcCalculator = (year: number) => useApi<WdcCalculator>(`/api/wdc-calculator/${year}`);
+export const useWdcCalculator = (year: number, throughRound?: number | null) =>
+  useApi<WdcCalculator>(`/api/wdc-calculator/${year}`, {
+    through_round: throughRound ?? undefined,
+  });
 export const useDriverDetail = (year: number, driverId: string | null) =>
   useApi<DriverDetail>(driverId ? `/api/drivers/${year}/${driverId}` : null);
 export const useTeams = (year: number) => useApi<Team[]>(`/api/teams/${year}`);

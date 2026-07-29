@@ -470,6 +470,8 @@ data class WdcCalculatorDto(
     val leaderPoints: Double = 0.0,
     val decided: Boolean = false,
     val drivers: List<WdcDriverDto> = emptyList(),
+    val throughRound: Int? = null,
+    val roundsInSeason: Int = 0,
 )
 
 @Serializable

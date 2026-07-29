@@ -6,6 +6,9 @@ import SwiftUI
 struct WdcCalculatorView: View {
     let year: Int
     @StateObject private var vm = WdcCalculatorViewModel()
+    /// Local slider position, decoupled from the network-backed
+    /// `vm.selectedRound` so dragging doesn't trigger a reload on every tick.
+    @State private var scrubValue: Double = 1
 
     var body: some View {
         LoadableView(state: vm.state) {
@@ -20,6 +23,7 @@ struct WdcCalculatorView: View {
     private func content(_ data: WdcCalculator) -> some View {
         ScrollView {
             VStack(spacing: Theme.Space.sm) {
+                timeMachineControl(data)
                 statusHeader(data)
                 pointsBreakdown
                 LazyVStack(spacing: Theme.Space.sm) {
@@ -30,6 +34,59 @@ struct WdcCalculatorView: View {
             }
             .padding(Theme.Space.md)
         }
+    }
+
+    @ViewBuilder
+    private func timeMachineControl(_ data: WdcCalculator) -> some View {
+        let rounds = vm.completedRounds
+        if let lastRound = rounds.map(\.round).max() {
+            VStack(alignment: .leading, spacing: Theme.Space.xs) {
+                HStack {
+                    Text("TIME MACHINE")
+                        .font(.caption.weight(.bold)).tracking(1)
+                        .foregroundStyle(Theme.Palette.textSecondary)
+                    Spacer()
+                    if vm.selectedRound != nil {
+                        Button("Jump to Live") {
+                            Task { await vm.load(year: year, through: nil) }
+                        }
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.racingRed)
+                    }
+                }
+                Text(viewingLabel(lastRound: lastRound))
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.Palette.textPrimary)
+                    .lineLimit(1)
+                Slider(
+                    value: $scrubValue,
+                    in: 1...Double(lastRound),
+                    step: 1,
+                    onEditingChanged: { editing in
+                        guard !editing else { return }
+                        let round = Int(scrubValue.rounded())
+                        Task { await vm.load(year: year, through: round) }
+                    }
+                )
+                .tint(Theme.Palette.racingRed)
+            }
+            .padding(Theme.Space.md)
+            .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.md))
+            .overlay(RoundedRectangle(cornerRadius: Theme.Radius.md).stroke(Theme.Palette.stroke, lineWidth: 1))
+            .onAppear {
+                scrubValue = Double(vm.selectedRound ?? lastRound)
+            }
+        }
+    }
+
+    private func viewingLabel(lastRound: Int) -> String {
+        guard let round = vm.selectedRound else {
+            return "Viewing: Live standings"
+        }
+        if let raceName = vm.completedRounds.first(where: { $0.round == round })?.displayName {
+            return "Viewing: as of Round \(round) (\(raceName))"
+        }
+        return "Viewing: as of Round \(round)"
     }
 
     @ViewBuilder
@@ -179,20 +236,39 @@ private struct WdcDriverRow: View {
 final class WdcCalculatorViewModel: ObservableObject {
     @Published var state: Loadable<WdcCalculator> = .idle
     @Published var driversById: [String: Driver] = [:]
+    /// Completed events for the season, sorted by round, used to build the
+    /// time-machine scrubber's valid range and race-name labels.
+    @Published var completedRounds: [RaceEvent] = []
+    /// nil = live standings. Non-nil = viewing the calculator as it stood at
+    /// the end of that round.
+    @Published var selectedRound: Int? = nil
     private var loadedYear: Int?
+    /// Wrapped so we can distinguish "never loaded" (nil) from "loaded for
+    /// live standings" (Optional(nil)).
+    private var loadedRound: Int?? = nil
 
     func load(year: Int) async {
-        if loadedYear == year, case .loaded = state { return }
+        await load(year: year, through: selectedRound)
+    }
+
+    func load(year: Int, through round: Int?) async {
+        if loadedYear == year, loadedRound == Optional(round), case .loaded = state { return }
         state = .loading
+        selectedRound = round
         do {
-            state = .loaded(try await APIClient.shared.wdcCalculator(year: year))
+            state = .loaded(try await APIClient.shared.wdcCalculator(year: year, throughRound: round))
             loadedYear = year
+            loadedRound = round
         } catch {
             state = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)
         }
-        // Secondary lookup for driver-detail navigation; failure shouldn't block the screen.
+        // Secondary lookups for driver-detail navigation and the round
+        // scrubber; failure shouldn't block the main screen.
         if let drivers = try? await APIClient.shared.drivers(year: year) {
             driversById = Dictionary(uniqueKeysWithValues: drivers.map { ($0.driverId, $0) })
+        }
+        if let schedule = try? await APIClient.shared.schedule(year: year) {
+            completedRounds = schedule.filter(\.completed).sorted { $0.round < $1.round }
         }
     }
 }

@@ -161,8 +161,9 @@ extension APIClient {
     func standingsEvolution(year: Int) async throws -> StandingsEvolution {
         try await get("api/standings-evolution/\(year)", as: StandingsEvolution.self)
     }
-    func wdcCalculator(year: Int) async throws -> WdcCalculator {
-        try await get("api/wdc-calculator/\(year)", as: WdcCalculator.self)
+    func wdcCalculator(year: Int, throughRound: Int? = nil) async throws -> WdcCalculator {
+        let path = "api/wdc-calculator/\(year)" + (throughRound.map { "?through_round=\($0)" } ?? "")
+        return try await get(path, as: WdcCalculator.self)
     }
 }
 

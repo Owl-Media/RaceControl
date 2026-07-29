@@ -17,7 +17,7 @@ import logging
 import os
 import secrets
 import time
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -317,9 +317,12 @@ def constructor_standings(year: int) -> Any:
 
 
 @app.get("/api/wdc-calculator/{year}")
-def wdc_calculator(year: int) -> Any:
-    key = f"wdccalc:{year}"
-    return cached(key, lambda: _guard(lambda: svc.get_wdc_calculator(year), "wdc calculator"))
+def wdc_calculator(year: int, through_round: Optional[int] = None) -> Any:
+    key = f"wdccalc:{year}:{through_round if through_round is not None else 'live'}"
+    return cached(
+        key,
+        lambda: _guard(lambda: svc.get_wdc_calculator(year, through_round=through_round), "wdc calculator"),
+    )
 
 
 @app.get("/api/drivers/{year}")

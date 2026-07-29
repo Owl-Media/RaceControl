@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.owlmedia.racecontrol.core.ui.UiState
 import com.owlmedia.racecontrol.data.remote.dto.ConstructorStandingDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverStandingDto
+import com.owlmedia.racecontrol.data.remote.dto.RaceEventDto
 import com.owlmedia.racecontrol.data.remote.dto.ReliabilityResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.StandingsEvolutionDto
 import com.owlmedia.racecontrol.data.remote.dto.WdcCalculatorDto
@@ -41,7 +42,16 @@ class StandingsViewModel @Inject constructor(
     private val _wdc = MutableStateFlow<UiState<WdcCalculatorDto>>(UiState.Idle)
     val wdc: StateFlow<UiState<WdcCalculatorDto>> = _wdc.asStateFlow()
 
+    /** Selected round for the WDC "time machine" scrubber. Null means live standings. */
+    private val _wdcThroughRound = MutableStateFlow<Int?>(null)
+    val wdcThroughRound: StateFlow<Int?> = _wdcThroughRound.asStateFlow()
+
+    /** Completed rounds for the current year, used to build the scrubber's range/labels. */
+    private val _wdcCompletedRounds = MutableStateFlow<List<RaceEventDto>>(emptyList())
+    val wdcCompletedRounds: StateFlow<List<RaceEventDto>> = _wdcCompletedRounds.asStateFlow()
+
     private var loadedYear: Int? = null
+    private var wdcScheduleYear: Int? = null
 
     fun setMode(value: StandingsMode) {
         _mode.value = value
@@ -60,6 +70,8 @@ class StandingsViewModel @Inject constructor(
             _evolution.value = UiState.Idle
             _reliability.value = UiState.Idle
             _wdc.value = UiState.Idle
+            _wdcThroughRound.value = null
+            _wdcCompletedRounds.value = emptyList()
             loadedYear = year
         }
         when (mode) {
@@ -115,9 +127,37 @@ class StandingsViewModel @Inject constructor(
         if (!force && _wdc.value is UiState.Loaded) return
         viewModelScope.launch {
             _wdc.value = UiState.Loading
-            repository.wdcCalculator(year)
+            repository.wdcCalculator(year, _wdcThroughRound.value)
                 .onSuccess { _wdc.value = UiState.Loaded(it) }
                 .onFailure { _wdc.value = UiState.Failed(repository.messageFor(it)) }
         }
+        loadWdcSchedule(year)
+    }
+
+    /**
+     * Best-effort fetch of the season schedule so the "time machine" scrubber knows which
+     * rounds have actually completed. Failure here shouldn't block the WDC calculator itself,
+     * so errors are swallowed and the scrubber simply stays hidden.
+     */
+    private fun loadWdcSchedule(year: Int, force: Boolean = false) {
+        if (!force && wdcScheduleYear == year) return
+        wdcScheduleYear = year
+        viewModelScope.launch {
+            repository.schedule(year)
+                .onSuccess { events -> _wdcCompletedRounds.value = events.filter { it.completed } }
+                .onFailure { _wdcCompletedRounds.value = emptyList() }
+        }
+    }
+
+    /**
+     * Moves the WDC calculator's "time machine" to a different round, or back to live
+     * standings when [round] is null. Always force-reloads since the round, not the year,
+     * changed underneath the same cached state.
+     */
+    fun setWdcThroughRound(round: Int?) {
+        if (_wdcThroughRound.value == round) return
+        _wdcThroughRound.value = round
+        val year = loadedYear ?: return
+        loadWdc(year, force = true)
     }
 }

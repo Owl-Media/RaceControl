@@ -177,5 +177,8 @@ interface RaceControlApi {
     suspend fun standingsEvolution(@Path("year") year: Int): StandingsEvolutionDto
 
     @GET("api/wdc-calculator/{year}")
-    suspend fun wdcCalculator(@Path("year") year: Int): WdcCalculatorDto
+    suspend fun wdcCalculator(
+        @Path("year") year: Int,
+        @Query("through_round") throughRound: Int? = null,
+    ): WdcCalculatorDto
 }

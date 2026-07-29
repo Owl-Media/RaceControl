@@ -110,6 +110,110 @@ def test_no_standings_returns_empty_but_valid_payload(monkeypatch):
     assert out["decided"] is True
 
 
+def test_live_calculator_reports_no_through_round(monkeypatch):
+    monkeypatch.setattr(svc, "get_drivers", lambda year: _drivers())
+    monkeypatch.setattr(svc, "get_schedule", lambda year: _remaining_events(n_conventional=2))
+
+    out = svc.get_wdc_calculator(2024)
+    assert out["throughRound"] is None
+
+
+# --------------------------------------------------------------------------- #
+#  Historical "time machine" snapshots (through_round)
+# --------------------------------------------------------------------------- #
+# These exercise `get_wdc_calculator`'s other branch, which sources points
+# from `_points_progression`'s round-by-round series instead of live
+# standings, so they monkeypatch that function directly rather than
+# `get_drivers`/`get_schedule` alone.
+
+def _progression():
+    return {
+        "rounds": [1, 2, 3],
+        "drivers": {
+            "verstappen": {
+                "givenName": "Max", "familyName": "Verstappen", "code": "VER",
+                "teamName": "Red Bull", "teamColor": "3671C6",
+                "series": [{"round": 1, "points": 25}, {"round": 2, "points": 43}, {"round": 3, "points": 68}],
+            },
+            "norris": {
+                "givenName": "Lando", "familyName": "Norris", "code": "NOR",
+                "teamName": "McLaren", "teamColor": "FF8000",
+                "series": [{"round": 1, "points": 18}, {"round": 2, "points": 36}, {"round": 3, "points": 61}],
+            },
+        },
+    }
+
+
+def _full_season_schedule():
+    # Rounds 1-3 are already reflected in `_progression`; 4-5 haven't run.
+    return [
+        {"round": 1, "format": "conventional", "completed": True},
+        {"round": 2, "format": "conventional", "completed": True},
+        {"round": 3, "format": "conventional", "completed": True},
+        {"round": 4, "format": "conventional", "completed": False},
+        {"round": 5, "format": "conventional", "completed": False},
+    ]
+
+
+def test_through_round_uses_historical_points_not_live_standings(monkeypatch):
+    monkeypatch.setattr(svc, "_points_progression", lambda year: _progression())
+    monkeypatch.setattr(svc, "get_drivers", lambda year: [])
+    monkeypatch.setattr(svc, "get_schedule", lambda year: _full_season_schedule())
+
+    out = svc.get_wdc_calculator(2024, through_round=2)
+    by_id = {d["driverId"]: d for d in out["drivers"]}
+
+    assert out["throughRound"] == 2
+    assert out["roundsInSeason"] == 5
+    assert by_id["verstappen"]["points"] == 43
+    assert by_id["norris"]["points"] == 36
+    # "Remaining" as of round 2 means every later round (3, 4, 5) even though
+    # round 3 has actually since been run — the whole point of the time
+    # machine is answering "as of round 2", not "as of today".
+    assert out["roundsRemaining"] == 3
+
+
+def test_through_round_is_clamped_to_season_length(monkeypatch):
+    monkeypatch.setattr(svc, "_points_progression", lambda year: _progression())
+    monkeypatch.setattr(svc, "get_drivers", lambda year: [])
+    monkeypatch.setattr(svc, "get_schedule", lambda year: _full_season_schedule())
+
+    out = svc.get_wdc_calculator(2024, through_round=999)
+
+    assert out["throughRound"] == 5
+    assert out["roundsRemaining"] == 0
+    # No round-5 data in the progression series, so points hold at the last
+    # round actually recorded (round 3) rather than erroring or zeroing out.
+    by_id = {d["driverId"]: d for d in out["drivers"]}
+    assert by_id["verstappen"]["points"] == 68
+
+
+def test_through_round_zero_or_negative_clamps_to_round_one(monkeypatch):
+    monkeypatch.setattr(svc, "_points_progression", lambda year: _progression())
+    monkeypatch.setattr(svc, "get_drivers", lambda year: [])
+    monkeypatch.setattr(svc, "get_schedule", lambda year: _full_season_schedule())
+
+    out = svc.get_wdc_calculator(2024, through_round=0)
+
+    assert out["throughRound"] == 1
+    by_id = {d["driverId"]: d for d in out["drivers"]}
+    assert by_id["verstappen"]["points"] == 25
+
+
+def test_through_round_positions_recomputed_from_historical_points(monkeypatch):
+    # Positions must reflect the standings as of that round, not whatever
+    # `position` field a driver happens to carry today.
+    monkeypatch.setattr(svc, "_points_progression", lambda year: _progression())
+    monkeypatch.setattr(svc, "get_drivers", lambda year: [])
+    monkeypatch.setattr(svc, "get_schedule", lambda year: _full_season_schedule())
+
+    out = svc.get_wdc_calculator(2024, through_round=1)
+    assert out["drivers"][0]["driverId"] == "verstappen"
+    assert out["drivers"][0]["position"] == 1
+    assert out["drivers"][1]["driverId"] == "norris"
+    assert out["drivers"][1]["position"] == 2
+
+
 if __name__ == "__main__":
     import sys
     import pytest

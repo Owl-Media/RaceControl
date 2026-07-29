@@ -152,8 +152,8 @@ class RaceControlRepository @Inject constructor(
     suspend fun standingsEvolution(year: Int): Result<StandingsEvolutionDto> =
         call { api.standingsEvolution(year) }
 
-    suspend fun wdcCalculator(year: Int): Result<WdcCalculatorDto> =
-        call { api.wdcCalculator(year) }
+    suspend fun wdcCalculator(year: Int, throughRound: Int? = null): Result<WdcCalculatorDto> =
+        call { api.wdcCalculator(year, throughRound) }
 
     /** Unauthenticated reachability probe, used by Settings > Test Connection. */
     suspend fun health(): Result<Int> = call { api.health().code() }
