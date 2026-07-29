@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { createProjector, nearestIndexByDistance, type RawPoint } from "@/lib/trackGeometry";
+import { createProjector, densifyTrace, nearestIndexByDistance, type RawPoint } from "@/lib/trackGeometry";
 import type { TelemetryTrace } from "@/lib/types";
 
 const VB = 260;
@@ -12,16 +12,26 @@ export function TelemetryMiniMap({ traces, scrubDistance }: { traces: TelemetryT
     [traces],
   );
 
-  const projector = useMemo(() => {
-    if (!longest) return null;
+  // Smooth the drawn outline with the same Catmull-Rom pass every other track
+  // map uses (TrackMap / MiniTrackMap / ReplayTrackMap). Without it this map
+  // renders the position samples as raw straight segments, which reads as a
+  // hard-edged polygon through corners — the position channel updates far
+  // less often than the rest of the telemetry feed, so consecutive samples
+  // can be a long way apart on track.
+  const dense = useMemo<RawPoint[]>(() => {
+    if (!longest) return [];
     const raw: RawPoint[] = longest.x.map((x, i) => ({ x, y: longest.y[i] }));
-    return createProjector(raw, VB, VB);
+    return densifyTrace(raw, 6);
   }, [longest]);
 
+  // Built from the smoothed outline, then reused for the scrub dots so both
+  // stay on one consistent transform.
+  const projector = useMemo(() => (dense.length ? createProjector(dense, VB, VB) : null), [dense]);
+
   const outline = useMemo(() => {
-    if (!longest || !projector) return [];
-    return longest.x.map((x, i) => projector.project({ x, y: longest.y[i] }));
-  }, [longest, projector]);
+    if (!projector) return [];
+    return dense.map((p) => projector.project(p));
+  }, [dense, projector]);
 
   const scrubDots = useMemo(() => {
     if (scrubDistance == null || !projector) return [];

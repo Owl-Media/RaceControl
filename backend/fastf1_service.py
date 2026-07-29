@@ -1532,6 +1532,36 @@ def get_weather(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
 # --------------------------------------------------------------------------- #
 #  Telemetry
 # --------------------------------------------------------------------------- #
+def _genuine_position_samples(
+    distances: np.ndarray, xs: np.ndarray, ys: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Drop held/duplicate position samples, keeping only genuine updates.
+
+    `get_telemetry()` merges the low-frequency (~3.7Hz) position channel onto
+    the much faster car-data channel by holding each X/Y across every row
+    until the next real position update. Interpolating X/Y directly against
+    distance therefore reproduces those plateaus — a staircase — which draws
+    as a hard-edged polygon no matter how finely it's resampled or how much
+    the frontend smooths it, because the resampled points already sit on
+    straight lines with sharp joints between them.
+
+    Keeping just the rows where the position actually changed (each at the
+    distance where that update landed) means the subsequent interpolation
+    runs between real samples, so corners curve instead of cornering.
+    """
+    if len(xs) == 0:
+        return distances, xs, ys
+    changed = np.ones(len(xs), dtype=bool)
+    changed[1:] = (np.round(xs[1:], 1) != np.round(xs[:-1], 1)) | (
+        np.round(ys[1:], 1) != np.round(ys[:-1], 1)
+    )
+    # Fewer than 2 genuine samples can't define a line; fall back to the raw
+    # series rather than returning something undrawable.
+    if changed.sum() < 2:
+        return distances, xs, ys
+    return distances[changed], xs[changed], ys[changed]
+
+
 def _lap_telemetry(session, abbr: str, which: str = "fastest") -> Optional[dict[str, Any]]:
     d_laps = session.laps.pick_drivers(abbr)
     if d_laps is None or not len(d_laps):
@@ -1570,9 +1600,17 @@ def _lap_telemetry(session, abbr: str, which: str = "fastest") -> Optional[dict[
             vals = tel[col].to_numpy(dtype=float)[order]
             return np.interp(targets, d_sorted, vals)
 
+
         distance_arr = targets
-        x_arr = _resample("X")
-        y_arr = _resample("Y")
+        # Position gets the extra dedup pass; the other channels genuinely
+        # update at the higher car-data rate, so they interpolate directly.
+        d_pos, x_pos, y_pos = _genuine_position_samples(
+            d_sorted,
+            tel["X"].to_numpy(dtype=float)[order],
+            tel["Y"].to_numpy(dtype=float)[order],
+        )
+        x_arr = np.interp(targets, d_pos, x_pos)
+        y_arr = np.interp(targets, d_pos, y_pos)
         speed_arr = _resample("Speed")
         throttle_arr = _resample("Throttle")
         brake_arr = _resample("Brake")
