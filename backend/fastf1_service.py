@@ -553,6 +553,94 @@ def get_drivers(year: int) -> list[dict[str, Any]]:
     return drivers
 
 
+# --------------------------------------------------------------------------- #
+#  WDC title-decider calculator
+# --------------------------------------------------------------------------- #
+# Points on offer for winning everything left on the calendar: race win +
+# fastest-lap bonus, plus a sprint win on sprint weekends. Mirrors FastF1's
+# own "who can still win the WDC" example (see
+# https://docs.fastf1.dev/gen_modules/examples_gallery/standings/plot_who_can_still_win_wdc.html)
+# — deliberately simplified the same way that example is: it doesn't resolve
+# a tie on countback (equal points => both shown as still in it), and it
+# assumes a flat 8-point sprint win across every season, when the actual
+# sprint points scale has varied year to year (2021's top-3-only 3/2/1 vs.
+# 2022+'s top-8 8..1). Precise historical sprint scoring isn't the point of a
+# forward-looking "can they still win" calculator, so the FastF1 convention
+# is used as-is rather than re-deriving it per season.
+_SPRINT_POINTS_TOTAL = 8 + 25 + 1  # sprint win + race win + fastest lap
+_CONVENTIONAL_POINTS_TOTAL = 25 + 1  # race win + fastest lap
+
+
+def _max_points_remaining(year: int) -> tuple[int, int, int]:
+    """Returns (rounds_remaining, max_points_remaining, sprint_rounds_remaining)."""
+    try:
+        events = get_schedule(year)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("schedule unavailable for wdc calculator %s: %s", year, exc)
+        return 0, 0, 0
+
+    remaining = [e for e in events if e.get("round", 0) > 0 and not e.get("completed")]
+    sprint_remaining = sum(1 for e in remaining if str(e.get("format") or "").startswith("sprint"))
+    conventional_remaining = len(remaining) - sprint_remaining
+    max_points = sprint_remaining * _SPRINT_POINTS_TOTAL + conventional_remaining * _CONVENTIONAL_POINTS_TOTAL
+    return len(remaining), max_points, sprint_remaining
+
+
+def get_wdc_calculator(year: int) -> dict[str, Any]:
+    drivers = sorted(get_drivers(year), key=lambda d: (d.get("position") is None, d.get("position")))
+    if not drivers:
+        return {
+            "year": year,
+            "roundsRemaining": 0,
+            "maxRemainingPoints": 0,
+            "leaderPoints": 0,
+            "decided": True,
+            "drivers": [],
+        }
+
+    rounds_remaining, max_remaining, sprint_remaining = _max_points_remaining(year)
+    leader_points = float(drivers[0].get("points") or 0)
+
+    out_drivers = []
+    can_win_count = 0
+    for d in drivers:
+        points = float(d.get("points") or 0)
+        max_points = points + max_remaining
+        can_win = max_points >= leader_points
+        if can_win:
+            can_win_count += 1
+        out_drivers.append(
+            {
+                "position": d.get("position"),
+                "driverId": d.get("driverId"),
+                "driverCode": d.get("code"),
+                "givenName": d.get("givenName"),
+                "familyName": d.get("familyName"),
+                "teamName": d.get("teamName"),
+                "teamId": d.get("teamId"),
+                "teamLogoUrl": d.get("teamLogoUrl"),
+                "teamColor": d.get("teamColor"),
+                "headshotUrl": d.get("headshotUrl"),
+                "points": points,
+                "maxPoints": max_points,
+                "pointsBehindLeader": round(leader_points - points, 1),
+                "canWin": can_win,
+            }
+        )
+
+    return {
+        "year": year,
+        "roundsRemaining": rounds_remaining,
+        "sprintRoundsRemaining": sprint_remaining,
+        "maxRemainingPoints": max_remaining,
+        "leaderPoints": leader_points,
+        # The title is mathematically settled once nobody but the (trivially
+        # "can-win") leader has a path left, or there's nothing left to race.
+        "decided": max_remaining == 0 or can_win_count <= 1,
+        "drivers": out_drivers,
+    }
+
+
 def get_driver_detail(year: int, driver_id: str) -> dict[str, Any]:
     drivers = {d["driverId"]: d for d in get_drivers(year)}
     base = drivers.get(driver_id, {"driverId": driver_id})

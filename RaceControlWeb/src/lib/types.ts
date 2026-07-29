@@ -527,3 +527,31 @@ export interface PenaltiesResponse {
   eventName: string | null;
   penalties: Penalty[];
 }
+
+export interface WdcDriver {
+  position: number | null;
+  driverId: string | null;
+  driverCode: string | null;
+  givenName: string | null;
+  familyName: string | null;
+  teamName: string | null;
+  teamId: string | null;
+  teamLogoUrl: string | null;
+  teamColor: string | null;
+  headshotUrl: string | null;
+  points: number;
+  maxPoints: number;
+  pointsBehindLeader: number;
+  canWin: boolean;
+}
+
+export interface WdcCalculator {
+  year: number;
+  roundsRemaining: number;
+  sprintRoundsRemaining: number;
+  maxRemainingPoints: number;
+  leaderPoints: number;
+  /** True once only the current leader retains a mathematical path to the title. */
+  decided: boolean;
+  drivers: WdcDriver[];
+}

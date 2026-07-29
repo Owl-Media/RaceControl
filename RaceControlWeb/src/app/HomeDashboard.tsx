@@ -18,6 +18,7 @@ import { LoadingState, ErrorState, TeamColorDot } from "@/components/StateViews"
 import { TeamLogo } from "@/components/TeamLogo";
 import { DriverAvatar } from "@/components/DriverAvatar";
 import { MiniTrackMap } from "@/components/MiniTrackMap";
+import { WdcCalculatorList } from "@/components/WdcCalculatorList";
 import { StandingsGapList, type GapRow } from "./StandingsGapList";
 import { formatDateTime, formatSessionTime } from "@/lib/format";
 import type { DriverStanding, ConstructorStanding, ScheduleEvent, SessionResults, CircuitMap, WeatherResponse } from "@/lib/types";
@@ -135,6 +136,16 @@ export function HomeDashboard({ defaultYear }: { defaultYear: number }) {
               isLoading={constructorsLoading}
               rows={teamRows}
             />
+          </div>
+
+          <div className="rounded-lg border border-border bg-surface p-5">
+            <div className="mb-1 flex items-center justify-between">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Who Can Still Win the WDC?</p>
+              <Link href={`/standings?year=${year}&mode=wdc`} className="text-xs font-medium text-muted hover:text-foreground">
+                View all →
+              </Link>
+            </div>
+            <WdcCalculatorList year={year} limit={10} moreHref={`/standings?year=${year}&mode=wdc`} />
           </div>
 
           <QuickLinks year={year} />
@@ -371,6 +382,7 @@ function QuickLinks({ year }: { year: number }) {
     { href: `/teams?year=${year}`, label: "Teams" },
     { href: `/drivers/compare?year=${year}`, label: "Head-to-Head" },
     { href: `/standings?year=${year}&mode=reliability`, label: "Reliability" },
+    { href: `/standings?year=${year}&mode=wdc`, label: "Title Decider" },
   ];
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">

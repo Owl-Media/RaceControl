@@ -316,6 +316,12 @@ def constructor_standings(year: int) -> Any:
     )
 
 
+@app.get("/api/wdc-calculator/{year}")
+def wdc_calculator(year: int) -> Any:
+    key = f"wdccalc:{year}"
+    return cached(key, lambda: _guard(lambda: svc.get_wdc_calculator(year), "wdc calculator"))
+
+
 @app.get("/api/drivers/{year}")
 def drivers(year: int) -> Any:
     return cached(f"drivers:{year}", lambda: _guard(lambda: svc.get_drivers(year), "drivers"))
