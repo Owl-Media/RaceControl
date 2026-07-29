@@ -8,7 +8,7 @@ import { DriversStandingsTable } from "./DriversStandingsTable";
 import { ConstructorsStandingsTable } from "./ConstructorsStandingsTable";
 import { ProgressChart } from "./ProgressChart";
 import { ReliabilityTables } from "./ReliabilityTables";
-import { WdcCalculatorList } from "@/components/WdcCalculatorList";
+import { WdcCalculatorTable } from "@/components/WdcCalculatorTable";
 
 const MODES = [
   { key: "drivers", label: "Drivers" },
@@ -37,11 +37,7 @@ export function StandingsClient({ defaultYear }: { defaultYear: number }) {
       {mode === "constructors" && <ConstructorsStandingsTable year={year} />}
       {mode === "progress" && <ProgressChart year={year} />}
       {mode === "reliability" && <ReliabilityTables year={year} />}
-      {mode === "wdc" && (
-        <div className="rounded-lg border border-border bg-surface p-5">
-          <WdcCalculatorList year={year} />
-        </div>
-      )}
+      {mode === "wdc" && <WdcCalculatorTable year={year} />}
     </div>
   );
 }
