@@ -1548,30 +1548,73 @@ def _lap_telemetry(session, abbr: str, which: str = "fastest") -> Optional[dict[
     tel = lap.get_telemetry()
     if tel is None or not len(tel):
         return None
-    step = max(1, len(tel) // 500)
-    tel = tel.iloc[::step]
-    # Seconds elapsed since the start of the lap, for driver-vs-driver delta.
-    try:
-        tsec = (tel["Time"] - tel["Time"].iloc[0]).dt.total_seconds()
-        time_s = [round(float(x), 3) for x in tsec]
-    except Exception:  # noqa: BLE001
-        time_s = []
+
+    # Resample at fixed steps of *distance* along the lap rather than every
+    # Nth row (uniform in time) — the merged position channel updates at
+    # ~3.7Hz while the surrounding car-data channel updates much faster, so a
+    # row-uniform downsample over-samples the held/duplicate stretches and
+    # under-samples the transitions between them. This is the exact same bug
+    # that made the circuit-map outline render as a jagged polygon through
+    # corners (see get_circuit_map / _pick_outline_lap) — the telemetry
+    # mini-map draws this trace's raw x/y too, so it inherited the same
+    # jaggedness. Fixed the same way: interpolate every channel onto evenly
+    # spaced distance samples.
+    dist_full = tel["Distance"].to_numpy(dtype=float)
+    if len(dist_full) > 1 and dist_full[-1] > dist_full[0]:
+        target_points = max(200, min(800, round((dist_full[-1] - dist_full[0]) / 8)))
+        order = np.argsort(dist_full, kind="stable")
+        d_sorted = dist_full[order]
+        targets = np.linspace(d_sorted[0], d_sorted[-1], target_points)
+
+        def _resample(col: str) -> np.ndarray:
+            vals = tel[col].to_numpy(dtype=float)[order]
+            return np.interp(targets, d_sorted, vals)
+
+        distance_arr = targets
+        x_arr = _resample("X")
+        y_arr = _resample("Y")
+        speed_arr = _resample("Speed")
+        throttle_arr = _resample("Throttle")
+        brake_arr = _resample("Brake")
+        gear_arr = _resample("nGear")
+        rpm_arr = _resample("RPM")
+        drs_arr = _resample("DRS")
+        tsec_full = (tel["Time"] - tel["Time"].iloc[0]).dt.total_seconds().to_numpy(dtype=float)[order]
+        time_s = [round(float(t), 3) for t in np.interp(targets, d_sorted, tsec_full)]
+    else:
+        step = max(1, len(tel) // 500)
+        tel = tel.iloc[::step]
+        distance_arr = tel["Distance"].to_numpy(dtype=float)
+        x_arr = tel["X"].to_numpy(dtype=float)
+        y_arr = tel["Y"].to_numpy(dtype=float)
+        speed_arr = tel["Speed"].to_numpy(dtype=float)
+        throttle_arr = tel["Throttle"].to_numpy(dtype=float)
+        brake_arr = tel["Brake"].to_numpy(dtype=float)
+        gear_arr = tel["nGear"].to_numpy(dtype=float)
+        rpm_arr = tel["RPM"].to_numpy(dtype=float)
+        drs_arr = tel["DRS"].to_numpy(dtype=float)
+        try:
+            tsec = (tel["Time"] - tel["Time"].iloc[0]).dt.total_seconds()
+            time_s = [round(float(x), 3) for x in tsec]
+        except Exception:  # noqa: BLE001
+            time_s = []
+
     return {
         "code": abbr,
         "lapNumber": int(lap["LapNumber"]) if not pd.isna(lap.get("LapNumber")) else None,
         "lapTime": _fmt_lap(lap.get("LapTime")),
         "lapTimeMs": _td_ms(lap.get("LapTime")),
         "compound": _clean(lap.get("Compound")),
-        "distance": [round(float(x), 1) for x in tel["Distance"]],
+        "distance": [round(float(d), 1) for d in distance_arr],
         "time": time_s,
-        "speed": [round(float(x), 1) for x in tel["Speed"]],
-        "throttle": [round(float(x)) for x in tel["Throttle"]],
-        "brake": [int(bool(x)) for x in tel["Brake"]],
-        "gear": [int(x) for x in tel["nGear"]],
-        "rpm": [int(x) for x in tel["RPM"]],
-        "drs": [int(x) for x in tel["DRS"]],
-        "x": [float(x) for x in tel["X"]],
-        "y": [float(y) for y in tel["Y"]],
+        "speed": [round(float(s), 1) for s in speed_arr],
+        "throttle": [round(float(t)) for t in throttle_arr],
+        "brake": [int(round(b)) for b in brake_arr],
+        "gear": [int(round(g)) for g in gear_arr],
+        "rpm": [int(round(r)) for r in rpm_arr],
+        "drs": [int(round(d)) for d in drs_arr],
+        "x": [float(v) for v in x_arr],
+        "y": [float(v) for v in y_arr],
     }
 
 
