@@ -6,12 +6,20 @@ import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { TeamLogo } from "@/components/TeamLogo";
 import type { WdcDriver } from "@/lib/types";
 
-const CAN_WIN_COLOR = "#22c55e";
+const ALIVE_COLOR = "#22c55e";
 
 /**
  * "Who can still win the WDC" — theoretical max remaining points vs. the
  * championship leader, following FastF1's own worked example:
  * https://docs.fastf1.dev/gen_modules/examples_gallery/standings/plot_who_can_still_win_wdc.html
+ *
+ * This is deliberately the most generous possible reading, not a realistic
+ * forecast: a driver is "mathematically alive" if they could still overtake
+ * the leader assuming they win every remaining session AND the leader scores
+ * nothing else all year. That's why most of the grid stays "alive" until
+ * quite late in a season — titles are rarely mathematically settled before
+ * the closing rounds, once the points gap finally exceeds what's left to
+ * fight over. It's a ceiling, not a prediction.
  *
  * Shared between the dashboard's top-10 preview card and the full standings
  * page's "Title Decider" tab — pass `limit` for the former, omit it for the
@@ -33,15 +41,20 @@ export function WdcCalculatorList({
   if (!data || data.drivers.length === 0) return <EmptyState message="No standings available yet." />;
 
   const rows = limit ? data.drivers.slice(0, limit) : data.drivers;
+  const aliveCount = data.drivers.filter((d) => d.canWin).length;
 
   return (
     <div>
-      <p className="mb-3 text-xs text-muted">
+      <p className="mb-1 text-xs text-muted">
         {data.decided
           ? data.roundsRemaining === 0
             ? "Season complete — the title is decided."
-            : "Mathematically decided — only the leader can still win."
-          : `${data.roundsRemaining} round${data.roundsRemaining === 1 ? "" : "s"} left · up to ${data.maxRemainingPoints} points still on offer`}
+            : "Mathematically settled — only the leader can still win."
+          : `${data.roundsRemaining} round${data.roundsRemaining === 1 ? "" : "s"} left · up to ${data.maxRemainingPoints} points still on offer · ${aliveCount} driver${aliveCount === 1 ? "" : "s"} mathematically alive`}
+      </p>
+      <p className="mb-3 text-xs text-muted/70">
+        &quot;Alive&quot; is the best-case ceiling — winning every remaining session while the leader
+        scores nothing else — not a realistic forecast.
       </p>
       <ul className="flex flex-col gap-1">
         {rows.map((d) => (
@@ -72,11 +85,16 @@ function WdcRow({ driver: d, year }: { driver: WdcDriver; year: number }) {
         className="shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold"
         style={
           d.canWin
-            ? { backgroundColor: `${CAN_WIN_COLOR}26`, color: CAN_WIN_COLOR }
+            ? { backgroundColor: `${ALIVE_COLOR}26`, color: ALIVE_COLOR }
             : { backgroundColor: "var(--surface-raised)", color: "var(--muted)" }
         }
+        title={
+          d.canWin
+            ? "Could still overtake the leader in the best possible case"
+            : "No longer mathematically possible, even in the best case"
+        }
       >
-        {d.canWin ? "Can win" : "Out"}
+        {d.canWin ? "Alive" : "Eliminated"}
       </span>
     </>
   );
