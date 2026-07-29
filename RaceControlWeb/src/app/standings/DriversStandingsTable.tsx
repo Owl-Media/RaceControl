@@ -27,7 +27,7 @@ export function DriversStandingsTable({ year }: { year: number }) {
         <tbody className="divide-y divide-border">
           {data.map((d) => (
             <tr key={d.driverId} className="hover:bg-surface/60">
-              <td className="tabular px-3 py-2 text-muted">{d.position ?? "—"}</td>
+              <td className="tabular px-3 py-2 text-muted">{d.position ?? "-"}</td>
               <td className="px-3 py-2 font-medium">
                 <Link href={`/drivers/${year}/${d.driverId}`} className="hover:text-racing-red">
                   {d.givenName} {d.familyName}
@@ -37,7 +37,7 @@ export function DriversStandingsTable({ year }: { year: number }) {
               <td className="px-3 py-2 text-muted">
                 <span className="inline-flex items-center gap-2">
                   <TeamLogo src={d.teamLogoUrl} name={d.teamName} />
-                  {d.teamName ?? "—"}
+                  {d.teamName ?? "-"}
                 </span>
               </td>
               <td className="tabular px-3 py-2 text-right">{d.wins ?? 0}</td>

@@ -48,8 +48,8 @@ import kotlin.math.sin
  * space plus a rotation, so the map is rotated to the orientation the track is
  * usually shown in, then normalised into the available box.
  *
- * **That order matters.** Fitting first and rotating afterwards — the obvious
- * way to write this — makes the track spill outside its frame, because rotating
+ * **That order matters.** Fitting first and rotating afterwards (the obvious
+ * way to write this) makes the track spill outside its frame, because rotating
  * a shape that already fills the box pushes its extremities past the edges. So
  * the rotation is applied to the coordinates up front and the bounds are
  * measured from the *rotated* points.

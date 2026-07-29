@@ -64,7 +64,7 @@ struct DriverAvatar: View {
 // MARK: - Team logo
 
 /// Team logo with a graceful fallback when the hardcoded F1.com CDN URL
-/// (see backend `_team_logo_url`) is missing or fails to load — no logo
+/// (see backend `_team_logo_url`) is missing or fails to load: no logo
 /// field exists in FastF1/Ergast, so this is a manually maintained mapping
 /// that renders nothing rather than a broken-image glyph if it's stale.
 /// The source marks are white PNGs, so they sit on a dark chip to stay

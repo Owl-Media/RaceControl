@@ -16,7 +16,7 @@ struct FlagsView: View {
         } content: { data in
             if data.periods.isEmpty {
                 EmptyStateView(icon: "flag.checkered", title: "No Flags",
-                               message: "Clean race — no yellow, red or safety-car periods were recorded.")
+                               message: "Clean race: no yellow, red or safety-car periods were recorded.")
             } else {
                 content(data)
             }
@@ -139,7 +139,7 @@ private struct FlagEventRow: View {
                             .foregroundStyle(Theme.Palette.textSecondary)
                     }
                 }
-                Text(event.message ?? event.flag ?? event.category ?? "—")
+                Text(event.message ?? event.flag ?? event.category ?? "–")
                     .font(.footnote)
                     .foregroundStyle(Theme.Palette.textSecondary)
             }

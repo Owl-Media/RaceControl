@@ -40,12 +40,12 @@ export default async function DriverDetailPage({
           <p className="flex items-center gap-1.5 text-sm text-muted">
             <TeamColorDot color={driver.teamColor} />
             <TeamLogo src={driver.teamLogoUrl} name={driver.teamName} sizeClassName="h-4 w-4" />
-            {driver.teamName ?? "—"} · #{driver.number ?? "—"} · {driver.nationality ?? "—"}
+            {driver.teamName ?? "-"} · #{driver.number ?? "-"} · {driver.nationality ?? "-"}
           </p>
         </div>
         <div className="text-right">
           <p className="tabular text-2xl font-bold">{driver.points ?? 0}</p>
-          <p className="text-xs uppercase tracking-wide text-muted">pts · P{driver.position ?? "—"}</p>
+          <p className="text-xs uppercase tracking-wide text-muted">pts · P{driver.position ?? "-"}</p>
         </div>
         <DriverFavoriteButton driverId={driver.driverId} name={`${driver.givenName} ${driver.familyName}`} />
       </div>
@@ -72,9 +72,9 @@ export default async function DriverDetailPage({
                     {r.raceName}
                   </Link>
                 </td>
-                <td className="tabular px-3 py-2 text-right">{r.grid ?? "—"}</td>
-                <td className="tabular px-3 py-2 text-right font-semibold">{r.position ?? "—"}</td>
-                <td className="px-3 py-2 text-muted">{r.status ?? "—"}</td>
+                <td className="tabular px-3 py-2 text-right">{r.grid ?? "-"}</td>
+                <td className="tabular px-3 py-2 text-right font-semibold">{r.position ?? "-"}</td>
+                <td className="px-3 py-2 text-muted">{r.status ?? "-"}</td>
                 <td className="tabular px-3 py-2 text-right">{r.points ?? 0}</td>
               </tr>
             ))}

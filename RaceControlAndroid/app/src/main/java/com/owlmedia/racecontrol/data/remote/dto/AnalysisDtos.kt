@@ -178,7 +178,7 @@ data class FlagsResponseDto(
     val periods: List<FlagPeriodDto> = emptyList(),
 )
 
-/** One raw race-control message — the full timeline, for the detail view. */
+/** One raw race-control message: the full timeline, for the detail view. */
 @Serializable
 data class FlagEventDto(
     val time: String? = null,
@@ -232,7 +232,7 @@ fun List<FlagPeriodDto>.periodContaining(lap: Int?): FlagPeriodDto? =
 /* ---------------------------------------------------------- race control log */
 
 /**
- * The complete, unfiltered race-control message log — [FlagsResponseDto] only
+ * The complete, unfiltered race-control message log: [FlagsResponseDto] only
  * carries FLAG/SAFETY-CAR category messages, this carries every category
  * (DRS, car events, stewards' investigations/penalties, etc.) so the two
  * screens are complementary rather than duplicating each other.
@@ -280,7 +280,7 @@ enum class RaceControlCategory {
 /* ------------------------------------------------------------------ penalties */
 
 /**
- * Stewards' penalties and reprimands for a session — a focused subset of what
+ * Stewards' penalties and reprimands for a session: a focused subset of what
  * [RaceControlResponseDto] carries, with driver/team identity already resolved
  * server-side so the row can render without a lookup.
  */
@@ -458,6 +458,39 @@ data class EvolutionPointDto(
     val round: Int = 0,
     val points: Double = 0.0,
 )
+
+/* ---------------------------------------------------------- wdc calculator */
+
+@Serializable
+data class WdcCalculatorDto(
+    val year: Int = 0,
+    val roundsRemaining: Int = 0,
+    val sprintRoundsRemaining: Int = 0,
+    val maxRemainingPoints: Int = 0,
+    val leaderPoints: Double = 0.0,
+    val decided: Boolean = false,
+    val drivers: List<WdcDriverDto> = emptyList(),
+)
+
+@Serializable
+data class WdcDriverDto(
+    val position: Int? = null,
+    val driverId: String? = null,
+    val driverCode: String? = null,
+    val givenName: String? = null,
+    val familyName: String? = null,
+    val teamName: String? = null,
+    val teamId: String? = null,
+    val teamLogoUrl: String? = null,
+    val teamColor: String? = null,
+    val headshotUrl: String? = null,
+    val points: Double = 0.0,
+    val maxPoints: Double = 0.0,
+    val pointsBehindLeader: Double = 0.0,
+    val canWin: Boolean = false,
+) {
+    val fullName: String get() = "${givenName.orEmpty()} ${familyName.orEmpty()}".trim()
+}
 
 /* ------------------------------------------------------------- head-to-head */
 

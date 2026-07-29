@@ -10,7 +10,7 @@ import androidx.compose.ui.platform.LocalView
 /**
  * Holds the screen awake while [enabled].
  *
- * Used by the race replay, which the user watches rather than touches — the
+ * Used by the race replay, which the user watches rather than touches; the
  * display timing out halfway through is precisely the wrong behaviour. The flag
  * is always cleared on dispose so it can never leak past the screen.
  */

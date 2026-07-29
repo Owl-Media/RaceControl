@@ -8,11 +8,11 @@ import { LoadingState } from "@/components/StateViews";
 export const dynamic = "force-dynamic";
 
 // This page intentionally does NOT read `searchParams`. `defaultYear` below
-// is only a fallback for when there's no `?year=` in the URL at all —
+// is only a fallback for when there's no `?year=` in the URL at all.
 // HomeDashboard reads the actual selected year reactively on the client via
 // useSearchParams. If this component read `searchParams` (or `year` were
-// threaded through it), Next.js would treat every `?year=` change — including
-// the season dropdown, a client-side navigation — as needing a full server
+// threaded through it), Next.js would treat every `?year=` change (including
+// the season dropdown, a client-side navigation) as needing a full server
 // re-render: the dashboard would visibly freeze on the old year while a new
 // RSC payload round-trips, then hard-swap to the new one. Staying agnostic to
 // `searchParams` here lets Next.js skip that round-trip entirely for

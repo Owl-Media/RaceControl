@@ -172,7 +172,7 @@ final class LapTimesViewModel: ObservableObject {
         } catch {
             state = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)
         }
-        // Flag overlay is supplementary — failures here shouldn't block the chart.
+        // Flag overlay is supplementary: failures here shouldn't block the chart.
         if let flags = try? await APIClient.shared.flags(year: year, round: round) {
             flagPeriods = flags.periods
         }
@@ -207,7 +207,7 @@ private extension Array where Element == Double {
 
 enum LapFormat {
     static func secondsToLap(_ s: Double) -> String {
-        guard s > 0 else { return "—" }
+        guard s > 0 else { return "–" }
         let minutes = Int(s) / 60
         let seconds = s - Double(minutes * 60)
         return minutes > 0 ? String(format: "%d:%06.3f", minutes, seconds)
@@ -216,7 +216,7 @@ enum LapFormat {
 
     /// Parse a "m:ss.mmm" or "ss.mmm" lap string into seconds.
     static func lapToSeconds(_ text: String?) -> Double? {
-        guard let text, !text.isEmpty, text != "—" else { return nil }
+        guard let text, !text.isEmpty, text != "–" else { return nil }
         let parts = text.split(separator: ":")
         if parts.count == 2, let m = Double(parts[0]), let s = Double(parts[1]) {
             return m * 60 + s

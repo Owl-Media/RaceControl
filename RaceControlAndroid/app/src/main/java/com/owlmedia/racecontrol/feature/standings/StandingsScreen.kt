@@ -55,6 +55,7 @@ import com.owlmedia.racecontrol.feature.AppState
 fun StandingsScreen(
     appState: AppState,
     onSelectYear: (Int) -> Unit,
+    onOpenDriver: (String) -> Unit = {},
     viewModel: StandingsViewModel = hiltViewModel(),
 ) {
     val mode by viewModel.mode.collectAsStateWithLifecycle()
@@ -76,7 +77,7 @@ fun StandingsScreen(
         },
     ) { modifier ->
         Column(modifier) {
-            // Four peer views. iOS uses a segmented control; at four options
+            // Five peer views. iOS uses a segmented control; at this many options
             // with words like "Reliability" that would truncate badly on a
             // compact screen, so this is a Material tab row.
             val labels = listOf(
@@ -84,6 +85,7 @@ fun StandingsScreen(
                 stringResource(R.string.standings_teams),
                 stringResource(R.string.standings_progress),
                 stringResource(R.string.standings_reliability),
+                stringResource(R.string.standings_wdc),
             )
             PrimaryTabRow(
                 selectedTabIndex = mode.ordinal,
@@ -112,6 +114,7 @@ fun StandingsScreen(
                 StandingsMode.TEAMS -> ConstructorsStandings(viewModel, appState)
                 StandingsMode.PROGRESS -> StandingsEvolutionView(viewModel, appState)
                 StandingsMode.RELIABILITY -> ReliabilityView(viewModel, appState)
+                StandingsMode.WDC -> WdcCalculatorView(viewModel, appState, onOpenDriver)
             }
         }
     }
@@ -200,7 +203,7 @@ private fun fractionOf(points: Double?, leader: Double): Float {
 /**
  * One championship row: rank, name, a gap-to-leader bar and the points.
  *
- * The bar is decorative — the numeric points are always shown next to it — so
+ * The bar is decorative (the numeric points are always shown next to it), so
  * it is hidden from TalkBack rather than announced as an unlabelled progress
  * indicator.
  */

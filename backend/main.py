@@ -43,7 +43,7 @@ app = FastAPI(
 )
 
 # The iOS app is a native client (no browser origin), so a permissive CORS
-# policy is harmless here — access is gated by API_TOKEN instead.
+# policy is harmless here; access is gated by API_TOKEN instead.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -56,22 +56,22 @@ app.add_middleware(
 # --------------------------------------------------------------------------- #
 # Three independent mechanisms, any one of which authorises an /api request:
 #
-#   1. App Attest (APP_ATTEST_ENABLED) — the published iOS app proves it is a
+#   1. App Attest (APP_ATTEST_ENABLED): the published iOS app proves it is a
 #      genuine copy of our app on a real Apple device and receives a short-lived
 #      JWT. This is the mechanism for App Store distribution: no user key.
 #
-#   2. Play Integrity (PLAY_INTEGRITY_ENABLED) — the Android counterpart: the
+#   2. Play Integrity (PLAY_INTEGRITY_ENABLED), the Android counterpart: the
 #      published Android app proves (via Google Play services) that it is a
 #      genuine, unmodified copy of our app on a genuine device, installed
 #      through Play, and receives a short-lived JWT the same shape as #1's.
 #      This is the mechanism for Play Store distribution: no user key, and no
 #      secret embedded in the APK for someone to extract with a decompiler.
 #
-#   3. API_TOKEN — a shared secret, useful as an admin/break-glass credential
+#   3. API_TOKEN: a shared secret, useful as an admin/break-glass credential
 #      and for `curl` during development.
 #
 # If NONE are configured the API is fully open, so `./run.sh` works unchanged.
-# These are additive, not exclusive — enabling Play Integrity for the Android
+# These are additive, not exclusive: enabling Play Integrity for the Android
 # rollout does not require or affect the App Attest configuration, and vice
 # versa; a request is authorised if it satisfies *any* enabled mechanism.
 import attest  # noqa: E402
@@ -108,7 +108,7 @@ if play_integrity_verifier:
 if API_TOKEN:
     log.info("Shared-secret API_TOKEN auth is ENABLED")
 if not attest_verifier and not play_integrity_verifier and not API_TOKEN:
-    log.warning("No auth configured — API is open (fine for local dev)")
+    log.warning("No auth configured: API is open (fine for local dev)")
 
 
 def _is_authorized(request: Request) -> bool:
@@ -116,7 +116,7 @@ def _is_authorized(request: Request) -> bool:
     # Admin / dev shared secret.
     if API_TOKEN and secrets.compare_digest(header, f"Bearer {API_TOKEN}"):
         return True
-    # App-issued JWT (from App Attest or Play Integrity — same JWT shape,
+    # App-issued JWT (from App Attest or Play Integrity, same JWT shape,
     # checked against whichever mechanisms are enabled).
     if header.startswith("Bearer "):
         token = header[len("Bearer "):]

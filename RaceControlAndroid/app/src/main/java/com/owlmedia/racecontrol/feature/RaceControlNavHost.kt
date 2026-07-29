@@ -35,14 +35,14 @@ import com.owlmedia.racecontrol.feature.teams.TeamsScreen
 /**
  * The whole navigation graph.
  *
- * Each tab is a nested graph, which gives every tab its own back stack — the
+ * Each tab is a nested graph, which gives every tab its own back stack: the
  * Android equivalent of iOS wrapping each tab in its own NavigationStack.
  *
  * Race detail, the eight analysis screens and Settings are reachable from more
  * than one tab (a race opens from Races *and* from Circuits). Routes must be
  * unique within a NavHost, so those are declared **once** at the root of the
  * graph rather than duplicated into each tab. The bottom bar keeps its
- * highlight across them by remembering the tab the user came from — see
+ * highlight across them by remembering the tab the user came from: see
  * RootScreen.
  */
 @Composable
@@ -117,7 +117,13 @@ fun RaceControlNavHost(
 
         navigation<Routes.StandingsGraph>(startDestination = Routes.Standings) {
             composable<Routes.Standings> {
-                StandingsScreen(appState = appState, onSelectYear = onSelectYear)
+                StandingsScreen(
+                    appState = appState,
+                    onSelectYear = onSelectYear,
+                    onOpenDriver = { driverId ->
+                        navController.navigate(Routes.DriverDetail(appState.selectedYear, driverId))
+                    },
+                )
             }
         }
 

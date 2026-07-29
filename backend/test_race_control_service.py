@@ -76,11 +76,11 @@ def test_includes_non_flag_categories(monkeypatch):
 
 def test_time_is_serialised_as_unambiguous_utc(monkeypatch):
     # FastF1's own `to_datetime` helper parses race-control timestamps into
-    # *naive* datetimes (no tzinfo) that represent UTC wall-clock time — this
+    # *naive* datetimes (no tzinfo) that represent UTC wall-clock time; this
     # is what `session.race_control_messages["Time"]` actually looks like in
     # production, not a tz-aware Timestamp. A naive value serialised with a
     # plain `.isoformat()` produces a string with no 'Z'/offset, which
-    # browsers then parse as *local* time — silently shifting every
+    # browsers then parse as *local* time, silently shifting every
     # timestamp by the viewer's UTC offset. The output must carry an
     # explicit UTC marker so that can't happen.
     naive = pd.Timestamp("2026-07-26T12:20:00")  # no tzinfo, mirrors FastF1's real output

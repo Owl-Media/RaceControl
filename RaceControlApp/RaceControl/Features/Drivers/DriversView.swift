@@ -98,51 +98,62 @@ private struct DriverRow: View {
     private var accent: Color { .team(driver.teamColor) }
 
     var body: some View {
-        HStack(spacing: Theme.Space.md) {
+        // Two lines instead of one: the old single-row layout packed position,
+        // accent bar, avatar, name, points, flag and the favourite star into
+        // one HStack, which left the name competing on equal footing with
+        // every other flexible element for whatever width was left after the
+        // fixed-width ones, on a phone-width screen that was often well
+        // under 100pt, so long driver names truncated to a handful of
+        // characters. Splitting name+favourite onto their own top line (with
+        // number/team/points/flag on a second line below) gives the name
+        // nearly the whole row width to itself.
+        HStack(alignment: .top, spacing: Theme.Space.md) {
             if let pos = driver.positionInt {
                 Text("\(pos)")
                     .font(.system(.headline, design: .rounded).weight(.bold))
                     .monospacedDigit()
                     .foregroundStyle(Theme.Palette.textSecondary)
                     .frame(width: 26)
+                    .padding(.top, 2)
             }
-            TeamAccentBar(color: accent).frame(height: 44)
+            TeamAccentBar(color: accent).frame(height: 56)
             DriverAvatar(url: driver.headshotUrl, initials: driver.code ?? "?", accent: accent, size: 48)
 
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: Theme.Space.sm) {
                     Text(driver.fullName)
                         .font(.headline)
                         .foregroundStyle(Theme.Palette.textPrimary)
                         .lineLimit(1)
+                        .layoutPriority(1)
+                    Spacer(minLength: 4)
+                    FavoriteStar(isOn: isFavorite, action: onToggleFavorite, size: 18)
+                }
+                HStack(spacing: 6) {
                     if let num = driver.numberString {
                         Text("#\(num)")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(accent)
                     }
-                }
-                HStack(spacing: 4) {
                     TeamLogoView(url: driver.teamLogoUrl, size: 16)
                     Text(driver.teamName ?? "")
                         .font(.subheadline)
                         .foregroundStyle(Theme.Palette.textSecondary)
                         .lineLimit(1)
+                    Spacer(minLength: 4)
+                    Text(driver.pointsString)
+                        .font(.system(.subheadline, design: .rounded).weight(.bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Theme.Palette.textPrimary)
+                    Text("PTS").font(.caption2.weight(.semibold))
+                        .foregroundStyle(Theme.Palette.textTertiary)
+                    Text(CountryFlag.flag(country: driver.nationality, code: driver.countryCode))
+                        .font(.subheadline)
                 }
             }
-            Spacer(minLength: 4)
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(driver.pointsString)
-                    .font(.system(.headline, design: .rounded).weight(.bold))
-                    .monospacedDigit()
-                    .foregroundStyle(Theme.Palette.textPrimary)
-                Text("PTS").font(.caption2.weight(.semibold))
-                    .foregroundStyle(Theme.Palette.textTertiary)
-            }
-            Text(CountryFlag.flag(country: driver.nationality, code: driver.countryCode))
-                .font(.title3)
-            FavoriteStar(isOn: isFavorite, action: onToggleFavorite, size: 18)
         }
         .padding(.vertical, Theme.Space.sm)
+        .padding(.trailing, Theme.Space.sm)
         .padding(.leading, Theme.Space.sm)
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.md))
         .overlay(RoundedRectangle(cornerRadius: Theme.Radius.md).stroke(

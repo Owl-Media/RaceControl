@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Session weather conditions — temperatures, humidity, wind and rainfall.
+/// Session weather conditions: temperatures, humidity, wind and rainfall.
 struct WeatherView: View {
     let year: Int
     let round: Int
@@ -29,7 +29,7 @@ struct WeatherView: View {
         ScrollView {
             VStack(spacing: Theme.Space.md) {
                 if wx.rainfall == true {
-                    banner(icon: "cloud.rain.fill", text: "Wet session — rainfall recorded",
+                    banner(icon: "cloud.rain.fill", text: "Wet session: rainfall recorded",
                            color: Theme.Palette.info)
                 } else {
                     banner(icon: "sun.max.fill", text: "Dry session", color: Theme.Palette.warning)
@@ -65,7 +65,7 @@ struct WeatherView: View {
         Card {
             VStack(alignment: .leading, spacing: 6) {
                 Image(systemName: icon).font(.title3).foregroundStyle(Theme.Palette.racingRed)
-                Text(value.map { "\(fmt($0))\(unit)" } ?? "—")
+                Text(value.map { "\(fmt($0))\(unit)" } ?? "–")
                     .font(.system(.title2, design: .rounded).weight(.bold))
                     .foregroundStyle(Theme.Palette.textPrimary)
                 Text(label).font(.caption).foregroundStyle(Theme.Palette.textSecondary)

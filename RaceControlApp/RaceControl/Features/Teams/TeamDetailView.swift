@@ -94,7 +94,7 @@ struct TeamDetailView: View {
     }
 }
 
-/// Who's actually carried the team, at a glance — a driver list alone
+/// Who's actually carried the team, at a glance: a driver list alone
 /// doesn't show whether points are split evenly or one driver is doing
 /// most of the scoring.
 private struct PointsBreakdownCard: View {
@@ -126,7 +126,7 @@ private struct PointsBreakdownCard: View {
                     HStack {
                         ForEach(drivers) { d in
                             let pct = total > 0 ? (d.pointsValue / total) * 100 : 0
-                            Text("\(d.code ?? d.name ?? "—"): \(d.pointsLabel) (\(Int(pct))%)")
+                            Text("\(d.code ?? d.name ?? "–"): \(d.pointsLabel) (\(Int(pct))%)")
                                 .font(.caption)
                                 .foregroundStyle(Theme.Palette.textSecondary)
                         }

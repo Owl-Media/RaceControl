@@ -50,7 +50,7 @@ export function TeamsClient({ defaultYear }: { defaultYear: number }) {
                   <p className="truncate font-medium">{t.teamName}</p>
                   <p className="truncate text-sm text-muted">{t.drivers.map((d) => d.code ?? d.name).join(" · ")}</p>
                 </div>
-                <span className="tabular shrink-0 text-sm text-muted">P{t.position ?? "—"}</span>
+                <span className="tabular shrink-0 text-sm text-muted">P{t.position ?? "-"}</span>
                 <span className="tabular shrink-0 text-sm font-semibold">{t.points ?? 0} pts</span>
                 <StarButton
                   active={isFavoriteTeam(t.teamId)}

@@ -70,7 +70,7 @@ class DriversViewModel @Inject constructor(
     }
 }
 
-/** Name, three-letter code or car number — the three things people search by. */
+/** Name, three-letter code or car number: the three things people search by. */
 private fun DriverDto.matches(query: String): Boolean {
     if (query.isBlank()) return true
     val q = query.trim().lowercase()

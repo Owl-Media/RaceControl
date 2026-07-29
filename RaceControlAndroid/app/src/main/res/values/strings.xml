@@ -17,7 +17,7 @@
     <string name="try_again">Try Again</string>
     <string name="retry">Retry</string>
     <string name="slow_first_load">First load for this race can take up to a minute while the server downloads and caches the session.</string>
-    <string name="showing_cached">Showing cached data — you appear to be offline.</string>
+    <string name="showing_cached">Showing cached data; you appear to be offline.</string>
 
     <!-- Errors (wording matched to the iOS APIError descriptions) -->
     <string name="error_invalid_response">The server returned an unexpected response.</string>
@@ -119,6 +119,7 @@
     <string name="standings_teams">Teams</string>
     <string name="standings_progress">Progress</string>
     <string name="standings_reliability">Reliability</string>
+    <string name="standings_wdc">Title</string>
     <string name="no_standings_title">No Standings</string>
     <string name="no_standings_message">No standings for %1$s yet.</string>
     <string name="finish_rate">Finish rate</string>
@@ -162,7 +163,7 @@
     <string name="telemetry_max_drivers">Up to three drivers can be compared at once.</string>
     <string name="telemetry_lap_fastest">Fastest</string>
     <string name="telemetry_lap_picker_label">%1$s: %2$s</string>
-    <string name="telemetry_lap_option">Lap %1$d — %2$s</string>
+    <string name="telemetry_lap_option">Lap %1$d: %2$s</string>
     <string name="telemetry_lap_picker_description">Choose lap for %1$s</string>
 
     <!-- Lap times -->
@@ -185,7 +186,7 @@
 
     <!-- Flags -->
     <string name="no_flags_title">No Flags</string>
-    <string name="no_flags_message">Clean race — no yellow, red or safety-car periods were recorded.</string>
+    <string name="no_flags_message">Clean race: no yellow, red or safety-car periods were recorded.</string>
     <plurals name="flag_periods_count">
         <item quantity="one">%1$d flag period</item>
         <item quantity="other">%1$d flag periods</item>
@@ -253,7 +254,7 @@
     <string name="api_token_show">Show token</string>
     <string name="api_token_hide">Hide token</string>
     <string name="api_token_footer">Matches the server\'s API_TOKEN. Leave empty if your backend runs without authentication. Stored encrypted on this device, never backed up.</string>
-    <string name="security_footer">This build authenticates with Google Play Integrity, the Android counterpart of the iOS app\'s Apple App Attest — no key is stored in the app. The token above is an optional admin/dev override that takes priority when set; leave it empty for a local backend running without auth, or to rely on Play Integrity once this build is signed and distributed through Play.</string>
+    <string name="security_footer">This build authenticates with Google Play Integrity, the Android counterpart of the iOS app\'s Apple App Attest; no key is stored in the app. The token above is an optional admin/dev override that takes priority when set; leave it empty for a local backend running without auth, or to rely on Play Integrity once this build is signed and distributed through Play.</string>
     <string name="reset_to_default">Reset to Default</string>
     <string name="backend_footer">Run the FastF1 backend with ./run.sh, then enter its address here. The emulator reaches your machine at 10.0.2.2; a physical device needs your computer\'s LAN address or a deployed HTTPS URL.</string>
     <string name="notifications">Notifications</string>

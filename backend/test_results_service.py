@@ -62,7 +62,7 @@ def test_gap_is_none_for_pole_and_positive_for_the_rest(monkeypatch):
 
 
 def test_driver_without_a_time_in_a_segment_has_no_gap(monkeypatch):
-    """A driver knocked out in Q1 has no Q3 time at all — gap must be None,
+    """A driver knocked out in Q1 has no Q3 time at all: gap must be None,
     not some nonsensical value computed against Q3's field-best."""
     results = _results([
         {"Position": 1, "ClassifiedPosition": "1", "DriverNumber": "1", "Abbreviation": "VER",
@@ -90,7 +90,7 @@ def test_driver_without_a_time_in_a_segment_has_no_gap(monkeypatch):
 
 
 def test_missing_position_falls_back_to_row_order(monkeypatch):
-    """Qualifying results commonly don't carry a "Position" value at all —
+    """Qualifying results commonly don't carry a "Position" value at all;
     the Pos column shouldn't just go blank when that happens; the row's own
     place in the (already classification-ordered) results is used instead."""
     results = _results([
@@ -129,7 +129,7 @@ def test_real_position_is_not_overridden(monkeypatch):
 def test_blank_classified_position_is_nulled(monkeypatch):
     """FastF1 leaves `ClassifiedPosition` as an empty *string* for non-race
     sessions, not None. Clients prefer that field and fall back with `??`,
-    which only triggers on null — so a blank string sailed through and left
+    which only triggers on null, so a blank string sailed through and left
     the qualifying "Pos" column empty even though `position` was populated.
     It must be normalised to null so the fallback actually fires.
     """

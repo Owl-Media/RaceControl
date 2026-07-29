@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Head-to-head: pick two drivers and compare their season — points, wins,
+/// Head-to-head: pick two drivers and compare their season, points, wins,
 /// podiums, poles, best finish, DNFs, and direct qualifying/race records.
 struct HeadToHeadView: View {
     let year: Int
@@ -188,7 +188,7 @@ struct HeadToHeadView: View {
         Circle().fill(color).frame(width: 6, height: 6)
     }
 
-    private func best(_ pos: Int?) -> String { pos.map { "P\($0)" } ?? "—" }
+    private func best(_ pos: Int?) -> String { pos.map { "P\($0)" } ?? "–" }
 }
 
 @MainActor

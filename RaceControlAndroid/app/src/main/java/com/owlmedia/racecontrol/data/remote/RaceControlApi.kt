@@ -22,6 +22,7 @@ import com.owlmedia.racecontrol.data.remote.dto.StrategyResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.TeamDto
 import com.owlmedia.racecontrol.data.remote.dto.TelemetryCompareResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.TelemetryResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.WdcCalculatorDto
 import com.owlmedia.racecontrol.data.remote.dto.WeatherResponseDto
 import retrofit2.Response
 import retrofit2.http.GET
@@ -31,7 +32,7 @@ import retrofit2.http.Query
 /**
  * The RaceControl FastF1 backend.
  *
- * Endpoint-for-endpoint parity with the iOS `APIClient` extension — all 22
+ * Endpoint-for-endpoint parity with the iOS `APIClient` extension: all 22
  * routes, same paths, same query parameters.
  *
  * The base URL is user-configurable at runtime, so it is rewritten per request
@@ -174,4 +175,7 @@ interface RaceControlApi {
 
     @GET("api/standings-evolution/{year}")
     suspend fun standingsEvolution(@Path("year") year: Int): StandingsEvolutionDto
+
+    @GET("api/wdc-calculator/{year}")
+    suspend fun wdcCalculator(@Path("year") year: Int): WdcCalculatorDto
 }

@@ -4,7 +4,7 @@ import { useState } from "react";
 
 /**
  * Team logo with a graceful fallback when the hardcoded F1.com CDN URL is
- * missing or broken (see `_team_logo_url` in the backend — neither FastF1
+ * missing or broken (see `_team_logo_url` in the backend; neither FastF1
  * nor Ergast expose team logos, so these are a manually maintained mapping
  * that can drift on a rename or new entrant). The source images are white
  * marks meant for dark backgrounds, so they sit on a small dark chip here

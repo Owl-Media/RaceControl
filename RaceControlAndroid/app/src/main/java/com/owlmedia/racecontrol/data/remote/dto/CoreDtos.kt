@@ -144,7 +144,7 @@ data class ResultEntryDto(
     fun raceTimeLabel(winnerTimeMs: Int?): String {
         val s = status
         if (s != null && s != "Finished" && !s.startsWith("+") && timeMs == null) return s
-        val ms = timeMs ?: return status ?: "—"
+        val ms = timeMs ?: return status ?: "–"
         if (position == 1.0) return LapTimeFormat.format(ms, leading = true)
         if (winnerTimeMs != null) return "+" + LapTimeFormat.format(ms - winnerTimeMs, leading = false)
         return LapTimeFormat.format(ms, leading = true)

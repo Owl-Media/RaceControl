@@ -9,7 +9,7 @@ import type { WdcDriver } from "@/lib/types";
 const CAN_WIN_COLOR = "#22c55e";
 
 /**
- * "Who can still win the WDC" — theoretical max remaining points vs. the
+ * "Who can still win the WDC": theoretical max remaining points vs. the
  * championship leader, following FastF1's own worked example:
  * https://docs.fastf1.dev/gen_modules/examples_gallery/standings/plot_who_can_still_win_wdc.html
  *
@@ -17,7 +17,7 @@ const CAN_WIN_COLOR = "#22c55e";
  * forecast: a driver "can still win" if they could overtake the leader
  * assuming they win every remaining session AND the leader scores nothing
  * else all year. That's why most of the grid stays in contention until quite
- * late in a season — titles are rarely mathematically settled before the
+ * late in a season: titles are rarely mathematically settled before the
  * closing rounds, once the points gap finally exceeds what's left to fight
  * over. It's a ceiling, not a prediction.
  *
@@ -48,13 +48,13 @@ export function WdcCalculatorList({
       <p className="mb-1 text-xs text-muted">
         {data.decided
           ? data.roundsRemaining === 0
-            ? "Season complete — the title is decided."
-            : "Mathematically settled — only the leader can still win."
+            ? "Season complete. The title is decided."
+            : "Mathematically settled. Only the leader can still win."
           : `${data.roundsRemaining} round${data.roundsRemaining === 1 ? "" : "s"} left · up to ${data.maxRemainingPoints} points still on offer · ${canWinCount} driver${canWinCount === 1 ? "" : "s"} can still win`}
       </p>
       <p className="mb-3 text-xs text-muted/70">
-        &quot;Can win&quot; is the best-case ceiling — winning every remaining session while the leader
-        scores nothing else — not a realistic forecast.
+        &quot;Can win&quot; is the best-case ceiling (winning every remaining session while the leader
+        scores nothing else), not a realistic forecast.
       </p>
       <ul className="flex flex-col gap-1">
         {rows.map((d) => (
@@ -73,7 +73,7 @@ export function WdcCalculatorList({
 function WdcRow({ driver: d, year }: { driver: WdcDriver; year: number }) {
   const content = (
     <>
-      <span className="tabular w-5 shrink-0 text-sm font-bold text-muted">{d.position ?? "—"}</span>
+      <span className="tabular w-5 shrink-0 text-sm font-bold text-muted">{d.position ?? "-"}</span>
       <TeamLogo src={d.teamLogoUrl} name={d.teamName} sizeClassName="h-5 w-5" />
       <span className="min-w-0 flex-1 truncate text-sm font-medium sm:flex-none sm:w-36">
         {d.givenName} {d.familyName}
@@ -101,7 +101,7 @@ function WdcRow({ driver: d, year }: { driver: WdcDriver; year: number }) {
 }
 
 /**
- * A custom hover tooltip rather than the native `title` attribute — `title`
+ * A custom hover tooltip rather than the native `title` attribute: `title`
  * on an element nested inside a full-row `<Link>` is unreliable across
  * browsers (inconsistent delay, sometimes suppressed in favour of the link's
  * own hover affordance), so this renders its own, which shows immediately

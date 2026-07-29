@@ -52,7 +52,7 @@ def test_finisher_is_not_marked_retired(monkeypatch):
 
 def test_lapped_but_classified_finisher_is_not_retired(monkeypatch):
     """A driver a lap down has a non-"Finished" Status string but IS a
-    finisher — same nuance `get_retirements` already handles via
+    finisher, same nuance `get_retirements` already handles via
     ClassifiedPosition being the authoritative signal."""
     laps = _laps([
         {"Driver": "PER", "Stint": 1, "Compound": "HARD", "LapNumber": 1},
@@ -101,7 +101,7 @@ def test_ambiguous_retired_status_is_normalised(monkeypatch):
 
 def test_missing_results_defaults_to_not_retired(monkeypatch):
     """No results at all shouldn't crash and shouldn't imply every driver
-    retired — status/retired should just be absent/False."""
+    retired; status/retired should just be absent/False."""
     laps = _laps([
         {"Driver": "HAM", "Stint": 1, "Compound": "MEDIUM", "LapNumber": 1},
     ])

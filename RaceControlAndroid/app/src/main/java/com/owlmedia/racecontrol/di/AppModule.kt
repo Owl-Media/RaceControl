@@ -37,7 +37,7 @@ object AppModule {
 
     /**
      * Lives for the process. Used only for work that must outlive any one
-     * screen — mirroring settings into the network layer, for example.
+     * screen: mirroring settings into the network layer, for example.
      */
     @Provides
     @Singleton
@@ -109,7 +109,7 @@ object AppModule {
 abstract class BindingsModule {
 
     /**
-     * Manual token (Settings) first, Play Integrity otherwise — see
+     * Manual token (Settings) first, Play Integrity otherwise; see
      * [CompositeTokenProvider]. `StaticTokenProvider` and
      * `PlayIntegrityTokenProvider` are constructor-injected directly by
      * `CompositeTokenProvider`, so no separate binding is needed for either.

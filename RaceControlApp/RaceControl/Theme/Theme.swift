@@ -9,11 +9,11 @@ enum Theme {
 
     // MARK: Brand palette
     enum Palette {
-        /// Signature Formula 1 red. Brand fills, tints and large text only —
+        /// Signature Formula 1 red. Brand fills, tints and large text only:
         /// at 3.6:1 on surface it fails WCAG AA for small text.
         static let racingRed = Color(hex: "E10600")
         static let racingRedDim = Color(hex: "B00500")
-        /// Lighter red tint for *small* text (5.9:1 on surface — passes AA).
+        /// Lighter red tint for *small* text (5.9:1 on surface, passes AA).
         static let racingRedText = Color(hex: "FF5A50")
 
         /// OLED-friendly backgrounds (near-black, avoids scroll smear of pure #000).
@@ -23,7 +23,7 @@ enum Theme {
         static let stroke = Color.white.opacity(0.08)
 
         // Text
-        // Contrast on surface (#16161A): 16.2:1 / 7.0:1 / 5.3:1 — all pass WCAG AA.
+        // Contrast on surface (#16161A): 16.2:1 / 7.0:1 / 5.3:1; all pass WCAG AA.
         static let textPrimary = Color(hex: "F2F2F5")
         static let textSecondary = Color(hex: "A0A0AA")
         static let textTertiary = Color(hex: "8A8A94")
@@ -207,7 +207,7 @@ enum RaceControlStyle {
         case "Drs": return "DRS"
         case "CarEvent": return "Car Event"
         case "Other": return "Other"
-        default: return category ?? "—"
+        default: return category ?? "Unknown"
         }
     }
 }

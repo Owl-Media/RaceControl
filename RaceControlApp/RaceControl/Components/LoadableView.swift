@@ -10,7 +10,7 @@ enum Loadable<Value> {
 }
 
 /// Renders the appropriate view for a `Loadable` phase, with a built-in
-/// retry button on failure — satisfying the "always show loading & error state"
+/// retry button on failure, satisfying the "always show loading & error state"
 /// mobile-design requirement.
 struct LoadableView<Value, Content: View>: View {
     let state: Loadable<Value>

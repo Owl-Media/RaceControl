@@ -10,7 +10,7 @@ import type { ReactNode } from "react";
  * Races that haven't happened yet have no timing, telemetry or results data
  * behind them, so linking to them only ever lands the user on an empty
  * "No data available" page. Those rows are rendered as inert, dimmed markup
- * with an "Upcoming" badge instead of a link — the information (which race,
+ * with an "Upcoming" badge instead of a link: the information (which race,
  * where, when) is still visible, there's just nowhere useful to go yet.
  */
 export function RaceListRow({

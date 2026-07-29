@@ -1,11 +1,11 @@
 """
-Offline tests for `fastf1_service.get_wdc_calculator` — the "who can still
+Offline tests for `fastf1_service.get_wdc_calculator`, the "who can still
 win the WDC" title decider, following FastF1's own example methodology
 (https://docs.fastf1.dev/gen_modules/examples_gallery/standings/plot_who_can_still_win_wdc.html):
 theoretical max points remaining vs. the championship leader's current total.
 
 `get_wdc_calculator` composes `get_drivers` and `get_schedule`, both of which
-go through several pages of Ergast/FastF1 calls — stubbing that whole chain
+go through several pages of Ergast/FastF1 calls, stubbing that whole chain
 isn't worth it here, so these tests monkeypatch the two composed functions
 directly (same approach as test_teams_service.py).
 

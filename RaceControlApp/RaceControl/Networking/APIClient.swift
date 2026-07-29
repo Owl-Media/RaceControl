@@ -161,6 +161,9 @@ extension APIClient {
     func standingsEvolution(year: Int) async throws -> StandingsEvolution {
         try await get("api/standings-evolution/\(year)", as: StandingsEvolution.self)
     }
+    func wdcCalculator(year: Int) async throws -> WdcCalculator {
+        try await get("api/wdc-calculator/\(year)", as: WdcCalculator.self)
+    }
 }
 
 // MARK: - Errors & config
@@ -194,6 +197,42 @@ enum APIError: LocalizedError {
 private struct APIErrorBody: Decodable { let detail: String? }
 
 enum AppConfig {
-    /// Self-hosted builds can replace this value with their own HTTPS backend.
-    static let apiBaseURL = URL(string: "https://racecontrol.owl-media.co.uk")!
+    private static let productionURL = URL(string: "https://racecontrol.owl-media.co.uk")!
+    private static let overrideKey = "dev_backend_base_url_override"
+
+    /// The backend the app talks to. Defaults to the production RaceControl
+    /// backend; can be pointed at a local dev server (e.g. `./run.sh` on your
+    /// Mac, or its LAN IP when testing from a physical device) from Settings
+    /// without rebuilding. This is what the `NSAllowsLocalNetworking` ATS
+    /// exception in Info.plist exists to support. Previously that exception
+    /// was configured but there was no actual way to set the override it
+    /// describes, so local dev testing required hand-editing this constant.
+    ///
+    /// Note: on the Simulator, `http://localhost:8000` reaches the host
+    /// Mac directly. On a physical device, `localhost` means the device
+    /// itself: use the Mac's LAN IP (e.g. `http://192.168.1.23:8000`)
+    /// instead, since both are on the same Wi-Fi network.
+    static var apiBaseURL: URL {
+        if let raw = UserDefaults.standard.string(forKey: overrideKey),
+           !raw.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+           let url = URL(string: raw), url.scheme != nil, url.host != nil {
+            return url
+        }
+        return productionURL
+    }
+
+    static var isUsingProduction: Bool { apiBaseURL == productionURL }
+
+    static var devBackendOverrideRaw: String {
+        UserDefaults.standard.string(forKey: overrideKey) ?? ""
+    }
+
+    static func setDevBackendOverride(_ raw: String) {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            UserDefaults.standard.removeObject(forKey: overrideKey)
+        } else {
+            UserDefaults.standard.set(trimmed, forKey: overrideKey)
+        }
+    }
 }

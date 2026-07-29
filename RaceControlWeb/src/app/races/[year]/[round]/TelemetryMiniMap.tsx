@@ -19,13 +19,13 @@ interface TracePoint extends RawPoint {
  *
  * The outline deliberately comes from the circuit endpoint rather than from
  * the telemetry trace being charted. A single lap's *position* channel is
- * often degraded — it updates ~10x slower than the rest of the telemetry and
+ * often degraded: it updates ~10x slower than the rest of the telemetry and
  * can carry as few as ~20 genuinely distinct samples, which draws as a
  * hard-edged polygon. Neither resampling nor curve smoothing can recover
  * shape that was never in the source. The circuit endpoint already solves
  * this (`_pick_outline_lap` picks a lap with a rich position trace, falling
  * back across laps until it finds one), which is why every other map in the
- * app looks smooth — they all draw from it. The telemetry trace is still
+ * app looks smooth; they all draw from it. The telemetry trace is still
  * used for the dots, since those must reflect the selected lap.
  */
 export function TelemetryMiniMap({

@@ -36,7 +36,7 @@ struct RichTrackMap: View {
                                style: StrokeStyle(lineWidth: 5, lineCap: .round))
             }
 
-            // 3) DRS zones — bright overlay where the flap is open
+            // 3) DRS zones: bright overlay where the flap is open
             for i in 1..<rotated.count where points[i].drsOpen {
                 var seg = Path()
                 seg.move(to: t(rotated[i - 1]))

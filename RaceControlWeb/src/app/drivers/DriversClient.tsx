@@ -57,10 +57,10 @@ export function DriversClient({ defaultYear }: { defaultYear: number }) {
                   <p className="flex items-center gap-1.5 truncate text-sm text-muted">
                     <TeamColorDot color={d.teamColor} />
                     <TeamLogo src={d.teamLogoUrl} name={d.teamName} sizeClassName="h-4 w-4" />
-                    {d.teamName ?? "—"}
+                    {d.teamName ?? "-"}
                   </p>
                 </div>
-                <span className="tabular shrink-0 text-sm text-muted">P{d.position ?? "—"}</span>
+                <span className="tabular shrink-0 text-sm text-muted">P{d.position ?? "-"}</span>
                 <span className="tabular shrink-0 text-sm font-semibold">{d.points ?? 0} pts</span>
                 <StarButton
                   active={isFavoriteDriver(d.driverId)}

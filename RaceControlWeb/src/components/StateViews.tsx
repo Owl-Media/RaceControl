@@ -8,7 +8,7 @@ export function LoadingState({ label = "Loading…" }: { label?: string }) {
       />
       <span className="text-sm text-muted">{label}</span>
       <span className="max-w-xs text-xs text-muted/70">
-        First load can take up to a minute while race data is fetched fresh — it&apos;s cached and much faster after that.
+        First load can take up to a minute while race data is fetched fresh; it&apos;s cached and much faster after that.
       </span>
     </div>
   );

@@ -18,7 +18,7 @@ import kotlinx.coroutines.launch
  * by every tab. The counterpart of the iOS `AppState` environment object.
  *
  * The selected year is kept in [SavedStateHandle] so it survives both rotation
- * and process death — neither of which the iOS app has to think about.
+ * and process death, neither of which the iOS app has to think about.
  */
 @HiltViewModel
 class AppStateViewModel @Inject constructor(

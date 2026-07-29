@@ -6,7 +6,7 @@ import java.io.IOException
  * Failures the UI knows how to talk about.
  *
  * Messages are resolved by [ApiErrorMessages] so the wording matches the iOS
- * `APIError.errorDescription` strings exactly — the two apps talk to the same
+ * `APIError.errorDescription` strings exactly, since the two apps talk to the same
  * backend and should explain the same failure the same way.
  */
 sealed class ApiException(message: String? = null, cause: Throwable? = null) :

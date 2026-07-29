@@ -70,7 +70,7 @@ private struct QualiRow: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 1) {
-                    Text(best ?? "—")
+                    Text(best ?? "–")
                         .font(.system(.subheadline, design: .monospaced).weight(.semibold))
                         .foregroundStyle(Theme.Palette.textPrimary)
                     Text(gapLabel)
@@ -92,7 +92,7 @@ private struct QualiRow: View {
     private func segment(_ label: String, _ time: String?, _ gap: String?) -> some View {
         VStack(spacing: 1) {
             Text(label).font(.caption2.weight(.bold)).foregroundStyle(Theme.Palette.textTertiary)
-            Text(time ?? "—")
+            Text(time ?? "–")
                 .font(.system(.caption2, design: .monospaced))
                 .foregroundStyle(time == nil ? Theme.Palette.textTertiary : Theme.Palette.textSecondary)
             if let gap {

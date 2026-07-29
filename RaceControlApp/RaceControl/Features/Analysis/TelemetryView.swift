@@ -94,7 +94,7 @@ struct TelemetryView: View {
         }
     }
 
-    // MARK: Lap picker (per selected driver — "Fastest" or any specific lap)
+    // MARK: Lap picker (per selected driver, "Fastest" or any specific lap)
     private func lapPicker(_ drivers: [RaceDriver]) -> some View {
         Group {
             if !vm.selected.isEmpty {
@@ -352,7 +352,7 @@ struct TelemetryView: View {
         .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.md))
     }
 
-    /// A vertical playhead drawn over the plot area (cheap — marks don't redraw).
+    /// A vertical playhead drawn over the plot area (cheap: marks don't redraw).
     private func playhead(_ proxy: ChartProxy) -> some View {
         GeometryReader { geo in
             if let x = proxy.position(forX: vm.distance) {
@@ -404,11 +404,11 @@ final class TelemetryViewModel: ObservableObject {
         } catch {
             driversState = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)
         }
-        // Flag overlay is supplementary — failures here shouldn't block telemetry.
+        // Flag overlay is supplementary: failures here shouldn't block telemetry.
         if let flags = try? await APIClient.shared.flags(year: year, round: round) {
             flagPeriods = flags.periods
         }
-        // Lap list (times + compounds) powers the lap picker — also supplementary.
+        // Lap list (times + compounds) powers the lap picker, also supplementary.
         if let laps = try? await APIClient.shared.lapTimes(year: year, round: round) {
             lapTimes = laps
         }
@@ -424,7 +424,7 @@ final class TelemetryViewModel: ObservableObject {
         guard selected.count < 3 else { return }
         selected.append(code)
         if !(await fetchTrace(for: code, year: year, round: round)) {
-            selected.removeAll { $0 == code }  // fetch failed — undo selection
+            selected.removeAll { $0 == code }  // fetch failed: undo selection
         }
         rebuildTraces()
     }
@@ -466,7 +466,7 @@ final class TelemetryViewModel: ObservableObject {
         guard previous != lap else { return }
         selectedLap[code] = lap
         if !(await fetchTrace(for: code, year: year, round: round)) {
-            selectedLap[code] = previous  // fetch failed — revert to the prior lap
+            selectedLap[code] = previous  // fetch failed: revert to the prior lap
         }
         rebuildTraces()
     }

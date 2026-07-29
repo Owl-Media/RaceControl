@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Lap-by-lap race replay. The running order animates as you scrub or play
-/// through the laps — an at-a-glance re-watch of how the race unfolded.
+/// through the laps, an at-a-glance re-watch of how the race unfolded.
 struct ReplayView: View {
     let year: Int
     let round: Int
@@ -70,7 +70,7 @@ struct ReplayView: View {
                 }
             }
             .padding(Theme.Space.md)
-            // Position changes animate as cars swap places — unless the user
+            // Position changes animate as cars swap places, unless the user
             // has asked the system to reduce motion.
             .animation(reduceMotion ? nil : .spring(response: 0.5, dampingFraction: 0.8),
                        value: vm.currentLap)

@@ -54,7 +54,7 @@ sealed interface JsonValue {
             else -> null
         }
 
-    /** Formats numbers without a trailing ".0" — the iOS `numberLabel`. */
+    /** Formats numbers without a trailing ".0", matching the iOS `numberLabel`. */
     val numberLabel: String?
         get() {
             val d = doubleValue ?: return stringValue

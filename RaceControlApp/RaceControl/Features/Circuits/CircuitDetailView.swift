@@ -125,7 +125,7 @@ struct CircuitDetailView: View {
                     Text("FASTEST RACE LAP")
                         .font(.caption2.weight(.bold)).tracking(1)
                         .foregroundStyle(Theme.Palette.textSecondary)
-                    Text(fl.driverName ?? fl.driver ?? "—")
+                    Text(fl.driverName ?? fl.driver ?? "–")
                         .font(.headline)
                         .foregroundStyle(Theme.Palette.textPrimary)
                     if let team = fl.team {
@@ -137,7 +137,7 @@ struct CircuitDetailView: View {
                 }
                 Spacer()
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text(fl.time ?? "—")
+                    Text(fl.time ?? "–")
                         .font(.system(.title3, design: .monospaced).weight(.bold))
                         .foregroundStyle(Theme.Palette.textPrimary)
                     if fl.compound != nil {
@@ -222,7 +222,7 @@ final class CircuitDetailViewModel: ObservableObject {
         } catch {
             state = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)
         }
-        // Race results are supplementary — a failure here shouldn't block the map.
+        // Race results are supplementary: a failure here shouldn't block the map.
         if let results = try? await APIClient.shared.results(year: year, round: round, session: "R") {
             podium = Array(results.results.prefix(3))
             totalLaps = results.totalLaps?.intValue

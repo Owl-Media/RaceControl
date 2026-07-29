@@ -50,15 +50,15 @@ private val dateLong: DateTimeFormatter =
 private val timeShort: DateTimeFormatter =
     DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT)
 
-/** "2:24:07 PM GMT+1" — pattern "O" is a localized zone offset. */
+/** "2:24:07 PM GMT+1": pattern "O" is a localized zone offset. */
 private val timeWithZone: DateTimeFormatter =
     DateTimeFormatter.ofPattern("h:mm:ss a O", Locale.getDefault())
 
-/** "12 Jul 2026" — the abbreviated style used in race rows. */
+/** "12 Jul 2026": the abbreviated style used in race rows. */
 fun ZonedDateTime.formatDateMedium(): String =
     withZoneSameInstant(ZoneId.systemDefault()).format(dateMedium)
 
-/** "12 July 2026" — the long style used in the race detail header. */
+/** "12 July 2026": the long style used in the race detail header. */
 fun ZonedDateTime.formatDateLong(): String =
     withZoneSameInstant(ZoneId.systemDefault()).format(dateLong)
 
@@ -67,7 +67,7 @@ fun ZonedDateTime.formatTime(): String =
     withZoneSameInstant(ZoneId.systemDefault()).format(timeShort)
 
 /**
- * "2:24:07 PM GMT+1" — clock time with the offset spelled out, so it's never
+ * "2:24:07 PM GMT+1": clock time with the offset spelled out, so it's never
  * ambiguous which zone is being shown. Used for race-control timestamps:
  * they come from the timing feed in UTC, but a race can be happening in any
  * timezone and the viewer is in another again.
@@ -75,7 +75,7 @@ fun ZonedDateTime.formatTime(): String =
 fun ZonedDateTime.formatTimeWithZone(): String =
     withZoneSameInstant(ZoneId.systemDefault()).format(timeWithZone)
 
-/** "Sat 14:00" — used in weekend schedules and day-before reminders. */
+/** "Sat 14:00": used in weekend schedules and day-before reminders. */
 fun ZonedDateTime.formatWeekdayTime(): String {
     val local = withZoneSameInstant(ZoneId.systemDefault())
     val weekday = local.format(DateTimeFormatter.ofPattern("EEE", Locale.getDefault()))
@@ -103,7 +103,7 @@ object LapTimeFormat {
         }
     }
 
-    /** Seconds as a lap time — used for chart axis labels. */
+    /** Seconds as a lap time, used for chart axis labels. */
     fun fromSeconds(seconds: Double): String =
         format((seconds * 1000).toInt(), leading = true)
 
@@ -114,6 +114,6 @@ object LapTimeFormat {
     }
 }
 
-/** Formats a Double without a trailing ".0" — the iOS `numberLabel` behaviour. */
+/** Formats a Double without a trailing ".0": the iOS `numberLabel` behaviour. */
 fun Double.pointsLabel(): String =
     if (this % 1.0 == 0.0) this.toInt().toString() else this.toString()

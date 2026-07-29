@@ -27,6 +27,7 @@ import com.owlmedia.racecontrol.data.remote.dto.StrategyResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.TeamDto
 import com.owlmedia.racecontrol.data.remote.dto.TelemetryCompareResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.TelemetryResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.WdcCalculatorDto
 import com.owlmedia.racecontrol.data.remote.dto.WeatherResponseDto
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
@@ -150,6 +151,9 @@ class RaceControlRepository @Inject constructor(
 
     suspend fun standingsEvolution(year: Int): Result<StandingsEvolutionDto> =
         call { api.standingsEvolution(year) }
+
+    suspend fun wdcCalculator(year: Int): Result<WdcCalculatorDto> =
+        call { api.wdcCalculator(year) }
 
     /** Unauthenticated reachability probe, used by Settings > Test Connection. */
     suspend fun health(): Result<Int> = call { api.health().code() }

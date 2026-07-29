@@ -13,12 +13,12 @@ import javax.inject.Singleton
  * Caches the short-lived JWT that backend Play Integrity verification mints,
  * so `PlayIntegrityTokenProvider` only pays for the full nonce -> Play
  * Services -> verify round trip when the cached token is missing or close to
- * expiry — both to stay well under Play Integrity's per-app request quota,
+ * expiry, both to stay well under Play Integrity's per-app request quota,
  * and because that round trip takes a couple of seconds real requests
  * shouldn't have to wait on.
  *
  * Same storage mechanism as [SecureTokenStore] (Android Keystore-backed,
- * excluded from backup — see res/xml/backup_rules.xml) but a separate file:
+ * excluded from backup, see res/xml/backup_rules.xml) but a separate file:
  * this token is minted by the app itself, not entered by the user, and
  * carries an expiry the manual token doesn't have.
  */
@@ -63,7 +63,7 @@ class PlayIntegrityTokenStore @Inject constructor(
         )
     }
 
-    /** Read synchronously — used by [PlayIntegrityTokenProvider] on a background thread. */
+    /** Read synchronously; used by [PlayIntegrityTokenProvider] on a background thread. */
     fun currentToken(): String = prefs.getString(KEY_TOKEN, "").orEmpty()
 
     fun isExpired(): Boolean {

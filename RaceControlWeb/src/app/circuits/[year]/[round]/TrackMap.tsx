@@ -6,7 +6,7 @@ import type { CircuitMap, CircuitCorner } from "@/lib/types";
 
 const VB = 600;
 const DRS_OPEN = new Set([10, 12, 14]);
-const DRS_COLOR = "#22d3ee"; // cyan — deliberately far from the green/yellow end of the speed gradient
+const DRS_COLOR = "#22d3ee"; // cyan, deliberately far from the green/yellow end of the speed gradient
 const MARSHAL_LIGHT_COLOR = "#f59e0b";
 const MARSHAL_SECTOR_COLOR = "#a78bfa";
 
@@ -52,7 +52,7 @@ export function TrackMap({ map }: { map: CircuitMap }) {
       };
     }
 
-    // The backend gives ~350 evenly-spaced points per lap — accurate, but
+    // The backend gives ~350 evenly-spaced points per lap: accurate, but
     // still shows visible straight-line facets through tight corners at the
     // pixel scale they render at. Smooth the drawn line with a Catmull-Rom
     // spline rather than connecting the raw samples directly.
@@ -210,7 +210,7 @@ export function TrackMap({ map }: { map: CircuitMap }) {
             <line key={i} x1={s.a.x} y1={s.a.y} x2={s.b.x} y2={s.b.y} stroke={s.color} strokeWidth={5} strokeLinecap="round" />
           ))}
 
-          {/* DRS zones — a distinct offset band beside the track (not overlaid on
+          {/* DRS zones: a distinct offset band beside the track (not overlaid on
               it, so it never blends into the green/yellow end of the speed
               gradient) plus a floating "DRS" label with a leader line. */}
           {drsZones.map((z) => (
@@ -235,7 +235,7 @@ export function TrackMap({ map }: { map: CircuitMap }) {
             </g>
           ))}
 
-          {/* marshal sectors — boundary ticks used by stewards to divide the circuit */}
+          {/* marshal sectors: boundary ticks used by stewards to divide the circuit */}
           {showMarshalSectors &&
             marshalSectors.map((m) => (
               <rect
@@ -252,7 +252,7 @@ export function TrackMap({ map }: { map: CircuitMap }) {
               </rect>
             ))}
 
-          {/* marshal lights — flag/light panels around the circuit */}
+          {/* marshal lights: flag/light panels around the circuit */}
           {showMarshalLights &&
             marshalLights.map((m) => (
               <circle key={`light-${m.number}`} cx={m.screen.x} cy={m.screen.y} r={3} fill={MARSHAL_LIGHT_COLOR} stroke="var(--surface)" strokeWidth={1}>

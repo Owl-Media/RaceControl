@@ -26,7 +26,7 @@ function getServerSnapshot(): string | null {
  * SSR-safe boolean preference persisted to localStorage.
  *
  * Read through `useSyncExternalStore` rather than `useState` + `useEffect` so
- * the server and first client render produce identical markup — reading
+ * the server and first client render produce identical markup; reading
  * localStorage directly during render would hydrate-mismatch.
  */
 export function useLocalStorageFlag(key: string, defaultValue = false): [boolean, (next: boolean) => void] {
@@ -48,7 +48,7 @@ export function useLocalStorageFlag(key: string, defaultValue = false): [boolean
       try {
         window.localStorage.setItem(key, next ? "1" : "0");
       } catch {
-        // localStorage unavailable (private mode, etc) — the preference just
+        // localStorage unavailable (private mode, etc); the preference just
         // won't survive a reload, which is not worth failing the render over.
       }
       emit(key);

@@ -31,7 +31,7 @@ class RaceDetailViewModel @Inject constructor(
 
     /**
      * The schedule payload carries the session list and completion flag, and a
-     * deep link from a notification arrives with only year+round — so the event
+     * deep link from a notification arrives with only year+round, so the event
      * is always re-fetched rather than passed through navigation arguments.
      */
     fun loadEvent(year: Int, round: Int) {

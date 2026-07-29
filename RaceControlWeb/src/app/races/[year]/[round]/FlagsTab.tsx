@@ -11,7 +11,7 @@ export function FlagsTab({ year, round }: { year: number; round: number }) {
   if (isLoading) return <LoadingState label="Loading flags…" />;
   if (error) return <ErrorState message="Flag data isn't available for this race." />;
   if (!data) return null;
-  if (data.periods.length === 0) return <EmptyState message="No flags — clean race." />;
+  if (data.periods.length === 0) return <EmptyState message="No flags. Clean race." />;
 
   return (
     <div className="flex flex-col gap-4">
@@ -25,7 +25,7 @@ export function FlagsTab({ year, round }: { year: number; round: number }) {
             />
             <div className="min-w-0 flex-1">
               <p className="truncate font-medium">{flagLabel(p.type)}</p>
-              <p className="truncate text-sm text-muted">{p.reason ?? "—"}</p>
+              <p className="truncate text-sm text-muted">{p.reason ?? "-"}</p>
             </div>
             <span
               className="tabular shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold"
@@ -46,8 +46,8 @@ export function FlagsTab({ year, round }: { year: number; round: number }) {
             {data.events.map((e, i) => (
               <li key={i} className="flex items-start gap-3 py-1 text-xs">
                 <span className="tabular w-32 shrink-0 text-muted">{formatClock(e.time)}</span>
-                <span className="w-12 shrink-0 text-muted">{e.lap != null ? `Lap ${e.lap}` : "—"}</span>
-                <span className="min-w-0 flex-1 text-foreground">{e.message ?? e.category ?? "—"}</span>
+                <span className="w-12 shrink-0 text-muted">{e.lap != null ? `Lap ${e.lap}` : "-"}</span>
+                <span className="min-w-0 flex-1 text-foreground">{e.message ?? e.category ?? "-"}</span>
               </li>
             ))}
           </ul>

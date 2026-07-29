@@ -71,7 +71,7 @@ function MetricChart({
           />
           {/* Corner markers, so a dip in the trace can be read against the
               part of the circuit it belongs to. Only the top chart carries
-              labels — repeating them on all four is just noise. */}
+              labels; repeating them on all four is just noise. */}
           {corners.map((c) => (
             <ReferenceLine
               key={`${c.number}${c.letter}`}
@@ -85,7 +85,7 @@ function MetricChart({
               }
             />
           ))}
-          {/* Where the pointer is — either scrubbed on a chart, or hovered on
+          {/* Where the pointer is: either scrubbed on a chart, or hovered on
               the mini-map, which reports the same lap distance back. */}
           {scrubDistance != null && (
             <ReferenceLine x={scrubDistance} stroke="var(--racing-red)" strokeWidth={1.5} />
@@ -136,7 +136,7 @@ export function TelemetryTab({ year, round }: { year: number; round: number }) {
   );
 
   const bestLapTimes = useMemo(
-    () => traces.map((t) => `${t.code} ${t.lapTime ?? "—"}`).join(" · "),
+    () => traces.map((t) => `${t.code} ${t.lapTime ?? "-"}`).join(" · "),
     [traces],
   );
 
@@ -174,7 +174,7 @@ export function TelemetryTab({ year, round }: { year: number; round: number }) {
               const flag = lapFlag(l.lap, flagsData);
               return (
                 <option key={l.lap} value={String(l.lap)} style={flag ? { color: flagColor(flag.type) } : undefined}>
-                  {flag ? "● " : ""}Lap {l.lap} — {formatMs(l.timeMs)}
+                  {flag ? "● " : ""}Lap {l.lap}: {formatMs(l.timeMs)}
                 </option>
               );
             })}

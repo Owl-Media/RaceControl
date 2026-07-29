@@ -7,6 +7,7 @@ import com.owlmedia.racecontrol.data.remote.dto.ConstructorStandingDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverStandingDto
 import com.owlmedia.racecontrol.data.remote.dto.ReliabilityResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.StandingsEvolutionDto
+import com.owlmedia.racecontrol.data.remote.dto.WdcCalculatorDto
 import com.owlmedia.racecontrol.data.repository.RaceControlRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -15,7 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-enum class StandingsMode { DRIVERS, TEAMS, PROGRESS, RELIABILITY }
+enum class StandingsMode { DRIVERS, TEAMS, PROGRESS, RELIABILITY, WDC }
 
 @HiltViewModel
 class StandingsViewModel @Inject constructor(
@@ -37,6 +38,9 @@ class StandingsViewModel @Inject constructor(
     private val _reliability = MutableStateFlow<UiState<ReliabilityResponseDto>>(UiState.Idle)
     val reliability: StateFlow<UiState<ReliabilityResponseDto>> = _reliability.asStateFlow()
 
+    private val _wdc = MutableStateFlow<UiState<WdcCalculatorDto>>(UiState.Idle)
+    val wdc: StateFlow<UiState<WdcCalculatorDto>> = _wdc.asStateFlow()
+
     private var loadedYear: Int? = null
 
     fun setMode(value: StandingsMode) {
@@ -55,6 +59,7 @@ class StandingsViewModel @Inject constructor(
             _constructors.value = UiState.Idle
             _evolution.value = UiState.Idle
             _reliability.value = UiState.Idle
+            _wdc.value = UiState.Idle
             loadedYear = year
         }
         when (mode) {
@@ -62,6 +67,7 @@ class StandingsViewModel @Inject constructor(
             StandingsMode.TEAMS -> loadConstructors(year, force)
             StandingsMode.PROGRESS -> loadEvolution(year, force)
             StandingsMode.RELIABILITY -> loadReliability(year, force)
+            StandingsMode.WDC -> loadWdc(year, force)
         }
     }
 
@@ -102,6 +108,16 @@ class StandingsViewModel @Inject constructor(
             repository.reliability(year)
                 .onSuccess { _reliability.value = UiState.Loaded(it) }
                 .onFailure { _reliability.value = UiState.Failed(repository.messageFor(it)) }
+        }
+    }
+
+    private fun loadWdc(year: Int, force: Boolean) {
+        if (!force && _wdc.value is UiState.Loaded) return
+        viewModelScope.launch {
+            _wdc.value = UiState.Loading
+            repository.wdcCalculator(year)
+                .onSuccess { _wdc.value = UiState.Loaded(it) }
+                .onFailure { _wdc.value = UiState.Failed(repository.messageFor(it)) }
         }
     }
 }

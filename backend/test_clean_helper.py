@@ -1,5 +1,5 @@
 """
-Offline tests for `fastf1_service._clean` — specifically the fallback that
+Offline tests for `fastf1_service._clean`, specifically the fallback that
 treats a pre-stringified "nan"/"NaT"/"None" as a real missing value.
 
 Regression: a qualifying-results row with no recorded driver number arrived

@@ -18,7 +18,7 @@ export function ReplayTrackMap({
   active = true,
 }: {
   circuit: CircuitMap | undefined;
-  /** The track outline request is still in flight — distinct from "there is
+  /** The track outline request is still in flight, distinct from "there is
    * no outline", which is only knowable once it has finished. */
   circuitLoading?: boolean;
   /** The car-position request is still in flight; the track can already be
@@ -30,7 +30,7 @@ export function ReplayTrackMap({
   playing: boolean;
   /** Whether the map is actually visible right now. The per-frame animation
    * loop below is real CPU work (trig + DOM writes on every driver, every
-   * frame) — on a phone, running it while the map is scrolled off or
+   * frame); on a phone, running it while the map is scrolled off or
    * collapsed behind the "Show map" toggle is wasted battery/CPU that can
    * fight the running-order list's own animations for frame budget.
    * Defaults to true so callers that don't care (e.g. desktop, which never
@@ -39,7 +39,7 @@ export function ReplayTrackMap({
 }) {
   const { screenOutline, projector } = useMemo(() => {
     if (!circuit || circuit.outline.length === 0) return { screenOutline: [] as { x: number; y: number }[], projector: null };
-    // Smooth the drawn outline the same way the circuits page does — the
+    // Smooth the drawn outline the same way the circuits page does: the
     // backend's ~350 evenly-spaced points are accurate but still show
     // visible facets through tight corners without curve interpolation.
     const dense = densifyTrace(circuit.outline, 6);
@@ -52,7 +52,7 @@ export function ReplayTrackMap({
   const drivers = lapPositions ? Object.keys(lapPositions.positions) : [];
 
   // Cars are animated imperatively (direct DOM writes via refs), not through
-  // React state, so a ~60fps loop never triggers a React re-render — this
+  // React state, so a ~60fps loop never triggers a React re-render; this
   // both keeps it smooth and avoids state-update ordering issues around
   // pause/resume and lap changes.
   const dotRefs = useRef<Record<string, SVGGElement | null>>({});
@@ -60,7 +60,7 @@ export function ReplayTrackMap({
 
   useEffect(() => {
     // Not on screen right now (CSS-hidden behind the mobile "Show map"
-    // toggle) — skip both the immediate placement and the per-frame loop
+    // toggle): skip both the immediate placement and the per-frame loop
     // below entirely. There's nothing to sync visually while it's hidden;
     // `place(0)` runs again as soon as `active` flips back to true.
     if (!active) return;
@@ -69,7 +69,7 @@ export function ReplayTrackMap({
     // Hoisted out of the per-point loop below: `rotatePoints` recomputes
     // sin/cos from scratch (plus an array + object allocation) for every
     // single point, and this loop calls it for every driver on every
-    // animation frame — ~20 drivers x 60fps = over a thousand redundant
+    // animation frame: ~20 drivers x 60fps = over a thousand redundant
     // trig calls a second. Computing theta once per effect run and inlining
     // the rotation match keeps the same math with none of that per-frame
     // waste, which matters more on weaker mobile CPUs than on desktop.
@@ -107,7 +107,7 @@ export function ReplayTrackMap({
     return () => cancelAnimationFrame(frameRef.current);
   }, [playing, lapPositions, projector, rotation, active]);
 
-  // Only report missing data once the request has actually finished — while
+  // Only report missing data once the request has actually finished; while
   // it's in flight there is legitimately nothing to draw yet, and showing the
   // failure copy in the meantime reads as a hard error that then silently
   // fixes itself.
@@ -132,7 +132,7 @@ export function ReplayTrackMap({
   return (
     <div className="relative">
       {/* The viewBox is square, so an unconstrained `w-full` makes the map as
-          tall as the container is wide — over 1100px on a desktop layout,
+          tall as the container is wide, over 1100px on a desktop layout,
           pushing the running order entirely below the fold. Cap the height and
           let preserveAspectRatio letterbox it instead. */}
       <svg

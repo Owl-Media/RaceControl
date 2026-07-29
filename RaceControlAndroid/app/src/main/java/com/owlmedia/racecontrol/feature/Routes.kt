@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
  * Type-safe navigation routes.
  *
  * Using serializable objects rather than string templates means a screen cannot
- * be reached with a missing or mistyped argument — the compiler enforces it.
+ * be reached with a missing or mistyped argument; the compiler enforces it.
  */
 object Routes {
 

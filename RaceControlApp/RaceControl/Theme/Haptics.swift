@@ -2,8 +2,8 @@ import UIKit
 
 /// Lightweight haptic feedback helpers.
 ///
-/// Used sparingly and intentionally — selection changes, transport controls and
-/// favouriting — to avoid haptic fatigue. Generators are created per call and
+/// Used sparingly and intentionally (selection changes, transport controls and
+/// favouriting) to avoid haptic fatigue. Generators are created per call and
 /// prepared, which is cheap and avoids holding state.
 enum Haptics {
     /// Picker / chip / segment selection changed.

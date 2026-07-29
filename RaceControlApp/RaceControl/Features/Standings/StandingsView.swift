@@ -8,6 +8,7 @@ struct StandingsView: View {
     enum Mode: String, CaseIterable {
         case drivers = "Drivers", constructors = "Teams"
         case progression = "Progress", reliability = "Reliability"
+        case wdc = "Title"
     }
 
     var body: some View {
@@ -38,6 +39,8 @@ struct StandingsView: View {
                         StandingsEvolutionView(year: appState.selectedYear)
                     case .reliability:
                         ReliabilityView(year: appState.selectedYear)
+                    case .wdc:
+                        WdcCalculatorView(year: appState.selectedYear)
                     }
                 }
             }

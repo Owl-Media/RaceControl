@@ -22,7 +22,7 @@ import javax.inject.Singleton
  * Builds and posts session reminders.
  *
  * Android requires an explicit notification channel (so the user can tune or
- * silence reminders from system settings) and, from API 33, a runtime grant —
+ * silence reminders from system settings) and, from API 33, a runtime grant,
  * neither of which the iOS app needs.
  */
 @Singleton

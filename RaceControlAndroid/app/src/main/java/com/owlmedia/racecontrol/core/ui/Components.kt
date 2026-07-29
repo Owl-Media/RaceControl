@@ -180,7 +180,7 @@ fun DriverAvatar(
  * Team logo with a graceful no-op fallback when the URL is missing or fails
  * to load. Neither FastF1 nor Ergast expose team logos, so the backend
  * serves these from a hardcoded mapping onto F1.com's own media CDN (see
- * `_team_logo_url`) — one that needs manual upkeep on renames or new
+ * `_team_logo_url`), one that needs manual upkeep on renames or new
  * entrants, so a broken URL should just render nothing rather than a
  * broken-image glyph. The source marks are white PNGs, so they sit on a
  * dark chip to stay legible against any background.
@@ -340,7 +340,7 @@ fun TyreBadge(
     }
 }
 
-/** The standard section container — iOS `Card`. */
+/** The standard section container; iOS `Card`. */
 @Composable
 fun RcCard(
     modifier: Modifier = Modifier,

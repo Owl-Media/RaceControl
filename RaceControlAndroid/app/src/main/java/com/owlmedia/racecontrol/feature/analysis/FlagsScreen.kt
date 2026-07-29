@@ -82,7 +82,7 @@ class FlagsViewModel @Inject constructor(
 
 /**
  * Chronological list of collapsed flag/safety-car periods (primary), with the
- * raw race-control timeline available underneath for detail — mirrors the iOS
+ * raw race-control timeline available underneath for detail; mirrors the iOS
  * `FlagsView` split between [FlagsResponseDto.periods] and `.events`.
  */
 @Composable
@@ -296,7 +296,7 @@ private fun FlagEventRow(event: FlagEventDto) {
                 }
             }
             Text(
-                text = event.message ?: event.flag ?: event.category ?: "—",
+                text = event.message ?: event.flag ?: event.category ?: "–",
                 style = MaterialTheme.typography.bodySmall,
                 color = RcTheme.colors.textSecondary,
             )

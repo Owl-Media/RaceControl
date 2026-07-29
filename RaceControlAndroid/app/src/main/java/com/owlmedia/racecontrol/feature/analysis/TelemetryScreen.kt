@@ -344,7 +344,7 @@ private fun TelemetryContent(
 }
 
 /**
- * Per-driver lap selector — "Fastest" plus every recorded lap, each tagged with
+ * Per-driver lap selector: "Fastest" plus every recorded lap, each tagged with
  * its time and, when it falls inside a flag/safety-car period, a coloured dot so
  * the interesting (flagged) laps are findable rather than a guessing game.
  */
@@ -366,7 +366,7 @@ private fun LapPicker(
         val lapNumber = selectedLap.toIntOrNull()
         val point = laps.firstOrNull { it.lap == lapNumber }
         if (point != null) {
-            "Lap ${point.lap} — ${LapTimeFormat.format(point.timeMs, leading = true)}"
+            "Lap ${point.lap}: ${LapTimeFormat.format(point.timeMs, leading = true)}"
         } else {
             "Lap $selectedLap"
         }
@@ -429,7 +429,7 @@ private fun LapPicker(
 }
 
 /**
- * "Safety Car (lap 20)" — flags that the lap this trace was set on ran under a
+ * "Safety Car (lap 20)": flags that the lap this trace was set on ran under a
  * flag/safety-car period, so a suspiciously slow sector or lap time isn't
  * mistaken for a driver mistake.
  */
@@ -522,7 +522,7 @@ private fun TelemetryChartCard(
 
 /**
  * The lap drawn from the trace's own x/y channels, with a dot per driver at the
- * playhead — so you can see *where* on the circuit a speed difference happens,
+ * playhead, so you can see *where* on the circuit a speed difference happens,
  * not just that it does.
  */
 @Composable

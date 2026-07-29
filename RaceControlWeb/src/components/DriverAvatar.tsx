@@ -7,7 +7,7 @@ import { driverInitials } from "@/lib/format";
  * Driver headshot with a graceful fallback to initials.
  *
  * The backend only omits `headshotUrl` when the upstream feed genuinely has
- * no entry for a driver — but the URL it *does* supply is F1's own media CDN,
+ * no entry for a driver, but the URL it *does* supply is F1's own media CDN,
  * which can 404 or serve a broken image for a driver who only just joined
  * the grid (their photo not yet indexed there). A plain `<img>` with no
  * fallback shows a broken-image icon in that case; this swaps to the same

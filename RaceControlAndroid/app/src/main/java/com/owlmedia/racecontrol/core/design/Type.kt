@@ -9,7 +9,7 @@ import androidx.compose.ui.unit.sp
 /**
  * Material 3 type scale on Roboto (the Android system font), standing in for
  * SF Pro on iOS. Every size is in `sp` so it scales with the user's font
- * preference — verified to 200% per the Android accessibility checklist.
+ * preference, verified to 200% per the Android accessibility checklist.
  */
 val RcTypography = Typography(
     displayLarge = TextStyle(fontFamily = FontFamily.Default, fontWeight = FontWeight.Normal, fontSize = 57.sp, lineHeight = 64.sp),
@@ -31,7 +31,7 @@ val RcTypography = Typography(
 
 /**
  * Tabular ("lining") figures. Lap times, gaps and positions are read in a
- * column, so proportional digits make them visibly jitter as they update —
+ * column, so proportional digits make them visibly jitter as they update;
  * this is the Roboto equivalent of SwiftUI's `.monospacedDigit()`.
  */
 fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum, lnum")

@@ -119,7 +119,7 @@ class LapTimesViewModel @Inject constructor(
 /**
  * Safety-car laps and in-laps are many seconds slower than a green-flag lap and
  * would flatten the whole chart into a line at the bottom. Cutting at 107% of
- * the driver's own median keeps the racing laps legible — the same threshold
+ * the driver's own median keeps the racing laps legible, the same threshold
  * the iOS build uses.
  */
 private fun outlierCutoff(driver: LapTimeDriverDto): Double {

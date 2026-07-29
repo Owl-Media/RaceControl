@@ -22,7 +22,7 @@ import javax.inject.Singleton
  * Keeps the rolling reminder window fresh.
  *
  * iOS rebuilds its notification window on every app launch. That is not enough
- * on Android, where a user may not open the app between races — so a daily
+ * on Android, where a user may not open the app between races, so a daily
  * worker rebuilds it whether or not the app has been opened.
  */
 @HiltWorker

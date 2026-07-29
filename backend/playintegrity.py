@@ -16,7 +16,7 @@ Flow:
   3. App calls the API with `Authorization: Bearer <JWT>`.
   4. When the JWT expires, the app repeats step 1-2 for a fresh one. Unlike App
      Attest there is no persistent per-device key to renew via a lightweight
-     assertion — a fresh integrity token is requested each time, which is why
+     assertion: a fresh integrity token is requested each time, which is why
      the JWT TTL should be generous (hours, not minutes) to stay within Play
      Integrity's per-app request quota.
 
@@ -24,7 +24,7 @@ Verification, unlike attest.py, is a single call to Google rather than local
 cryptography: we send the opaque token to Google's decodeIntegrityToken
 endpoint and Google hands back signed verdicts (is this really our app, is it
 unmodified, is the device genuine, was this token requested recently). We
-still have to check those verdicts ourselves — Google will happily decode a
+still have to check those verdicts ourselves: Google will happily decode a
 token and tell you the truth even if that truth is "this is a repackaged
 APK on a rooted emulator".
 
@@ -32,7 +32,7 @@ Requires, from the RaceControl Android app's Play Console + Google Cloud
 project (see .env.example for the full list): a service account with the
 Play Integrity API enabled and granted access to the linked app, the app's
 package name, and (recommended) its release signing certificate digest(s).
-None of that can be provisioned from here — this module only consumes it.
+None of that can be provisioned from here; this module only consumes it.
 """
 
 from __future__ import annotations
@@ -191,7 +191,7 @@ class PlayIntegrityVerifier:
 
         # There's no stable per-device identifier to key a JWT on the way
         # attest.py keys one on the attested key id, so the subject is just
-        # "a Play-verified install of this package" — good enough, since the
+        # "a Play-verified install of this package", good enough, since the
         # JWT itself (not a persistent identity) is what authorises requests.
         return self._issue_jwt()
 
@@ -228,7 +228,7 @@ class PlayIntegrityVerifier:
         app_integrity = payload.get("appIntegrity", {})
         device_integrity = payload.get("deviceIntegrity", {})
 
-        # 1. Nonce and package must match what we issued / expect — otherwise
+        # 1. Nonce and package must match what we issued / expect: otherwise
         #    this could be a token minted for a different request or a
         #    different app entirely being replayed at us.
         if request_details.get("nonce") != expected_nonce:
@@ -236,7 +236,7 @@ class PlayIntegrityVerifier:
         if request_details.get("requestPackageName") != self.config.package_name:
             raise PlayIntegrityError("Package name mismatch")
 
-        # 2. Freshness — a genuine request is decoded within seconds; a large
+        # 2. Freshness: a genuine request is decoded within seconds; a large
         #    gap suggests a captured token being replayed later.
         timestamp_ms = request_details.get("timestampMillis")
         if timestamp_ms is not None:
@@ -244,20 +244,20 @@ class PlayIntegrityVerifier:
             if age > self.config.max_token_age_seconds:
                 raise PlayIntegrityError(f"Integrity token is stale ({age:.0f}s old)")
 
-        # 3. App recognition — is this really our app, unmodified, from Play?
+        # 3. App recognition: is this really our app, unmodified, from Play?
         app_verdict = app_integrity.get("appRecognitionVerdict")
         if app_verdict != "PLAY_RECOGNIZED":
             if not (self.config.allow_unevaluated and app_verdict == "UNEVALUATED"):
                 raise PlayIntegrityError(f"App integrity verdict rejected: {app_verdict}")
 
-        # 4. Signing certificate — optional but recommended: pins against a
+        # 4. Signing certificate, optional but recommended: pins against a
         #    resigned/repackaged APK even if it somehow passed the above.
         if self.config.signing_cert_sha256:
             seen = set(app_integrity.get("certificateSha256Digest", []))
             if not seen.intersection(self.config.signing_cert_sha256):
                 raise PlayIntegrityError("Signing certificate not recognised")
 
-        # 5. Device integrity — is this a genuine, unmodified device?
+        # 5. Device integrity: is this a genuine, unmodified device?
         device_verdicts = device_integrity.get("deviceRecognitionVerdict", [])
         min_strength = _DEVICE_VERDICT_STRENGTH[self.config.min_device_verdict]
         best_seen = max(

@@ -116,7 +116,7 @@ function hexToRgb(hex: string): { r: number; g: number; b: number } {
  * Catmull-Rom spline smoothing: inserts `subdivisions` interpolated points
  * between each pair of samples so a polyline reads as a continuous curve
  * instead of straight facets. The backend supplies ~350 evenly-spaced
- * points per lap track outline — plenty for positional accuracy, but at the
+ * points per lap track outline: plenty for positional accuracy, but at the
  * pixel scale a tight corner renders at (e.g. a hairpin), straight segments
  * between those points still show visible kinks. This is purely a
  * rendering-side smoothing pass; any extra numeric fields on each point

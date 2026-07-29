@@ -22,7 +22,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
  * Android counterpart of the iOS App Attest flow (backend/playintegrity.py is
  * the server side of this; backend/attest.py is what App Attest talks to).
  *
- * Google Play Integrity — not a static secret baked into the APK — vouches for
+ * Google Play Integrity (not a static secret baked into the APK) vouches for
  * this being a genuine, unmodified copy of the app installed via Play on a
  * genuine device. A static shared token embedded in a publicly-distributed
  * APK is trivially extracted with a decompiler and is then just as good as no
@@ -37,7 +37,7 @@ import okhttp3.RequestBody.Companion.toRequestBody
  *
  * [token] runs synchronously on OkHttp's interceptor thread (already off the
  * main thread, so blocking here is fine) and must be fast on the common path,
- * which is why the JWT is cached rather than re-verified on every request —
+ * which is why the JWT is cached rather than re-verified on every request:
  * that would also blow through Play Integrity's per-app daily request quota.
  */
 @Singleton

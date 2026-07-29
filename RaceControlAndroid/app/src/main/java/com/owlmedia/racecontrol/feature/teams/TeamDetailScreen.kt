@@ -185,7 +185,7 @@ fun TeamDetailScreen(
 }
 
 /**
- * Who's actually carried the team, at a glance — a driver list alone doesn't
+ * Who's actually carried the team, at a glance: a driver list alone doesn't
  * show whether points are split evenly or one driver is doing most of the
  * scoring.
  */

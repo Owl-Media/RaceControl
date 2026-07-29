@@ -79,7 +79,7 @@ export function CompareClient({ defaultYear }: { defaultYear: number }) {
               <StatRow label="Wins" a={data.drivers[0].wins} b={data.drivers[1].wins} />
               <StatRow label="Podiums" a={data.drivers[0].podiums} b={data.drivers[1].podiums} />
               <StatRow label="Poles" a={data.drivers[0].poles} b={data.drivers[1].poles} />
-              <StatRow label="Best Finish" a={data.drivers[0].bestFinish ?? "—"} b={data.drivers[1].bestFinish ?? "—"} />
+              <StatRow label="Best Finish" a={data.drivers[0].bestFinish ?? "-"} b={data.drivers[1].bestFinish ?? "-"} />
               <StatRow label="DNFs" a={data.drivers[0].dnf} b={data.drivers[1].dnf} />
               <StatRow label="Race H2H Wins" a={data.drivers[0].raceWins_h2h} b={data.drivers[1].raceWins_h2h} />
               <StatRow label="Qualifying H2H Wins" a={data.drivers[0].qualWins_h2h} b={data.drivers[1].qualWins_h2h} />

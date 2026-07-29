@@ -153,6 +153,13 @@ private fun DriverRow(
 ) {
     val accent = teamColor(driver.teamColor).legibleOnSurface()
 
+    // Two lines rather than one: cramming position + accent bar + avatar +
+    // name + number + points pill + favourite star into a single Row left
+    // the name Text competing for whatever width survived every fixed-width
+    // sibling, on a phone-width screen that was often under 100dp, so long
+    // driver names ellipsized after a handful of characters. Name (+
+    // favourite) now gets its own top line; number/team/points share a
+    // second line below, where truncation is far less noticeable.
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -160,7 +167,7 @@ private fun DriverRow(
             .background(MaterialTheme.colorScheme.surface)
             .clickable(onClick = onClick)
             .padding(horizontal = Dimens.SM, vertical = Dimens.SM),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(Dimens.SM),
     ) {
         driver.positionInt?.let {
@@ -169,10 +176,10 @@ private fun DriverRow(
                 style = MaterialTheme.typography.titleMedium.tabular(),
                 fontWeight = FontWeight.Bold,
                 color = RcTheme.colors.textSecondary,
-                modifier = Modifier.width(24.dp),
+                modifier = Modifier.width(24.dp).padding(top = 2.dp),
             )
         }
-        TeamAccentBar(color = accent, height = 40.dp)
+        TeamAccentBar(color = accent, height = 56.dp)
         DriverAvatar(
             url = driver.headshotUrl,
             initials = driver.initials,
@@ -190,15 +197,17 @@ private fun DriverRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
                 )
+                Spacer(Modifier.weight(1f))
+                FavoriteStar(isFavorite = isFavorite, onToggle = onToggleFavorite)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 driver.numberString?.let {
                     Text(
-                        text = " #$it",
+                        text = "#$it",
                         style = MaterialTheme.typography.labelMedium.tabular(),
                         color = accent,
                     )
                 }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 TeamLogo(url = driver.teamLogoUrl, size = 14.dp)
                 Text(
                     text = driver.teamName.orEmpty(),
@@ -206,10 +215,11 @@ private fun DriverRow(
                     color = RcTheme.colors.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false),
                 )
+                Spacer(Modifier.weight(1f))
+                PointsPill(points = driver.pointsString)
             }
         }
-        PointsPill(points = driver.pointsString)
-        FavoriteStar(isFavorite = isFavorite, onToggle = onToggleFavorite)
     }
 }

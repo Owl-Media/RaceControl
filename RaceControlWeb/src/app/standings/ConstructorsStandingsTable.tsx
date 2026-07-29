@@ -26,7 +26,7 @@ export function ConstructorsStandingsTable({ year }: { year: number }) {
         <tbody className="divide-y divide-border">
           {data.map((t) => (
             <tr key={t.teamId} className="hover:bg-surface/60">
-              <td className="tabular px-3 py-2 text-muted">{t.position ?? "—"}</td>
+              <td className="tabular px-3 py-2 text-muted">{t.position ?? "-"}</td>
               <td className="px-3 py-2 font-medium">
                 <Link href={`/teams/${year}/${t.teamId}`} className="inline-flex items-center gap-2 hover:text-racing-red">
                   <TeamLogo src={t.teamLogoUrl} name={t.teamName} />

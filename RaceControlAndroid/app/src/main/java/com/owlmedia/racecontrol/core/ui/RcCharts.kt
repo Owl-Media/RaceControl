@@ -36,10 +36,10 @@ import kotlinx.coroutines.flow.first
  *
  * The agreed plan called for Vico. This module was written without network
  * access to a dependency resolver, so Vico's API could not be verified against
- * a real artifact — and guessing at a chart library's API produces code that
+ * a real artifact, and guessing at a chart library's API produces code that
  * looks right and does not compile. Every chart this app needs (multi-series
  * lines, a sparkline, stacked horizontal bars) is a few dozen lines of Canvas,
- * and half of them — track maps, stint timelines — were going to be Canvas
+ * and half of them (track maps, stint timelines) were going to be Canvas
  * regardless.
  *
  * Everything here is deliberately behind small composables with plain data
@@ -323,7 +323,7 @@ fun Sparkline(
     }
 }
 
-/** One coloured run inside a [StackedBar] — a tyre stint, or a DNF cause. */
+/** One coloured run inside a [StackedBar]: a tyre stint, or a DNF cause. */
 data class BarSegment(
     val value: Float,
     val color: Color,

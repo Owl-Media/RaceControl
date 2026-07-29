@@ -11,7 +11,7 @@ import javax.inject.Inject
  *
  * Android drops all of an app's alarms on reboot and on app update, and a
  * timezone change invalidates every computed fire time. None of this applies on
- * iOS, where the system keeps scheduled notifications itself — so this receiver
+ * iOS, where the system keeps scheduled notifications itself, so this receiver
  * has no counterpart in the iOS app and is essential here.
  */
 @AndroidEntryPoint

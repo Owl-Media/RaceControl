@@ -233,7 +233,7 @@ private fun RaceHeaderCard(event: RaceEventDto) {
  * Session selector.
  *
  * iOS uses a segmented control, but a sprint weekend can offer six sessions and
- * Material's segmented buttons neither scroll nor read well past about five —
+ * Material's segmented buttons neither scroll nor read well past about five,
  * so this is a scrollable tab row, which is the Material pattern for a variable
  * number of peer views.
  */
@@ -343,7 +343,7 @@ private fun ResultRow(
         Column(horizontalAlignment = Alignment.End) {
             if (isQualifying) {
                 Text(
-                    text = entry.bestQualifyingTime ?: "—",
+                    text = entry.bestQualifyingTime ?: "–",
                     style = MaterialTheme.typography.bodyMedium.tabular(),
                     fontFamily = MonoFamily,
                     fontWeight = FontWeight.SemiBold,

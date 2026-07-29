@@ -10,7 +10,7 @@ export function RetirementsTab({ year, round }: { year: number; round: number })
 
   if (isLoading) return <LoadingState label="Loading retirements…" />;
   if (error) return <ErrorState message="Retirement data isn't available for this race." />;
-  if (!data || data.retirements.length === 0) return <EmptyState message="No retirements — everyone finished." />;
+  if (!data || data.retirements.length === 0) return <EmptyState message="No retirements. Everyone finished." />;
 
   return (
     <ul className="flex flex-col gap-2">
@@ -26,7 +26,7 @@ export function RetirementsTab({ year, round }: { year: number; round: number })
             ) : (
               <p className="truncate font-medium">{r.fullName ?? r.driver}</p>
             )}
-            <p className="truncate text-sm text-muted">{r.teamName ?? "—"}</p>
+            <p className="truncate text-sm text-muted">{r.teamName ?? "-"}</p>
           </div>
           {r.lapsCompleted != null && (
             <span className="tabular shrink-0 text-sm text-muted">Lap {r.lapsCompleted}</span>

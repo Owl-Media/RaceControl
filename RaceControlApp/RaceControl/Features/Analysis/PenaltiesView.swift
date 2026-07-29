@@ -124,7 +124,7 @@ private struct PenaltyRow: View {
                             .foregroundStyle(Theme.Palette.textSecondary)
                     }
                 }
-                Text(penalty.reason ?? penalty.message ?? "—")
+                Text(penalty.reason ?? penalty.message ?? "–")
                     .font(.subheadline)
                     .foregroundStyle(Theme.Palette.textSecondary)
             }

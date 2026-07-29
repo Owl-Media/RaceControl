@@ -10,7 +10,7 @@ export function ProgressChart({ year }: { year: number }) {
 
   const { chartData, drivers } = useMemo(() => {
     if (!data) return { chartData: [], drivers: [] };
-    // Only chart the top 8 by final points — a full 20-driver legend is unreadable.
+    // Only chart the top 8 by final points: a full 20-driver legend is unreadable.
     const top = [...data.drivers].sort((a, b) => b.points - a.points).slice(0, 8);
     const rows = data.rounds.map((round) => {
       const row: Record<string, number | string> = { round };

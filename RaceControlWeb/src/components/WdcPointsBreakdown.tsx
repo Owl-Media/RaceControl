@@ -1,4 +1,4 @@
-// Points on offer per finishing position — the same scale the backend's
+// Points on offer per finishing position: the same scale the backend's
 // `_CONVENTIONAL_POINTS_TOTAL` / `_SPRINT_POINTS_TOTAL` (25+1 / 8+25+1) are
 // built from, shown here so the "max points" and "points still on offer"
 // figures elsewhere aren't just asserted, they're traceable.
@@ -10,7 +10,7 @@ export function WdcPointsBreakdown() {
   return (
     <details className="mt-4 rounded-lg border border-border bg-surface-raised/40 p-3 text-xs text-muted">
       <summary className="cursor-pointer select-none font-medium text-foreground">
-        Points breakdown — where &quot;max points&quot; comes from
+        Points breakdown: where &quot;max points&quot; comes from
       </summary>
       <div className="mt-3 flex flex-col gap-3">
         <div>

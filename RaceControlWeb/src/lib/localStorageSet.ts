@@ -49,7 +49,7 @@ export function useLocalStorageSet(key: string): [Set<string>, (updater: (prev: 
       try {
         window.localStorage.setItem(key, JSON.stringify([...next]));
       } catch {
-        // localStorage unavailable (private mode, etc) — favorites just won't persist.
+        // localStorage unavailable (private mode, etc); favorites just won't persist.
       }
       emit(key);
     },

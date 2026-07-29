@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Renders a circuit outline from the fastest lap's positional trace, with
-/// numbered corner markers — the same data FastF1 uses to draw track maps.
+/// numbered corner markers, the same data FastF1 uses to draw track maps.
 struct CircuitMapView: View {
     let year: Int
     let round: Int
@@ -87,7 +87,7 @@ struct TrackMapDetail: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text("FASTEST LAP (map source)")
                                 .font(.caption2.weight(.bold)).foregroundStyle(Theme.Palette.textSecondary)
-                            Text(fl.driverName ?? fl.driver ?? "—")
+                            Text(fl.driverName ?? fl.driver ?? "–")
                                 .font(.subheadline.weight(.semibold)).foregroundStyle(Theme.Palette.textPrimary)
                         }
                         Spacer()

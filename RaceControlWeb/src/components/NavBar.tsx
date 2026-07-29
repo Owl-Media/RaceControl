@@ -80,7 +80,7 @@ export function NavBar() {
  *
  * `position: fixed` bars are anchored to the browser's viewport, and on
  * Android Chrome that viewport visibly resizes as the address bar
- * shows/hides while scrolling — so a fixed bar appears to grow and shrink
+ * shows/hides while scrolling, so a fixed bar appears to grow and shrink
  * mid-scroll as the browser chrome animates. `position: sticky` on the last
  * element of a full-height flex column avoids that entirely: it's pinned by
  * normal document flow rather than by viewport math, so it stays a fixed

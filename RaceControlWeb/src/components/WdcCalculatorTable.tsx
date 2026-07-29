@@ -12,7 +12,7 @@ const CAN_WIN_COLOR = "#22c55e";
 
 /**
  * Full "who can still win the WDC" table for the Standings page's Title
- * Decider tab — formatted like the other data tables in the app (Results,
+ * Decider tab, formatted like the other data tables in the app (Results,
  * Qualifying) with column headers, rather than the dashboard card's compact
  * row-list, since this is the detail view rather than a preview.
  *
@@ -33,13 +33,13 @@ export function WdcCalculatorTable({ year }: { year: number }) {
       <p className="mb-1 text-sm text-muted">
         {data.decided
           ? data.roundsRemaining === 0
-            ? "Season complete — the title is decided."
-            : "Mathematically settled — only the leader can still win."
+            ? "Season complete. The title is decided."
+            : "Mathematically settled. Only the leader can still win."
           : `${data.roundsRemaining} round${data.roundsRemaining === 1 ? "" : "s"} left · up to ${data.maxRemainingPoints} points still on offer · ${canWinCount} driver${canWinCount === 1 ? "" : "s"} can still win`}
       </p>
       <p className="mb-4 text-xs text-muted/70">
-        &quot;Can win&quot; is the best-case ceiling — winning every remaining session while the leader
-        scores nothing else — not a realistic forecast.
+        &quot;Can win&quot; is the best-case ceiling (winning every remaining session while the leader
+        scores nothing else), not a realistic forecast.
       </p>
 
       <div className="overflow-x-auto rounded-lg border border-border">
@@ -71,21 +71,21 @@ export function WdcCalculatorTable({ year }: { year: number }) {
 function WdcTableRow({ driver: d, year }: { driver: WdcDriver; year: number }) {
   return (
     <tr className="hover:bg-surface/60">
-      <td className="tabular px-3 py-2 text-muted">{d.position ?? "—"}</td>
+      <td className="tabular px-3 py-2 text-muted">{d.position ?? "-"}</td>
       <td className="px-3 py-2 font-medium">
         {d.driverId ? (
           <Link href={`/drivers/${year}/${d.driverId}`} className="hover:text-racing-red">
             {d.givenName} {d.familyName}
           </Link>
         ) : (
-          `${d.givenName ?? ""} ${d.familyName ?? ""}`.trim() || "—"
+          `${d.givenName ?? ""} ${d.familyName ?? ""}`.trim() || "-"
         )}
       </td>
       <td className="px-3 py-2 text-muted">
         <span className="inline-flex items-center gap-2">
           <TeamColorDot color={d.teamColor} />
           <TeamLogo src={d.teamLogoUrl} name={d.teamName} sizeClassName="h-4 w-4" />
-          {d.teamName ?? "—"}
+          {d.teamName ?? "-"}
         </span>
       </td>
       <td className="tabular px-3 py-2 text-right font-semibold">{d.points}</td>
@@ -99,7 +99,7 @@ function WdcTableRow({ driver: d, year }: { driver: WdcDriver; year: number }) {
 }
 
 /**
- * A custom hover tooltip rather than the native `title` attribute — `title`
+ * A custom hover tooltip rather than the native `title` attribute: `title`
  * on an element nested inside a link/row is unreliable across browsers, so
  * this renders its own, which shows immediately and consistently.
  */

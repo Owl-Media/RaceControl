@@ -3,13 +3,13 @@ import Security
 
 /// Minimal Keychain wrapper for the API token.
 ///
-/// Secrets belong in the Keychain, not UserDefaults — UserDefaults is a plist
+/// Secrets belong in the Keychain, not UserDefaults; UserDefaults is a plist
 /// that's trivially readable from a backup or a jailbroken device.
 enum Keychain {
     private static let service = "com.owlmedia.racecontrol"
 
     static func set(_ value: String, for account: String) {
-        // Clear any existing entry first — SecItemAdd fails on duplicates.
+        // Clear any existing entry first: SecItemAdd fails on duplicates.
         delete(account)
         guard !value.isEmpty, let data = value.data(using: .utf8) else { return }
         let query: [String: Any] = [

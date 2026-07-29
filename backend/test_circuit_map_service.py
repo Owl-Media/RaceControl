@@ -7,9 +7,9 @@ polygon on some circuits (Hungaroring, reported by a user) while others
 low-frequency (~3.7Hz) position channel onto the much higher-frequency car
 channel, holding each position sample across many rows until the next real
 update. The old code downsampled by taking every Nth *row* (uniform in
-time), which over-samples those held/duplicate stretches — worse on tracks
+time), which over-samples those held/duplicate stretches (worse on tracks
 with more slow corners, where the car dwells at nearly the same X/Y for
-longer — and under-samples the transitions between them, drawing straight
+longer) and under-samples the transitions between them, drawing straight
 edges through what should be curves.
 
 The fix resamples at fixed steps of *distance* along the lap instead, which
@@ -130,7 +130,7 @@ def _long_lap_telemetry(length_m=4400.0, raw_rows=6000):
 def test_point_density_scales_with_track_length(monkeypatch):
     # A realistic ~4.4km lap should get noticeably more than the old fixed
     # 350-point budget, since 350 points over that distance (~12.5m/sample)
-    # is too coarse to resolve a short, tight corner — this is what left
+    # is too coarse to resolve a short, tight corner; this is what left
     # corners looking like sharp polygon vertices even after the distance-
     # uniform resampling fix, until the point count itself was raised too.
     session = _stub_session(_long_lap_telemetry())
@@ -182,7 +182,7 @@ def test_distinct_xy_count_ignores_held_duplicate_rows():
 def test_falls_back_from_sparse_fastest_lap_to_richer_lap(monkeypatch):
     # The fastest lap has a degraded position trace (20 distinct samples);
     # another lap has a healthy one. The outline must come from the healthy
-    # lap, not the fastest — otherwise corners render as polygon vertices.
+    # lap, not the fastest, otherwise corners render as polygon vertices.
     sparse = _FakeLap(_polygon_telemetry(vertices=20))
     rich = _FakeLap(_circle_telemetry(samples=1200))
 

@@ -55,7 +55,7 @@ function PenaltyRow({ year, penalty: p }: { year: number; penalty: Penalty }) {
           ) : (
             <p className="truncate font-medium">{p.driverName ?? p.driverCode ?? "Unknown driver"}</p>
           )}
-          <p className="truncate text-sm text-muted">{p.teamName ?? "—"}</p>
+          <p className="truncate text-sm text-muted">{p.teamName ?? "-"}</p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span className="tabular text-xs text-muted">
@@ -70,7 +70,7 @@ function PenaltyRow({ year, penalty: p }: { year: number; penalty: Penalty }) {
           </span>
         </div>
       </div>
-      <p className="text-sm text-foreground">{p.reason ?? p.message ?? "—"}</p>
+      <p className="text-sm text-foreground">{p.reason ?? p.message ?? "-"}</p>
     </li>
   );
 }

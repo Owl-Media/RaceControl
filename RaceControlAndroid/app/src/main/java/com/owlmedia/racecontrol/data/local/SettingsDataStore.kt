@@ -40,7 +40,7 @@ class SettingsDataStore @Inject constructor(
 
     companion object {
         /**
-         * The emulator's alias for the host machine — the Android counterpart of
+         * The emulator's alias for the host machine, the Android counterpart of
          * what `localhost` does for the iOS Simulator. A physical device needs
          * the machine's LAN address, set in Settings.
          */

@@ -68,7 +68,7 @@ class BaseUrlInterceptor @Inject constructor(
 /**
  * Adds the bearer token when one is configured.
  *
- * The token comes from [TokenProvider] — [CompositeTokenProvider] in
+ * The token comes from [TokenProvider], [CompositeTokenProvider] in
  * practice, which prefers a manual Settings token and otherwise falls back to
  * a Play Integrity-verified JWT. Requests with neither configured go out
  * unauthenticated, which is what a local `./run.sh` backend with no auth
@@ -115,7 +115,7 @@ class AuthInterceptor @Inject constructor(
  * Where the bearer token comes from.
  *
  * [CompositeTokenProvider] is what's actually bound to this interface (see
- * AppModule) — it prefers a manually-entered token when one is set, and
+ * AppModule): it prefers a manually-entered token when one is set, and
  * otherwise falls back to Play Integrity, mirroring how the iOS app prefers
  * an admin token and otherwise falls back to an App Attest assertion.
  */

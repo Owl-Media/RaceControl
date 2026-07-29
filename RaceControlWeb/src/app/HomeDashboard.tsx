@@ -28,13 +28,13 @@ export function HomeDashboard({ defaultYear }: { defaultYear: number }) {
   const { data: events, error: scheduleError, isLoading: scheduleLoading } = useSchedule(year);
   const { data: driverStandings, isLoading: driversLoading } = useDriverStandings(year);
   const { data: constructorStandings, isLoading: constructorsLoading } = useConstructorStandings(year);
-  // Ergast-derived standings carry no team colour (Ergast doesn't have one) —
+  // Ergast-derived standings carry no team colour (Ergast doesn't have one);
   // borrow it from the FastF1-backed drivers list, which is fetched for this
   // page anyway, rather than adding a backend merge just for a bar colour.
   const { data: drivers } = useDrivers(year);
   const { favoriteDrivers, favoriteTeams } = useFavorites();
 
-  // The headline race is always the most recently completed one — full
+  // The headline race is always the most recently completed one: full
   // results, podium, and weather are only available after a race has run.
   const lastRace = useMemo(() => {
     const races = (events ?? []).filter((e) => e.round > 0 && e.completed).sort((a, b) => a.round - b.round);
@@ -82,7 +82,7 @@ export function HomeDashboard({ defaultYear }: { defaultYear: number }) {
     position: t.position,
     logoUrl: t.teamLogoUrl,
     logoName: t.teamName,
-    label: t.teamName ?? "—",
+    label: t.teamName ?? "-",
     points: t.points ?? 0,
     color: teamColorById.get(t.teamId) ?? null,
   }));
@@ -187,7 +187,7 @@ function MostRecentRaceCard({
               <WeatherSummary weather={weather} isLoading={weatherLoading} />
               {circuitLoading && (
                 <p className="mt-2 max-w-xs text-xs text-muted/70">
-                  First load can take up to a minute while race data is fetched fresh — it&apos;s cached and much
+                  First load can take up to a minute while race data is fetched fresh; it&apos;s cached and much
                   faster after that.
                 </p>
               )}
@@ -355,7 +355,7 @@ function FavoritesStrip({
             <span className="font-medium">
               {d.givenName} {d.familyName}
             </span>
-            <span className="tabular text-muted">P{d.position ?? "—"}</span>
+            <span className="tabular text-muted">P{d.position ?? "-"}</span>
           </Link>
         ))}
         {teams.map((t) => (
@@ -366,7 +366,7 @@ function FavoritesStrip({
           >
             <TeamLogo src={t.teamLogoUrl} name={t.teamName} sizeClassName="h-4 w-4" />
             <span className="font-medium">{t.teamName}</span>
-            <span className="tabular text-muted">P{t.position ?? "—"}</span>
+            <span className="tabular text-muted">P{t.position ?? "-"}</span>
           </Link>
         ))}
       </div>

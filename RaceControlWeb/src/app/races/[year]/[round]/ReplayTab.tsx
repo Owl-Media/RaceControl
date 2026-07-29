@@ -19,7 +19,7 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
   const { data, error, isLoading } = useReplay(year, round);
   // The track outline and the car positions are separate requests from the
   // replay itself and resolve later, so their loading state has to be passed
-  // down — otherwise the map reports "no data" during its own fetch.
+  // down, otherwise the map reports "no data" during its own fetch.
   const { data: circuit, isLoading: circuitLoading } = useCircuitMap(year, round);
   const { data: positions, isLoading: positionsLoading } = useReplayPositions(year, round);
   const [lapIndex, setLapIndex] = useState(0);
@@ -28,7 +28,7 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
   // its own column and is always shown.
   const [mapCollapsed, setMapCollapsed] = useLocalStorageFlag("replay:map-collapsed", false);
   // `mapCollapsed` only actually hides the map below `lg` (see the `hidden
-  // lg:block` class below) — on desktop it's always visible regardless. The
+  // lg:block` class below); on desktop it's always visible regardless. The
   // map runs a per-frame animation loop while playing, so this tells it
   // whether it's really on screen and worth animating, rather than always
   // running that loop even while CSS-hidden on a phone.
@@ -158,7 +158,7 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
                       title={entry.compound}
                     />
                   )}
-                  <span className="tabular w-20 shrink-0 text-right text-sm text-muted">{entry.lapTime ?? "—"}</span>
+                  <span className="tabular w-20 shrink-0 text-right text-sm text-muted">{entry.lapTime ?? "-"}</span>
                 </motion.li>
               ))}
             </AnimatePresence>

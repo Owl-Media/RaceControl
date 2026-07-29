@@ -34,18 +34,18 @@ export default async function TeamDetailPage({
         <TeamLogo src={team.teamLogoUrl} name={team.teamName} sizeClassName="h-10 w-10" />
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold">{team.teamName}</h1>
-          <p className="text-sm text-muted">{team.nationality ?? "—"}</p>
+          <p className="text-sm text-muted">{team.nationality ?? "-"}</p>
         </div>
         <div className="text-right">
           <p className="tabular text-2xl font-bold">{team.points ?? 0}</p>
-          <p className="text-xs uppercase tracking-wide text-muted">pts · P{team.position ?? "—"} · {team.wins ?? 0} wins</p>
+          <p className="text-xs uppercase tracking-wide text-muted">pts · P{team.position ?? "-"} · {team.wins ?? 0} wins</p>
         </div>
         <TeamFavoriteButton teamId={team.teamId} name={team.teamName ?? teamId} />
       </div>
 
       <h2 className="mb-3 text-lg font-semibold">Drivers</h2>
 
-      {/* Who's actually carried the team, at a glance — a driver list alone
+      {/* Who's actually carried the team, at a glance: a driver list alone
           doesn't show whether points are split evenly or one driver is doing
           most of the scoring. */}
       <DriverPointsBreakdown drivers={team.drivers} teamColor={team.teamColor} />
@@ -61,7 +61,7 @@ export default async function TeamDetailPage({
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{d.name}</p>
                 <p className="text-sm text-muted">
-                  {d.code ?? "—"} · #{d.number ?? "—"}
+                  {d.code ?? "-"} · #{d.number ?? "-"}
                 </p>
               </div>
               <span className="tabular shrink-0 text-sm font-semibold">{d.points ?? 0} pts</span>

@@ -195,7 +195,7 @@ class SessionReminderScheduler @Inject constructor(
     }
 
     /**
-     * Alarm ids are tracked in plain prefs so they can be cancelled later —
+     * Alarm ids are tracked in plain prefs so they can be cancelled later:
      * AlarmManager offers no way to enumerate what an app has scheduled.
      */
     private fun storeScheduledIds(ids: List<Int>) {

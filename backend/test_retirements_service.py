@@ -69,8 +69,8 @@ def test_is_finish_status_trusts_classified_position_over_status_text():
 def test_lapped_classified_finishers_excluded_from_retirements(monkeypatch):
     rows = [
         _row("VER", "Finished", "1"),
-        _row("HAM", "+ 1 Lap", "14"),         # lapped but classified — not a retirement
-        _row("LEC", "Lapped", "18"),          # odd status text, still classified — not a retirement
+        _row("HAM", "+ 1 Lap", "14"),         # lapped but classified, not a retirement
+        _row("LEC", "Lapped", "18"),          # odd status text, still classified, not a retirement
         _row("PER", "Accident", "R"),         # genuine retirement
         _row("SAI", "Gearbox", "R"),          # genuine retirement
         _row("ALO", "Disqualified", "D"),     # genuine retirement (DSQ)
@@ -100,7 +100,7 @@ def test_retirements_include_laps_completed(monkeypatch):
 
 
 def test_laps_completed_absent_when_lap_data_unavailable(monkeypatch):
-    # No laps dataframe entries for these drivers — should degrade to None
+    # No laps dataframe entries for these drivers; should degrade to None
     # rather than erroring or fabricating a number.
     rows = [_row("PER", "Accident", "R", number="11")]
     session = _stub_session(rows)  # no laps_by_number given

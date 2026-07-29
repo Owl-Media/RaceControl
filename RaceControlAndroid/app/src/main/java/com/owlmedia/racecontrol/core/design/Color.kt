@@ -12,11 +12,11 @@ import androidx.compose.ui.graphics.luminance
  * avoids the smearing OLED panels show when scrolling true black.
  */
 object RcPalette {
-    /** Signature Formula 1 red. Fills, tints and large text only — at 3.6:1 on
+    /** Signature Formula 1 red. Fills, tints and large text only; at 3.6:1 on
      *  surface it fails WCAG AA for small text. */
     val RacingRed = Color(0xFFE10600)
     val RacingRedDim = Color(0xFFB00500)
-    /** Lighter red for *small* text (5.9:1 on surface — passes AA). */
+    /** Lighter red for *small* text (5.9:1 on surface, passes AA). */
     val RacingRedText = Color(0xFFFF5A50)
 
     val Background = Color(0xFF0A0A0C)
@@ -24,7 +24,7 @@ object RcPalette {
     val SurfaceElevated = Color(0xFF202027)
     val Stroke = Color.White.copy(alpha = 0.08f)
 
-    // Contrast on surface (#16161A): 16.2:1 / 7.0:1 / 5.3:1 — all pass WCAG AA.
+    // Contrast on surface (#16161A): 16.2:1 / 7.0:1 / 5.3:1, all pass WCAG AA.
     val TextPrimary = Color(0xFFF2F2F5)
     val TextSecondary = Color(0xFFA0A0AA)
     val TextTertiary = Color(0xFF8A8A94)

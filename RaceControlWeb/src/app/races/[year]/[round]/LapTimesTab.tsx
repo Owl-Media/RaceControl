@@ -29,7 +29,7 @@ export function LapTimesTab({ year, round }: { year: number; round: number }) {
     return { chartData: Object.values(rows), drivers: data.drivers, median: med };
   }, [data]);
 
-  // Selecting every driver by default makes the chart an unreadable tangle —
+  // Selecting every driver by default makes the chart an unreadable tangle;
   // start with just the first 3 shown (typically the leaders) and let the
   // driver chips below adjust from there. Only runs once per mount (guarded
   // by the ref) so it doesn't fight the user's own toggling afterward.

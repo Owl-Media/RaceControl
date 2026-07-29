@@ -77,7 +77,7 @@ private val RcDarkScheme = darkColorScheme(
  *
  * Deliberately **dark-only and not dynamically coloured**. Material You would
  * derive the palette from the user's wallpaper, which would collide with the
- * official F1 team and tyre colours the app uses to convey meaning — a green
+ * official F1 team and tyre colours the app uses to convey meaning: a green
  * "soft" tyre is simply wrong. This is a documented deviation from the Material
  * default (see docs/FEATURES.md §0).
  *

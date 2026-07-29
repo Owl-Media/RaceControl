@@ -15,6 +15,7 @@ struct SettingsView: View {
     @State private var tokenDraft: String = ""
     @State private var status: ConnectionStatus = .unknown
     @State private var permissionDenied = false
+    @State private var devBackendDraft: String = ""
 
     private var appAttestSupported: Bool { DCAppAttestService.shared.isSupported }
 
@@ -43,7 +44,7 @@ struct SettingsView: View {
                     Text("Security")
                 } footer: {
                     Text(appAttestSupported
-                        ? "This device authenticates to the backend automatically using Apple App Attest — no key needed."
+                        ? "This device authenticates to the backend automatically using Apple App Attest, no key needed."
                         : "App Attest isn't available here (it doesn't run in the Simulator). Use the admin token below to reach a secured backend.")
                 }
 
@@ -56,6 +57,27 @@ struct SettingsView: View {
                     Text("Admin Token")
                 } footer: {
                     Text("Optional break-glass credential matching the server's API_TOKEN. Overrides App Attest when set. Stored in the device Keychain.")
+                }
+
+                Section {
+                    TextField("http://localhost:8000", text: $devBackendDraft)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .keyboardType(.URL)
+                        .font(.system(.body, design: .monospaced))
+                    LabeledContent("Currently using") {
+                        Text(AppConfig.isUsingProduction ? "Production" : AppConfig.apiBaseURL.absoluteString)
+                            .foregroundStyle(AppConfig.isUsingProduction ? Theme.Palette.textSecondary : Theme.Palette.warning)
+                    }
+                } header: {
+                    Text("Dev Backend (Advanced)")
+                } footer: {
+                    Text("""
+                    Point the app at a backend running on your own machine instead of production, e.g. `./run.sh`'s \
+                    http://localhost:8000 from the Simulator, or your Mac's LAN IP (e.g. http://192.168.1.23:8000) \
+                    from a physical device, since "localhost" there means the phone itself. Leave blank to use \
+                    production. Requires HTTP to a private/local address, which Info.plist explicitly allows.
+                    """)
                 }
 
                 Section {
@@ -121,12 +143,14 @@ struct SettingsView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
                         Keychain.apiToken = tokenDraft.trimmingCharacters(in: .whitespaces)
+                        AppConfig.setDevBackendOverride(devBackendDraft)
                         dismiss()
                     }.fontWeight(.semibold)
                 }
             }
             .onAppear {
                 tokenDraft = Keychain.apiToken
+                devBackendDraft = AppConfig.devBackendOverrideRaw
             }
         }
     }
@@ -150,7 +174,17 @@ struct SettingsView: View {
     private func test() async {
         status = .checking
         let token = tokenDraft.trimmingCharacters(in: .whitespaces)
-        let baseURL = AppConfig.apiBaseURL
+        // Test against the URL as currently typed, not the last *saved*
+        // override; otherwise "Test Connection" silently checks the old
+        // backend while you're mid-edit, which is exactly the kind of
+        // confusing mismatch this screen exists to catch.
+        let draftURL = devBackendDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let baseURL: URL
+        if !draftURL.isEmpty, let url = URL(string: draftURL), url.scheme != nil, url.host != nil {
+            baseURL = url
+        } else {
+            baseURL = AppConfig.apiBaseURL
+        }
         let healthURL = baseURL.appending(path: "api/health")
         let authURL = baseURL.appending(path: "api/seasons")
         do {

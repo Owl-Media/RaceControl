@@ -63,7 +63,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 /**
- * Coarser buckets than [RaceControlCategory] for the filter row — car events
+ * Coarser buckets than [RaceControlCategory] for the filter row: car events
  * and stewards' messages both read as "an incident happened", so splitting
  * them into separate chips would just add width without adding clarity.
  */
@@ -106,7 +106,7 @@ class RaceControlViewModel @Inject constructor(
 }
 
 /**
- * The complete, unfiltered race-control message log for a race — DRS, car
+ * The complete, unfiltered race-control message log for a race: DRS, car
  * events and "Other" stewards' messages (investigations, penalties,
  * reprimands) alongside the flag/safety-car messages [FlagsScreen] already
  * shows. Complementary to Flags rather than a superset view of it: Flags
@@ -215,7 +215,7 @@ private fun categoryIcon(category: RaceControlCategory): ImageVector = when (cat
 
 /**
  * Colour accent for a row. Only Flag/SafetyCar rows get one of the five
- * [FlagStyle] colours — matching the palette [FlagsScreen] already uses for
+ * [FlagStyle] colours, matching the palette [FlagsScreen] already uses for
  * the same underlying flag text, so a user who has seen both screens reads
  * "yellow" the same way in either. DRS/car-event/other rows use a neutral
  * tint instead: they are not part of the flag vocabulary.
@@ -289,7 +289,7 @@ private fun RaceControlMessageRow(message: RaceControlMessageDto) {
                 }
             }
             Text(
-                text = message.message ?: message.flag ?: "—",
+                text = message.message ?: message.flag ?: "–",
                 style = MaterialTheme.typography.bodyMedium,
                 color = RcTheme.colors.textPrimary,
                 modifier = Modifier.padding(top = 2.dp),

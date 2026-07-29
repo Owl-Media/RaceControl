@@ -296,7 +296,7 @@ fun TrackMapScreen(
                     )
                 }
                 Text(
-                    text = "Coloured by speed — red is slowest, green fastest. " +
+                    text = "Coloured by speed: red is slowest, green fastest. " +
                         "Blue marks the DRS zones.",
                     style = MaterialTheme.typography.bodySmall,
                     color = RcTheme.colors.textTertiary,

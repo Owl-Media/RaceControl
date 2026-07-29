@@ -4,7 +4,7 @@ Offline tests for `fastf1_service._lap_telemetry` (used by `get_telemetry` /
 
 Regression coverage for a real bug: the telemetry mini-map (TelemetryMiniMap.tsx)
 drew a visibly jagged track outline, the same symptom already root-caused and
-fixed for the circuit map (test_circuit_map_service.py) — `lap.get_telemetry()`
+fixed for the circuit map (test_circuit_map_service.py): `lap.get_telemetry()`
 merges the low-frequency (~3.7Hz) position channel onto the much higher-
 frequency car-data channel, holding each position sample across many rows
 until the next real update. The old code downsampled by taking every Nth
@@ -123,7 +123,7 @@ def test_distance_is_evenly_spaced():
 
 def _held_position_telemetry(vertices=20, rows_per_vertex=250, length_m=4400.0):
     """A circular lap whose *position* channel only genuinely updates
-    `vertices` times, each value held across many rows — what the merged
+    `vertices` times, each value held across many rows: what the merged
     pos/car-data frame actually looks like. Speed etc. still vary per row."""
     xs, ys = [], []
     for v in range(vertices):
@@ -149,7 +149,7 @@ def _held_position_telemetry(vertices=20, rows_per_vertex=250, length_m=4400.0):
 def test_held_position_samples_do_not_render_as_a_polygon():
     # Regression: interpolating X/Y straight against distance reproduces the
     # held plateaus as a staircase, so the resampled trace sits on ~20
-    # straight lines with sharp joints — a polygon the frontend can't smooth
+    # straight lines with sharp joints: a polygon the frontend can't smooth
     # away. Deduping to genuine position updates first should instead give a
     # trace that stays close to the true circular racing line.
     lap = _FakeLapRow(_held_position_telemetry(vertices=20))
@@ -163,12 +163,12 @@ def test_held_position_samples_do_not_render_as_a_polygon():
     # values reproduces the step function, so nearly every resampled point
     # lands exactly on one of the 20 vertices (measured: 22 distinct points
     # out of 550). Deduping first spreads them along the chords instead
-    # (measured: 523 of 550). Radius alone does not separate the two cases —
+    # (measured: 523 of 550). Radius alone does not separate the two cases:
     # a staircase actually scores *better* on it, since sitting on a vertex
     # means sitting exactly on the true racing line.
     distinct = len(np.unique(np.column_stack([np.round(xs, 1), np.round(ys, 1)]), axis=0))
     assert distinct > len(xs) * 0.8, (
-        f"only {distinct} distinct positions out of {len(xs)} — "
+        f"only {distinct} distinct positions out of {len(xs)}, "
         "the trace collapsed back onto a polygon"
     )
 

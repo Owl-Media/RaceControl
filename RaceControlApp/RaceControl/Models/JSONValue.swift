@@ -110,10 +110,23 @@ enum ISO8601 {
 
     /// Clock time in the device's local timezone, with the offset appended
     /// (e.g. "1:20:00 PM GMT+1") so it's never ambiguous which zone is being
-    /// shown — race-control timestamps come from the timing feed in UTC, but
+    /// shown: race-control timestamps come from the timing feed in UTC, but
     /// a race can be happening in any timezone, and the viewer is in another.
+    private static let clockWithZoneFormatter: DateFormatter = {
+        let f = DateFormatter()
+        // `Date.FormatStyle`'s field builders don't expose a timezone-name
+        // modifier (there's no `.timeZoneName` on it; that was never a real
+        // API), so this uses the older `DateFormatter` template API instead,
+        // which does support one via the "zzz" pattern. Template-based rather
+        // than a fixed "h:mm:ss a zzz" string so 12h/24h formatting still
+        // follows the user's locale. Time zone defaults to the device's
+        // current zone, which is what "local timezone" means here.
+        f.setLocalizedDateFormatFromTemplate("hmmss zzz")
+        return f
+    }()
+
     static func clockWithZone(_ string: String?) -> String? {
         guard let date = flexible(string) else { return nil }
-        return date.formatted(.dateTime.hour().minute().second().timeZoneName(.short))
+        return clockWithZoneFormatter.string(from: date)
     }
 }

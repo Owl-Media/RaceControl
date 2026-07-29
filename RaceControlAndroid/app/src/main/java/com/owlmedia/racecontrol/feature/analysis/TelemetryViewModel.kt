@@ -57,13 +57,13 @@ class TelemetryViewModel @Inject constructor(
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
     // Badges the "Safety Car (lap 20)" banner on the currently-viewed lap. A
-    // failed fetch just means no badge shows — telemetry itself still works.
+    // failed fetch just means no badge shows; telemetry itself still works.
     private val _flagPeriods = MutableStateFlow<List<FlagPeriodDto>>(emptyList())
     val flagPeriods: StateFlow<List<FlagPeriodDto>> = _flagPeriods.asStateFlow()
 
     // Reuses the lap-times endpoint purely as a source of "which laps exist for
     // this driver, with what time/compound" so the lap picker has something to
-    // list — this screen doesn't otherwise touch lap-time evolution.
+    // list; this screen doesn't otherwise touch lap-time evolution.
     private val _lapsByDriver = MutableStateFlow<Map<String, LapTimeDriverDto>>(emptyMap())
     val lapsByDriver: StateFlow<Map<String, LapTimeDriverDto>> = _lapsByDriver.asStateFlow()
 
@@ -90,7 +90,7 @@ class TelemetryViewModel @Inject constructor(
             repository.flags(year, round).onSuccess { _flagPeriods.value = it.periods }
         }
         // Supplementary, like flags: a failed fetch just means the lap picker
-        // only offers "Fastest" — telemetry itself still works.
+        // only offers "Fastest"; telemetry itself still works.
         viewModelScope.launch {
             repository.lapTimes(year, round).onSuccess { data ->
                 _lapsByDriver.value = data.drivers.associateBy { it.code }

@@ -48,7 +48,7 @@ import com.owlmedia.racecontrol.feature.circuits.TrackMap
  * Turns a completed race into a hub of deep-dives.
  *
  * A three-column grid inside an already-scrolling column, so this is a plain
- * Column of Rows rather than a LazyVerticalGrid — nesting a lazy grid in a
+ * Column of Rows rather than a LazyVerticalGrid: nesting a lazy grid in a
  * scrollable parent is both an error and unnecessary for ten fixed items.
  */
 @Composable

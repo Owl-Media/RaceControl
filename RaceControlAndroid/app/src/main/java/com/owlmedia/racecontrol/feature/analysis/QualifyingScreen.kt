@@ -188,7 +188,7 @@ private fun QualifyingRow(entry: ResultEntryDto, poleMillis: Long?) {
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = best ?: "—",
+                text = best ?: "–",
                 style = MaterialTheme.typography.bodyMedium.tabular(),
                 fontFamily = MonoFamily,
                 fontWeight = FontWeight.SemiBold,

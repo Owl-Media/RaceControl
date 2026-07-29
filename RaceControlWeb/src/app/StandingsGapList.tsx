@@ -16,7 +16,7 @@ export interface GapRow {
 }
 
 /**
- * A ranked list with a gap-to-leader bar per row — inspired by the reference
+ * A ranked list with a gap-to-leader bar per row, inspired by the reference
  * "gap" chart the user shared: rather than just listing points, each row's
  * bar fills proportionally to how close that entry is to the season leader,
  * so the size of the championship gap is visible at a glance instead of
@@ -58,7 +58,7 @@ export function StandingsGapList({
                   href={r.href}
                   className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5 transition-colors hover:bg-surface-raised"
                 >
-                  <span className="tabular w-5 shrink-0 text-sm font-bold text-muted">{r.position ?? "—"}</span>
+                  <span className="tabular w-5 shrink-0 text-sm font-bold text-muted">{r.position ?? "-"}</span>
                   <TeamLogo src={r.logoUrl} name={r.logoName} sizeClassName="h-5 w-5" />
                   <span className="w-20 shrink-0 truncate text-sm font-medium sm:w-32">{r.label}</span>
                   <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-raised">

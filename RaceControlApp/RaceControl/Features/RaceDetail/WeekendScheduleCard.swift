@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// The full session schedule for a race weekend — FP1/2/3, Sprint sessions,
-/// Qualifying and the Race — with each start time shown in the device's local
+/// The full session schedule for a race weekend (FP1/2/3, Sprint sessions,
+/// Qualifying and the Race) with each start time shown in the device's local
 /// timezone. Works for past and upcoming events.
 struct WeekendScheduleCard: View {
     let event: RaceEvent

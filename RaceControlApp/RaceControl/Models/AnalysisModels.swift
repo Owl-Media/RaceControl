@@ -189,7 +189,7 @@ struct FlagEvent: Codable, Identifiable, Hashable {
     var id: String { "\(time ?? "-")|\(lap ?? -1)|\(category ?? "")|\(flag ?? "")|\(message ?? "")" }
 }
 
-/// A collapsed lap range during which a flag/safety-car condition was active —
+/// A collapsed lap range during which a flag/safety-car condition was active:
 /// used to band the lap-based charts (`YELLOW`, `DOUBLE_YELLOW`, `RED`, `SC`, `VSC`).
 struct FlagPeriod: Codable, Identifiable, Hashable {
     let type: String
@@ -214,7 +214,7 @@ struct RaceControlResponse: Codable {
     let messages: [RaceControlMessage]
 }
 
-/// A single race-control message from the complete, unfiltered timeline —
+/// A single race-control message from the complete, unfiltered timeline:
 /// flags, safety-car, DRS, car events and "other" (investigations, penalties).
 struct RaceControlMessage: Codable, Identifiable, Hashable {
     let time: String?
@@ -320,6 +320,38 @@ struct EvolutionDriver: Codable, Identifiable, Hashable {
 struct EvolutionPoint: Codable, Hashable {
     let round: Int
     let points: Double
+}
+
+// MARK: - WDC calculator
+
+struct WdcCalculator: Codable {
+    let year: Int
+    let roundsRemaining: Int
+    let sprintRoundsRemaining: Int
+    let maxRemainingPoints: Int
+    let leaderPoints: Double
+    let decided: Bool
+    let drivers: [WdcDriverEntry]
+}
+
+struct WdcDriverEntry: Codable, Identifiable {
+    let position: Int?
+    let driverId: String?
+    let driverCode: String?
+    let givenName: String?
+    let familyName: String?
+    let teamName: String?
+    let teamId: String?
+    let teamLogoUrl: String?
+    let teamColor: String?
+    let headshotUrl: String?
+    let points: Double
+    let maxPoints: Double
+    let pointsBehindLeader: Double
+    let canWin: Bool
+
+    var id: String { driverId ?? driverCode ?? "\(position ?? 0)" }
+    var fullName: String { [givenName, familyName].compactMap { $0 }.joined(separator: " ") }
 }
 
 // MARK: - Head-to-head compare

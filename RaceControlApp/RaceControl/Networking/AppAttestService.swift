@@ -2,7 +2,7 @@ import Foundation
 import DeviceCheck
 import CryptoKit
 
-/// Authenticates the app to the backend using Apple App Attest — the App Store
+/// Authenticates the app to the backend using Apple App Attest, the App Store
 /// way to prove requests come from a genuine, unmodified copy of this app on a
 /// real Apple device, with no user-visible API key.
 ///
@@ -11,7 +11,7 @@ import CryptoKit
 ///     attestation for a short-lived JWT (`/attest/verify`).
 ///   • Thereafter: reuse the cached JWT; when it nears expiry, sign a fresh
 ///     challenge with the same key (an assertion) to mint a new JWT
-///     (`/attest/token`) — cheap, no re-attestation.
+///     (`/attest/token`): cheap, no re-attestation.
 ///   • If the server forgets the key (409), transparently re-attest.
 ///
 /// App Attest is unavailable in the Simulator and on very old devices; in that
@@ -48,7 +48,7 @@ actor AppAttestService {
         return result
     }
 
-    /// Called by the networking layer on a 401 — drops the cached token so the
+    /// Called by the networking layer on a 401: drops the cached token so the
     /// next request re-mints one.
     func invalidateToken() {
         cachedToken = nil
@@ -98,7 +98,7 @@ actor AppAttestService {
             ]
             return try await post("attest/token", body: body, baseURL: baseURL)
         } catch AttestServiceError.serverRejectedKey {
-            // Server lost our key — forget it so we re-attest.
+            // Server lost our key; forget it so we re-attest.
             storedKeyId = nil
             return nil
         }

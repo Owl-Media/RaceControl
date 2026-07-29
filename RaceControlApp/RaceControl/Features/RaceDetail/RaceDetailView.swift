@@ -152,7 +152,7 @@ private struct ResultRow: View {
     @ViewBuilder private var trailing: some View {
         VStack(alignment: .trailing, spacing: 2) {
             if isQualifying {
-                Text(entry.q3 ?? entry.q2 ?? entry.q1 ?? "—")
+                Text(entry.q3 ?? entry.q2 ?? entry.q1 ?? "–")
                     .font(.system(.subheadline, design: .monospaced).weight(.semibold))
                     .foregroundStyle(Theme.Palette.textPrimary)
             } else {
@@ -176,7 +176,7 @@ private struct ResultRow: View {
            entry.timeMs == nil {
             return status // DNF, +1 Lap, Accident, etc.
         }
-        guard let ms = entry.timeMs else { return entry.status ?? "—" }
+        guard let ms = entry.timeMs else { return entry.status ?? "–" }
         if entry.position == 1 {
             return format(ms: ms, leading: true)
         }

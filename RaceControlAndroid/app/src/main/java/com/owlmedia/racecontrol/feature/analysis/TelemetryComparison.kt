@@ -124,7 +124,7 @@ private fun CompareLine(label: String, valueA: String, valueB: String) {
     }
 }
 
-/** Share of the lap spent at 99%+ throttle — a decent proxy for track layout. */
+/** Share of the lap spent at 99%+ throttle: a decent proxy for track layout. */
 private fun TelemetryTraceDto.fullThrottlePercent(): String {
     if (throttle.isEmpty()) return "–"
     val full = throttle.count { it >= 99.0 }

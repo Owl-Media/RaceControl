@@ -64,7 +64,7 @@ class SecureTokenStore @Inject constructor(
     private val _token = MutableStateFlow(prefs.getString(KEY_TOKEN, "").orEmpty())
     val token: StateFlow<String> = _token.asStateFlow()
 
-    /** Read synchronously — used by the OkHttp interceptor on a background thread. */
+    /** Read synchronously; used by the OkHttp interceptor on a background thread. */
     fun currentToken(): String = _token.value
 
     fun setToken(value: String) {

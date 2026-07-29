@@ -1,10 +1,10 @@
 """
-Offline tests for `fastf1_service.get_teams` — specifically the per-driver
+Offline tests for `fastf1_service.get_teams`, specifically the per-driver
 points breakdown added to each team's roster (`Team.drivers[].points`) and
 the ordering of that roster.
 
 `get_teams` composes `get_constructor_standings` and `get_drivers`, both of
-which go through several pages of Ergast/Jolpica responses — stubbing that
+which go through several pages of Ergast/Jolpica responses, stubbing that
 whole chain isn't worth it here, so these tests monkeypatch the two
 composed functions directly and exercise only `get_teams`'s own logic.
 
@@ -53,7 +53,7 @@ def test_team_roster_sorted_by_points_descending(monkeypatch):
     teams = svc.get_teams(2024)
     red_bull = next(t for t in teams if t["teamId"] == "red_bull")
 
-    # Verstappen (350) outscored Perez (150) — should lead the roster despite
+    # Verstappen (350) outscored Perez (150), so should lead the roster despite
     # being added second in the source driver list.
     assert [d["driverId"] for d in red_bull["drivers"]] == ["verstappen", "perez"]
 

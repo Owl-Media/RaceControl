@@ -7,13 +7,13 @@ import type { CircuitMap } from "@/lib/types";
 const VB = 200;
 
 /**
- * A small, plain-line circuit outline for dashboard cards — no speed
+ * A small, plain-line circuit outline for dashboard cards: no speed
  * gradient, no corner numbers, just the shape (the full `TrackMap` on the
  * circuit detail page already covers the detailed version).
  *
  * The outline only exists once a session has actually recorded car
  * positions, so there's nothing to draw for a race weekend that hasn't
- * happened yet — `isLoading` covers the fetch itself, and an empty/missing
+ * happened yet; `isLoading` covers the fetch itself, and an empty/missing
  * `circuit` (fetch succeeded, but no outline in it) renders nothing rather
  * than an empty box, since the caller decides what to show instead.
  */

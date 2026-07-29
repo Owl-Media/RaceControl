@@ -79,7 +79,7 @@ class PenaltiesViewModel @Inject constructor(
 }
 
 /**
- * Stewards' penalties and reprimands for a race — a focused subset of the
+ * Stewards' penalties and reprimands for a race: a focused subset of the
  * full [RaceControlScreen] log, surfacing just the rows that carry a
  * consequence (time penalty, drive-through, grid drop, reprimand,
  * disqualification) so they don't get lost among car-event chatter.
@@ -227,7 +227,7 @@ private fun PenaltyRow(penalty: PenaltyDto, onOpenDriver: (String) -> Unit) {
                     .padding(horizontal = 6.dp, vertical = 2.dp),
             )
             Text(
-                text = penalty.reason ?: penalty.message ?: "—",
+                text = penalty.reason ?: penalty.message ?: "–",
                 style = MaterialTheme.typography.bodyMedium,
                 color = RcTheme.colors.textPrimary,
                 modifier = Modifier.padding(top = 6.dp),

@@ -66,7 +66,7 @@ def _clean(value: Any) -> Any:
         return None
     # Some upstream columns (e.g. a qualifying entry with no recorded driver
     # number) arrive pre-stringified as the literal text "nan"/"NaT" rather
-    # than an actual float NaN/NaT — the numeric checks above never see
+    # than an actual float NaN/NaT; the numeric checks above never see
     # those cases since the value is already a str. Left as-is, this string
     # flows straight into the JSON response and collides with every other
     # row that has the same non-value, e.g. producing duplicate React keys
@@ -76,7 +76,7 @@ def _clean(value: Any) -> Any:
         return None
     # An empty/whitespace-only string is a non-value too, and must become null
     # for the same reason: clients fall back with `?? other` / `?: other`,
-    # which only triggers on null — an empty string sails straight through and
+    # which only triggers on null, so an empty string sails straight through and
     # renders as a blank cell. FastF1 leaves `ClassifiedPosition` blank for
     # non-race sessions, which is exactly how the qualifying "Pos" column
     # ended up empty despite `position` being populated.
@@ -91,7 +91,7 @@ def _clean_utc(value: Any) -> Optional[str]:
     FastF1's race-control message timestamps come from the raw feed's "Utc"
     field, but `fastf1.utils.to_datetime` parses them into a *naive* Python
     datetime with no tzinfo attached. `_clean`'s plain `.isoformat()` on a
-    naive value therefore omits any 'Z'/offset — e.g. "2026-07-26T12:20:00" —
+    naive value therefore omits any 'Z'/offset (e.g. "2026-07-26T12:20:00"),
     which browsers interpret as *local* time via `new Date(...)`, silently
     shifting every timestamp by the viewer's UTC offset. Attach the UTC
     tzinfo explicitly before formatting so the ISO string is unambiguous.
@@ -130,7 +130,7 @@ def _fmt_lap(value: Any) -> Optional[str]:
 
 
 def _fmt_gap(ms: Optional[int], best_ms: Optional[int]) -> Optional[str]:
-    """Gap to the fastest time set in the same column, e.g. "+0.234" — None
+    """Gap to the fastest time set in the same column, e.g. "+0.234"; None
     for whoever set that fastest time (nothing to show relative to itself)
     and for anyone without a time in that column at all."""
     if ms is None or ms <= 0 or best_ms is None:
@@ -222,7 +222,7 @@ def _collect_multi(resp, max_pages: int = 25):
 # failure. This manual cache only stores loads that actually produced data.
 _SESSION_CACHE: dict = {}
 _SESSION_ORDER: list = []
-# Lower this on a memory-constrained container — a loaded race session with
+# Lower this on a memory-constrained container: a loaded race session with
 # telemetry can be tens of megabytes.
 _SESSION_CACHE_MAX = int(os.environ.get("SESSION_CACHE_MAX", 48))
 
@@ -346,8 +346,8 @@ def get_results(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
     session = _load_session(year, rnd, identifier, with_laps=False)
     results = _safe_results(session)
 
-    # If the initial (results-only) load came back empty — e.g. a transient
-    # F1/Jolpica failure that FastF1 swallowed — force a fresh load *with* laps.
+    # If the initial (results-only) load came back empty (e.g. a transient
+    # F1/Jolpica failure that FastF1 swallowed), force a fresh load *with* laps.
     # That both retries the sources and enables FastF1's lap-time fallback that
     # reconstructs finishing order when API results are unavailable.
     if results is None:
@@ -356,7 +356,7 @@ def get_results(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
 
     result_rows = list(results.iterrows()) if results is not None else []
     # Session-best per qualifying segment, so each row can show its gap to
-    # pole in that segment rather than just its raw time — computed as a
+    # pole in that segment rather than just its raw time: computed as a
     # separate pass since a row can't know the field-wide best on its own.
     q1_ms_all = [_td_ms(r.get("Q1")) for _, r in result_rows]
     q2_ms_all = [_td_ms(r.get("Q2")) for _, r in result_rows]
@@ -369,7 +369,7 @@ def get_results(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
     for idx, ((_, r), q1_ms, q2_ms, q3_ms) in enumerate(zip(result_rows, q1_ms_all, q2_ms_all, q3_ms_all)):
         time_ms = _td_ms(r.get("Time"))
         # Qualifying (and sprint-qualifying) results don't reliably carry a
-        # "Position" value the way race results do — FastF1 already returns
+        # "Position" value the way race results do; FastF1 already returns
         # the rows in classification order, so the row's own place in that
         # order is a safe fallback rather than leaving the column blank.
         position = _clean(r.get("Position"))
@@ -416,7 +416,7 @@ def get_results(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
 
 
 def _safe_total_laps(session):
-    """`session.total_laps` raises if laps weren't loaded — return None instead."""
+    """`session.total_laps` raises if laps weren't loaded; return None instead."""
     try:
         return _clean(session.total_laps)
     except Exception:  # noqa: BLE001
@@ -528,7 +528,16 @@ def get_drivers(year: int) -> list[dict[str, Any]]:
     drivers = []
     for did, s in standings.items():
         m = meta.get(did, {})
-        tid = s.get("teamId") or m.get("teamId")
+        # Prefer FastF1's own TeamId (from the season's own results) over
+        # Ergast/Jolpica's constructorId. Ergast's constructor ids lag for
+        # brand-new or renamed entrants (e.g. a new 2026 team, or one that
+        # rebranded mid-history), so they don't reliably match the slugs in
+        # _TEAM_LOGO_SLUGS the way FastF1's ids do; every other endpoint in
+        # this file (results, teams, etc.) already sources its team id from
+        # FastF1 for exactly this reason. Falling back to Ergast's id only
+        # matters early in a season before any race has completed, when
+        # `meta` is still empty.
+        tid = m.get("teamId") or s.get("teamId")
         drivers.append(
             {
                 "driverId": did,
@@ -559,8 +568,8 @@ def get_drivers(year: int) -> list[dict[str, Any]]:
 # Points on offer for winning everything left on the calendar: race win +
 # fastest-lap bonus, plus a sprint win on sprint weekends. Mirrors FastF1's
 # own "who can still win the WDC" example (see
-# https://docs.fastf1.dev/gen_modules/examples_gallery/standings/plot_who_can_still_win_wdc.html)
-# — deliberately simplified the same way that example is: it doesn't resolve
+# https://docs.fastf1.dev/gen_modules/examples_gallery/standings/plot_who_can_still_win_wdc.html),
+# deliberately simplified the same way that example is: it doesn't resolve
 # a tie on countback (equal points => both shown as still in it), and it
 # assumes a flat 8-point sprint win across every season, when the actual
 # sprint points scale has varied year to year (2021's top-3-only 3/2/1 vs.
@@ -745,7 +754,7 @@ def _distinct_xy_count(tel: Any) -> int:
 
     `get_telemetry()` merges the low-frequency position channel onto the
     high-frequency car-data channel, holding/interpolating position between
-    real updates — so row count says nothing about real positional detail.
+    real updates, so row count says nothing about real positional detail.
     Counting distinct rounded coordinate pairs does.
     """
     try:
@@ -764,7 +773,7 @@ def _distinct_xy_count(tel: Any) -> int:
 # draw a recognisable track outline (a ~5km lap needs hundreds; a degraded
 # trace can be as low as ~20, which renders as a polygon).
 _MIN_OUTLINE_SAMPLES = 200
-# Cap how many candidate laps we pull telemetry for — each is an expensive
+# Cap how many candidate laps we pull telemetry for: each is an expensive
 # merge, and in practice a good lap turns up almost immediately.
 _MAX_OUTLINE_CANDIDATES = 8
 
@@ -818,7 +827,7 @@ def get_circuit_map(year: int, rnd: int) -> dict[str, Any]:
     """Track outline + corner markers derived from a fast lap's position trace.
 
     Returns an empty outline/corners list (rather than erroring) when the session
-    has no data yet — e.g. a future or very recently finished race.
+    has no data yet, e.g. a future or very recently finished race.
     """
     session = _load_session(year, rnd, "R", with_laps=True, with_telemetry=True)
     payload: dict[str, Any] = {
@@ -849,7 +858,7 @@ def get_circuit_map(year: int, rnd: int) -> dict[str, Any]:
             return payload  # session not available / no timing data
 
         # Merged telemetry gives X/Y/Z position aligned with speed, DRS and the
-        # cumulative distance along the lap — everything we need to draw a
+        # cumulative distance along the lap: everything we need to draw a
         # speed-coloured racing line with DRS zones and an elevation profile.
         #
         # The fastest lap is the natural choice, but its *position* channel is
@@ -879,7 +888,7 @@ def get_circuit_map(year: int, rnd: int) -> dict[str, Any]:
         # onto the much higher-frequency car-data channel, which holds each
         # position sample across many rows until the next real update. Taking
         # every Nth row (uniform in *time*) over-samples those held stretches
-        # and under-samples the transitions between them — this is what was
+        # and under-samples the transitions between them; this is what was
         # drawing straight polygon edges through corners instead of a smooth
         # curve (worse on tracks with more low/medium-speed corners, where
         # the car dwells at nearly the same position for longer). Resampling
@@ -888,7 +897,7 @@ def get_circuit_map(year: int, rnd: int) -> dict[str, Any]:
         #
         # 350 points over a ~4-5km lap is only one sample every ~12-15m,
         # which is too coarse for a tight, short-radius corner (e.g. a
-        # hairpin with a ~20m arc through the turn) — that corner ends up
+        # hairpin with a ~20m arc through the turn), that corner ends up
         # captured by only 1-2 samples, so no amount of curve smoothing on
         # the frontend can round it out; there's simply nothing to smooth
         # between. Raising the target spacing to ~4m gives several samples
@@ -946,7 +955,7 @@ def get_circuit_map(year: int, rnd: int) -> dict[str, Any]:
         # Corner markers double as hover targets on the frontend, so pull
         # everything FastF1 gives us per corner (not just position): `Angle`
         # is the corner's turn angle in degrees, `Distance` is how far along
-        # the lap it sits (metres) — both let us cross-reference the fastest
+        # the lap it sits (metres); both let us cross-reference the fastest
         # lap's speed trace to show an approximate cornering speed.
         points_for_lookup = payload.get("points") or []
         for _, c in info.corners.iterrows():
@@ -973,7 +982,7 @@ def get_circuit_map(year: int, rnd: int) -> dict[str, Any]:
             )
 
         # Marshal posts (light panels) and marshal sectors (the boundaries
-        # stewards use to divide the circuit for flag/incident reporting) —
+        # stewards use to divide the circuit for flag/incident reporting):
         # same coordinate space as the track outline and corners.
         for _, m in info.marshal_lights.iterrows():
             num_raw = m.get("Number")
@@ -1089,7 +1098,7 @@ def get_replay_positions(year: int, rnd: int, points_per_lap: int = 6) -> dict[s
     Fetches each driver's position trace with a *single* call covering their
     whole race, then buckets samples into laps locally with `merge_asof`,
     rather than slicing lap-by-lap (~20 drivers x ~60 laps of individual
-    FastF1 calls) — the latter is a couple of orders of magnitude slower and
+    FastF1 calls): the latter is a couple of orders of magnitude slower and
     was liable to blow past reverse-proxy request timeouts on a full race.
     """
     session = _load_session(year, rnd, "R", with_laps=True, with_telemetry=True)
@@ -1258,7 +1267,7 @@ def get_strategy(year: int, rnd: int) -> dict[str, Any]:
     abbrs = [a for a in order if a in set(laps["Driver"])] or sorted(set(laps["Driver"]))
 
     # Same classification `get_retirements` uses, so "retired" here means the
-    # same thing it means there — including the ClassifiedPosition nuance
+    # same thing it means there, including the ClassifiedPosition nuance
     # (a driver a lap down is NOT a retirement even though their raw Status
     # text isn't a clean "Finished").
     status_by_abbr: dict[str, dict[str, Any]] = {}
@@ -1381,7 +1390,7 @@ def get_flags(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
     total_laps = _session_total_laps(session)
 
     # Keep flag / safety-car messages plus anything else that carries a flag
-    # value; drop generic chatter (DRS enabled, car events, etc.) — that full
+    # value; drop generic chatter (DRS enabled, car events, etc.); that full
     # log is available separately via get_race_control().
     events = [r for r in rows if r["category"] in ("Flag", "SafetyCar") or r["flag"]]
     periods = _flag_periods(events, total_laps)
@@ -1392,9 +1401,9 @@ def get_flags(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
 
 
 def get_race_control(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
-    """The complete, unfiltered race-control message log for a session —
+    """The complete, unfiltered race-control message log for a session:
     flags and safety-car periods, but also DRS enable/disable, car events,
-    and "Other" messages such as investigations, penalties and reprimands —
+    and "Other" messages such as investigations, penalties and reprimands,
     in chronological order."""
     session = _load_session(year, rnd, identifier, with_laps=True, with_messages=True)
     empty = {"year": year, "round": rnd, "session": identifier,
@@ -1411,7 +1420,7 @@ def get_race_control(year: int, rnd: int, identifier: str = "R") -> dict[str, An
             "totalLaps": _session_total_laps(session), "messages": rows}
 
 
-# Ordered so more specific phrasing is checked before generic "penalty" text —
+# Ordered so more specific phrasing is checked before generic "penalty" text:
 # e.g. "STOP AND GO" and "TIME PENALTY" can both appear in the same message,
 # and stewards' wording isn't perfectly consistent year to year.
 _PENALTY_PATTERNS: list[tuple[re.Pattern[str], str]] = [
@@ -1423,7 +1432,7 @@ _PENALTY_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\bREPRIMAND\b", re.I), "Reprimand"),
 ]
 
-# Race-control messages name the car under penalty as e.g. "CAR 44 (HAM)" —
+# Race-control messages name the car under penalty as e.g. "CAR 44 (HAM)";
 # when a message involves multiple cars (a collision between two of them),
 # the FIRST one mentioned is consistently the penalized driver by FIA
 # convention ("... PENALTY FOR CAR 44 (HAM) - CAUSING A COLLISION WITH CAR
@@ -1439,7 +1448,7 @@ def _classify_penalty(message: str) -> str | None:
 
 
 def _penalty_reason(message: str) -> str | None:
-    """The stewards' stated reason is everything after the first " - " —
+    """The stewards' stated reason is everything after the first " - ":
     e.g. "5 SECOND TIME PENALTY FOR CAR 44 (HAM) - CAUSING A COLLISION"
     becomes "Causing a collision". Falls back to the full message if that
     dash-separated convention isn't present."""
@@ -1460,8 +1469,8 @@ _PLACES_RE = re.compile(
 
 
 def _penalty_value(message: str, penalty_type: str) -> str | None:
-    """The size of the penalty — "5 second" for a time penalty or stop-and-go,
-    "3 place" for a grid penalty — pulled from the part of the message the
+    """The size of the penalty: "5 second" for a time penalty or stop-and-go,
+    "3 place" for a grid penalty, pulled from the part of the message the
     reason-extraction above deliberately skips (everything before the first
     " - "). Not every message states one explicitly (a Reprimand or
     Disqualification usually doesn't carry a duration), hence Optional."""
@@ -1479,8 +1488,8 @@ def _penalty_value(message: str, penalty_type: str) -> str | None:
 
 
 def get_penalties(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
-    """Driver penalties — time penalties, drive-throughs, stop-and-gos, grid
-    penalties, reprimands and disqualifications — issued during a session,
+    """Driver penalties: time penalties, drive-throughs, stop-and-gos, grid
+    penalties, reprimands and disqualifications, issued during a session,
     derived from the race-control message log with the stewards' stated
     reasoning attached. There's no structured "penalty" field in the source
     data; these are FIA race-control messages (Category "Other") classified
@@ -1636,7 +1645,7 @@ def _genuine_position_samples(
     `get_telemetry()` merges the low-frequency (~3.7Hz) position channel onto
     the much faster car-data channel by holding each X/Y across every row
     until the next real position update. Interpolating X/Y directly against
-    distance therefore reproduces those plateaus — a staircase — which draws
+    distance therefore reproduces those plateaus (a staircase), which draws
     as a hard-edged polygon no matter how finely it's resampled or how much
     the frontend smooths it, because the resampled points already sit on
     straight lines with sharp joints between them.
@@ -1676,12 +1685,12 @@ def _lap_telemetry(session, abbr: str, which: str = "fastest") -> Optional[dict[
         return None
 
     # Resample at fixed steps of *distance* along the lap rather than every
-    # Nth row (uniform in time) — the merged position channel updates at
+    # Nth row (uniform in time): the merged position channel updates at
     # ~3.7Hz while the surrounding car-data channel updates much faster, so a
     # row-uniform downsample over-samples the held/duplicate stretches and
     # under-samples the transitions between them. This is the exact same bug
     # that made the circuit-map outline render as a jagged polygon through
-    # corners (see get_circuit_map / _pick_outline_lap) — the telemetry
+    # corners (see get_circuit_map / _pick_outline_lap); the telemetry
     # mini-map draws this trace's raw x/y too, so it inherited the same
     # jaggedness. Fixed the same way: interpolate every channel onto evenly
     # spaced distance samples.
@@ -1805,7 +1814,7 @@ def list_race_drivers(year: int, rnd: int) -> list[dict[str, Any]]:
 # --------------------------------------------------------------------------- #
 def _is_finish_status(status: str, classified_position: Optional[str] = None) -> bool:
     # `ClassifiedPosition` is the authoritative signal: a plain integer means
-    # the driver was officially classified as a finisher — including drivers
+    # the driver was officially classified as a finisher, including drivers
     # who finished a lap or more down, who are NOT retirements even though
     # their free-text `Status` isn't a reliably consistent "Finished"/"+N
     # Lap(s)" string across FastF1's own timing data vs. its Ergast/Jolpica
@@ -1837,8 +1846,8 @@ def _laps_completed_by_driver_number(session) -> dict[str, int]:
     """Each driver's last completed lap number, from the timing data itself.
 
     `SessionResults.Laps` (the count FastF1's own docs point to) is only
-    populated when results come via the Ergast fallback — the primary F1
-    timing path leaves it empty — so it can't be relied on. `session.laps`
+    populated when results come via the Ergast fallback; the primary F1
+    timing path leaves it empty, so it can't be relied on. `session.laps`
     is authoritative and already loaded for this endpoint; take each
     driver's highest `LapNumber` directly from it instead.
     """

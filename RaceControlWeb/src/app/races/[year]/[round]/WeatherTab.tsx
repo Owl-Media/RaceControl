@@ -21,11 +21,11 @@ export function WeatherTab({ year, round }: { year: number; round: number }) {
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-      <Stat label="Air Temp" value={data.airTemp != null ? `${data.airTemp}°C` : "—"} />
-      <Stat label="Track Temp" value={data.trackTemp != null ? `${data.trackTemp}°C` : "—"} />
-      <Stat label="Max Track Temp" value={data.trackTempMax != null ? `${data.trackTempMax}°C` : "—"} />
-      <Stat label="Humidity" value={data.humidity != null ? `${data.humidity}%` : "—"} />
-      <Stat label="Wind Speed" value={data.windSpeed != null ? `${data.windSpeed} m/s` : "—"} />
+      <Stat label="Air Temp" value={data.airTemp != null ? `${data.airTemp}°C` : "-"} />
+      <Stat label="Track Temp" value={data.trackTemp != null ? `${data.trackTemp}°C` : "-"} />
+      <Stat label="Max Track Temp" value={data.trackTempMax != null ? `${data.trackTempMax}°C` : "-"} />
+      <Stat label="Humidity" value={data.humidity != null ? `${data.humidity}%` : "-"} />
+      <Stat label="Wind Speed" value={data.windSpeed != null ? `${data.windSpeed} m/s` : "-"} />
       <Stat label="Rainfall" value={data.rainfall ? "Yes" : "No"} />
     </div>
   );

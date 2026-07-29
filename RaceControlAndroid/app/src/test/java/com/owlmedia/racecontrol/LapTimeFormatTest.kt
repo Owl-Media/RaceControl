@@ -7,7 +7,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Formatting must match the iOS build exactly — the two apps show the same race
+ * Formatting must match the iOS build exactly; the two apps show the same race
  * and any difference would be read as one of them being wrong.
  */
 class LapTimeFormatTest {

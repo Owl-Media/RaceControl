@@ -44,7 +44,7 @@ export default function RootLayout({
       {/* min-h-full (static), deliberately NOT min-h-dvh: dvh is defined to
           track the browser's dynamic toolbar live, which just re-introduces
           the resize-while-scrolling problem via our own layout instead of
-          the old `fixed` bar — the body itself would grow/shrink as the
+          the old `fixed` bar; the body itself would grow/shrink as the
           toolbar animates. A static height means MobileTabBar's `sticky`
           positioning (see NavBar.tsx) settles into place once and doesn't
           get pushed around by toolbar animation frames. */}

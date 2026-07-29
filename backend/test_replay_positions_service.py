@@ -6,7 +6,7 @@ Unlike the other offline service tests, this one builds real
 `fastf1.core.Laps`/`Telemetry` instances (not plain DataFrames or stubs),
 because `get_replay_positions` relies on FastF1's own `Laps.get_pos_data()`
 (via `.pick_drivers()` slicing `session.pos_data` by a driver's full set of
-laps in one call) plus a `merge_asof` lap-bucketing step done locally —
+laps in one call) plus a `merge_asof` lap-bucketing step done locally:
 behaviour that's easy to get subtly wrong with a hand-rolled stub. No
 network access is used: `pos_data` is a synthetic in-memory `Telemetry`
 frame.

@@ -127,7 +127,7 @@ private struct RaceControlRow: View {
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(color)
                 }
-                Text(message.message ?? message.flag ?? "—")
+                Text(message.message ?? message.flag ?? "–")
                     .font(.footnote)
                     .foregroundStyle(Theme.Palette.textSecondary)
             }
