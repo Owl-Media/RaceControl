@@ -123,7 +123,44 @@ export function WdcCalculatorTable({ year }: { year: number }) {
             className="w-full accent-racing-red"
             aria-label="Round"
           />
-          <div className="mt-1 flex justify-between text-[11px] text-muted">
+          {/*
+            With few rounds run so far (a season can have as few as 1-2
+            completed early on), the slider's handful of steps are spread
+            across the full track width, so a small drag jumps a
+            disproportionately large visual gap between adjacent rounds,
+            which reads as janky rather than intentional. A row of clickable
+            per-round markers makes that discreteness explicit (it's a
+            timeline of specific races, not a continuous scale) and gives a
+            precise tap target for any round instead of trying to land a
+            drag exactly on it.
+          */}
+          <div className="mt-2 flex items-center justify-between">
+            {completedRounds.map((e) => {
+              const isPast = e.round < sliderRound;
+              const isCurrent = e.round === sliderRound;
+              return (
+                <button
+                  key={e.round}
+                  type="button"
+                  title={`Round ${e.round}: ${e.name}`}
+                  aria-label={`Jump to Round ${e.round}, ${e.name}`}
+                  onClick={() => commitRound(e.round)}
+                  className="group flex flex-1 items-center justify-center py-1"
+                >
+                  <span
+                    className={`rounded-full transition-all ${
+                      isCurrent
+                        ? "h-2.5 w-2.5 bg-racing-red"
+                        : isPast
+                          ? "h-1.5 w-1.5 bg-racing-red/50 group-hover:bg-racing-red/80"
+                          : "h-1.5 w-1.5 bg-border group-hover:bg-muted"
+                    }`}
+                  />
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex justify-between text-[11px] text-muted">
             <span>Round 1</span>
             <span>Round {lastCompletedRound} (latest)</span>
           </div>
