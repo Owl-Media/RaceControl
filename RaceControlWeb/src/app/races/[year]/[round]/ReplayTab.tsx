@@ -60,6 +60,45 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
     () => [...frames].reverse().find((candidate) => candidate.lap < currentLap),
     [currentLap, frames],
   );
+  const fallbackGapsByLap = useMemo(() => {
+    const cumulativeByDriver = new Map<string, number>();
+    const gaps = new Map<number, Map<string, number>>();
+    for (const replayFrame of frames) {
+      for (const entry of replayFrame.order) {
+        if (entry.lapTimeMs != null && entry.lapTimeMs > 0) {
+          cumulativeByDriver.set(
+            entry.driver,
+            (cumulativeByDriver.get(entry.driver) ?? 0) + entry.lapTimeMs,
+          );
+        }
+      }
+      const leader = replayFrame.order.find((entry) => entry.position === 1);
+      const leaderElapsed = leader ? cumulativeByDriver.get(leader.driver) : undefined;
+      const lapGaps = new Map<string, number>();
+      if (leaderElapsed != null) {
+        for (const entry of replayFrame.order) {
+          const elapsed = cumulativeByDriver.get(entry.driver);
+          if (elapsed != null) lapGaps.set(entry.driver, Math.max(elapsed - leaderElapsed, 0));
+        }
+      }
+      gaps.set(replayFrame.lap, lapGaps);
+    }
+    return gaps;
+  }, [frames]);
+  const effectiveOrder = useMemo(
+    () =>
+      frame?.order.map((entry) => {
+        if (entry.gapMs != null) return entry;
+        const gapMs = fallbackGapsByLap.get(frame.lap)?.get(entry.driver);
+        if (gapMs == null) return entry;
+        return {
+          ...entry,
+          gapMs,
+          gap: entry.position === 1 ? "LEADER" : `+${(gapMs / 1000).toFixed(3)}`,
+        };
+      }) ?? [],
+    [fallbackGapsByLap, frame],
+  );
 
   const positionsByLap = useMemo(() => {
     const map = new Map<number, ReplayLapPositions>();
@@ -251,7 +290,7 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
               positionsLoading={positionsLoading}
               lapPositions={positionsByLap.get(currentLap)}
               driverTeamColors={driverTeamColors}
-              order={frame?.order ?? []}
+              order={effectiveOrder}
               lapFraction={scrubFraction}
               raceProgressRef={raceProgressRef}
               totalLaps={totalLaps}
@@ -268,7 +307,7 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
 
           <ul className="flex flex-col gap-1.5">
             <AnimatePresence initial={false}>
-              {frame?.order.map((entry) => (
+              {effectiveOrder.map((entry) => (
                 <motion.li
                   key={entry.driver}
                   layout

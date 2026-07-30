@@ -8,8 +8,8 @@ import type { CircuitMap, ReplayEntry, ReplayLapPositions } from "@/lib/types";
 const VB = 600;
 
 type SnappedTrace = {
-  indices: number[];
-  direction: 1 | -1;
+  /** Monotonic outline positions covering exactly one complete lap. */
+  positions: number[];
 };
 
 function nearestTrackIndex(
@@ -38,6 +38,38 @@ function traceDirection(indices: number[], outlineLength: number): 1 | -1 {
     signedTravel += delta;
   }
   return signedTravel >= 0 ? 1 : -1;
+}
+
+function unwrapTrace(indices: number[], outlineLength: number): SnappedTrace {
+  const direction = traceDirection(indices, outlineLength);
+  const positions = [indices[0]];
+
+  for (let index = 1; index < indices.length; index++) {
+    const previousRaw = indices[index - 1];
+    const currentRaw = indices[index];
+    const delta =
+      direction > 0
+        ? (currentRaw - previousRaw + outlineLength) % outlineLength
+        : -((previousRaw - currentRaw + outlineLength) % outlineLength);
+    const next = positions[positions.length - 1] + delta;
+    // Position telemetry can repeat a held sample. Keeping it would reserve a
+    // full chunk of replay time for no movement at all.
+    if (Math.abs(next - positions[positions.length - 1]) > 1) positions.push(next);
+  }
+
+  const target = positions[0] + direction * outlineLength;
+  const remaining = Math.abs(target - positions[positions.length - 1]);
+  if (remaining <= outlineLength * 0.04) {
+    // A final sample close to the line is the finish sample: align it exactly
+    // rather than adding a second near-zero start-line segment.
+    positions[positions.length - 1] = target;
+  } else {
+    // Downsampling often omits the exact finish sample. Add it once so the
+    // final interval completes the lap instead of stopping short.
+    positions.push(target);
+  }
+
+  return { positions };
 }
 
 export function ReplayTrackMap({
@@ -125,10 +157,7 @@ export function ReplayTrackMap({
           ),
         );
       if (indices.length > 0) {
-        traces[code] = {
-          indices,
-          direction: traceDirection(indices, rotatedOutline.length),
-        };
+        traces[code] = unwrapTrace(indices, rotatedOutline.length);
       }
     }
     return traces;
@@ -153,7 +182,7 @@ export function ReplayTrackMap({
       for (const code of Object.keys(lapPositions.positions)) {
         const el = dotRefs.current[code];
         const trace = snappedTraces[code];
-        if (!el || !trace || trace.indices.length === 0) continue;
+        if (!el || !trace || trace.positions.length < 2) continue;
         const gapMs = timingByDriver.get(code)?.gapMs;
         const gapFraction =
           gapMs != null && leaderLapMs != null && leaderLapMs > 0
@@ -161,19 +190,15 @@ export function ReplayTrackMap({
             : 0;
         const rawFraction = baseFraction - gapFraction;
         const fraction = rawFraction - Math.floor(rawFraction);
-        const samplePosition = fraction * trace.indices.length;
+        const samplePosition = fraction * (trace.positions.length - 1);
         const sampleSegment = Math.floor(samplePosition);
-        const lower = sampleSegment % trace.indices.length;
-        const upper = (lower + 1) % trace.indices.length;
+        const lower = Math.min(sampleSegment, trace.positions.length - 2);
+        const upper = lower + 1;
         const amount = samplePosition - sampleSegment;
-        const from = trace.indices[lower];
-        const to = trace.indices[upper];
+        const from = trace.positions[lower];
+        const to = trace.positions[upper];
         const outlineLength = screenOutline.length;
-        const travel =
-          trace.direction > 0
-            ? (to - from + outlineLength) % outlineLength
-            : -((from - to + outlineLength) % outlineLength);
-        const rawOutlinePosition = from + travel * amount;
+        const rawOutlinePosition = from + (to - from) * amount;
         const outlinePosition =
           ((rawOutlinePosition % outlineLength) + outlineLength) % outlineLength;
         const outlineLower = Math.floor(outlinePosition);
