@@ -300,6 +300,17 @@ export interface WeatherResponse {
   rainfall?: boolean;
   airTempMax?: number | null;
   trackTempMax?: number | null;
+  timeline?: WeatherSample[];
+}
+
+export interface WeatherSample {
+  timeSeconds: number;
+  airTemp: number | null;
+  trackTemp: number | null;
+  humidity: number | null;
+  pressure: number | null;
+  windSpeed: number | null;
+  rainfall: boolean;
 }
 
 export interface RaceDriver {
@@ -558,4 +569,218 @@ export interface WdcCalculator {
   /** True once only the current leader retains a mathematical path to the title. */
   decided: boolean;
   drivers: WdcDriver[];
+}
+
+// MARK: - Race trace (/api/race-trace)
+
+export type RaceTraceMode = "median" | "leader";
+
+export interface RaceTraceLap {
+  lap: number;
+  /**
+   * Gap to the lap's shared baseline. **Higher is further ahead**, in both
+   * modes: `median` measures against the fixed green-flag reference pace, `leader`
+   * against whoever completed it first. Because the baseline is shared, the
+   * difference between two drivers' `deltaMs` is the real gap between them.
+   */
+  deltaMs: number;
+  /** Elapsed race time at the end of this lap. */
+  cumulativeMs: number;
+  lapTimeMs: number | null;
+  compound: string | null;
+}
+
+export interface RaceTraceDriver {
+  code: string;
+  driverId: string | null;
+  fullName: string | null;
+  teamName: string | null;
+  teamColor: string | null;
+  finishPosition: number | null;
+  retired: boolean;
+  status: string | null;
+  /** Last lap this driver has data for; a retirement stops short of totalLaps. */
+  lapsCompleted: number;
+  laps: RaceTraceLap[];
+}
+
+export interface RaceTraceResponse {
+  year: number;
+  round: number;
+  session: string;
+  eventName: string | null;
+  available: boolean;
+  mode: RaceTraceMode;
+  totalLaps: number;
+  /**
+   * Median green-flag lap used to de-trend cumulative race time.
+   */
+  greenFlagMedianLapMs: number | null;
+  /** Padded y-axis domain, computed server-side so all clients agree. */
+  yDomainMs: [number, number] | null;
+  periods: FlagPeriod[];
+  /** Finishing order, so taking the first N gives the leaders. */
+  drivers: RaceTraceDriver[];
+}
+
+// MARK: - Tyre performance (/api/tyre-performance)
+
+export interface TyrePerformancePoint {
+  lap: number;
+  tyreLife: number;
+  lapTimeMs: number;
+  deltaMs: number;
+}
+
+export interface TyrePerformanceStint {
+  id: string;
+  driverCode: string;
+  driverId: string | null;
+  fullName: string | null;
+  teamName: string | null;
+  teamColor: string | null;
+  stint: number;
+  compound: string | null;
+  freshTyre: boolean | null;
+  startLap: number;
+  endLap: number;
+  bestLapMs: number;
+  slopeSecPerLap: number;
+  points: TyrePerformancePoint[];
+  fit: { tyreLife: number; deltaMs: number }[];
+}
+
+export interface TyrePerformanceResponse {
+  year: number;
+  round: number;
+  session: string;
+  eventName: string | null;
+  available: boolean;
+  xDomain: [number, number] | null;
+  yDomainMs: [number, number] | null;
+  compoundBaselines: {
+    compound: string;
+    slopeSecPerLap: number;
+    stintCount: number;
+  }[];
+  stints: TyrePerformanceStint[];
+}
+
+// MARK: - Pit-stop ledger (/api/pit-stops)
+
+export interface PitStopLedgerItem {
+  id: string;
+  driverCode: string;
+  driverId: string | null;
+  fullName: string | null;
+  teamName: string | null;
+  teamColor: string | null;
+  stop: number;
+  lap: number;
+  compoundIn: string | null;
+  compoundOut: string | null;
+  lossMs: number;
+  deltaToMedianMs: number;
+  entryPosition: number | null;
+  rejoinPosition: number | null;
+  positionsGained: number | null;
+  outcome: "UNDERCUT" | "OVERCUT" | "HELD";
+  rivals: string[];
+}
+
+export interface PitStopsResponse {
+  year: number;
+  round: number;
+  session: string;
+  eventName: string | null;
+  available: boolean;
+  circuitMedianLossMs: number | null;
+  lossDomainMs: [number, number] | null;
+  stops: PitStopLedgerItem[];
+}
+
+// MARK: - Qualifying sector waterfall (/api/qualifying-sectors)
+
+export interface QualifyingSectorDriver {
+  code: string;
+  driverId: string | null;
+  fullName: string | null;
+  teamName: string | null;
+  teamColor: string | null;
+  lapMs: number;
+  gapToPoleMs: number;
+  sectorMs: [number, number, number];
+  sectorDeltaMs: [number, number, number];
+  idealSectorMs: [number, number, number];
+  idealLapMs: number;
+  idealGainMs: number;
+  speedI1: number | null;
+  speedI2: number | null;
+  speedFL: number | null;
+  speedST: number | null;
+}
+
+export interface QualifyingSectorsResponse {
+  year: number;
+  round: number;
+  session: string;
+  eventName: string | null;
+  available: boolean;
+  poleCode: string | null;
+  poleLapMs: number | null;
+  gapDomainMs: [number, number] | null;
+  drivers: QualifyingSectorDriver[];
+}
+
+// MARK: - Mini-sector dominance (/api/minisectors)
+
+export interface MiniSectorSegment {
+  index: number;
+  startDistance: number;
+  endDistance: number;
+  points: [number, number][];
+  winnerCode: string;
+  teamColor: string | null;
+  timeMs: number;
+  gapMs: number;
+}
+
+export interface MiniSectorsResponse {
+  year: number;
+  round: number;
+  session: string;
+  eventName: string | null;
+  available: boolean;
+  driverCount: number;
+  segmentCount: number;
+  outlineSourceCode?: string;
+  legend: { code: string; teamColor: string | null; segmentsWon: number }[];
+  segments: MiniSectorSegment[];
+}
+
+export interface TitleScenarioCell {
+  d1Position: number;
+  d2Position: number;
+  d1Points: number;
+  d2Points: number;
+  margin: number;
+  outcome: "D1_CLINCHED" | "D2_CLINCHED" | "D1_LEADS" | "D2_LEADS" | "TIED";
+}
+
+export interface TitleScenariosResponse {
+  year: number;
+  available: boolean;
+  roundsRemaining: number;
+  positions: number[];
+  drivers: { driverId: string; code: string; teamColor: string | null; points: number }[];
+  cells: TitleScenarioCell[];
+  clinchText: string | null;
+}
+
+export interface DriverFingerprintResponse {
+  year: number;
+  driverId: string;
+  available: boolean;
+  driver: Driver | null;
+  axes: { key: string; label: string; percentile: number; rawValue: number }[];
 }

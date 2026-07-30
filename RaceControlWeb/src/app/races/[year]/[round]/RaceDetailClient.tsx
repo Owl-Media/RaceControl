@@ -7,6 +7,12 @@ import type { SessionResults } from "@/lib/types";
 import { ResultsTable } from "./ResultsTable";
 import { QualifyingTab } from "./QualifyingTab";
 import { LapTimesTab } from "./LapTimesTab";
+import { RaceTraceTab } from "./RaceTraceTab";
+import { PositionChartTab } from "./PositionChartTab";
+import { TyrePerformanceTab } from "./TyrePerformanceTab";
+import { PitStopsTab } from "./PitStopsTab";
+import { QualifyingSectorsTab } from "./QualifyingSectorsTab";
+import { MiniSectorsTab } from "./MiniSectorsTab";
 import { StrategyTab } from "./StrategyTab";
 import { WeatherTab } from "./WeatherTab";
 import { RetirementsTab } from "./RetirementsTab";
@@ -20,6 +26,12 @@ const TABS = [
   { key: "results", label: "Results" },
   { key: "qualifying", label: "Qualifying" },
   { key: "laptimes", label: "Lap Times" },
+  { key: "racetrace", label: "Race Trace" },
+  { key: "positions", label: "Positions" },
+  { key: "tyreperformance", label: "Tyre Degradation" },
+  { key: "pitstops", label: "Pit Stops" },
+  { key: "qualifyingsectors", label: "Sector Waterfall" },
+  { key: "minisectors", label: "Mini-Sectors" },
   { key: "strategy", label: "Strategy" },
   { key: "weather", label: "Weather" },
   { key: "retirements", label: "Retirements" },
@@ -51,6 +63,12 @@ export function RaceDetailClient({
       {tab === "results" && <ResultsTable data={initialResults} year={year} />}
       {tab === "qualifying" && <QualifyingTab year={year} round={round} />}
       {tab === "laptimes" && <LapTimesTab year={year} round={round} />}
+      {tab === "racetrace" && <RaceTraceTab year={year} round={round} />}
+      {tab === "positions" && <PositionChartTab year={year} round={round} />}
+      {tab === "tyreperformance" && <TyrePerformanceTab year={year} round={round} />}
+      {tab === "pitstops" && <PitStopsTab year={year} round={round} />}
+      {tab === "qualifyingsectors" && <QualifyingSectorsTab year={year} round={round} />}
+      {tab === "minisectors" && <MiniSectorsTab year={year} round={round} />}
       {tab === "strategy" && <StrategyTab year={year} round={round} />}
       {tab === "weather" && <WeatherTab year={year} round={round} />}
       {tab === "retirements" && <RetirementsTab year={year} round={round} />}

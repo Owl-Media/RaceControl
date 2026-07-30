@@ -28,8 +28,26 @@ struct RaceAnalysisGrid: View {
                 tile("Lap Times", "chart.xyaxis.line", Theme.Palette.positive) {
                     LapTimesChartView(year: event.year, round: event.round, title: event.displayName)
                 }
+                tile("Race Trace", "chart.line.uptrend.xyaxis", Theme.Palette.racingRed) {
+                    RaceTraceView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Positions", "arrow.up.arrow.down", Theme.Palette.info) {
+                    PositionChartView(year: event.year, round: event.round, title: event.displayName)
+                }
                 tile("Strategy", "timeline.selection", Theme.Palette.warning) {
                     StrategyView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Tyre Degradation", "circle.dashed", Theme.Palette.warning) {
+                    TyrePerformanceView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Pit Stops", "wrench.and.screwdriver", Theme.Palette.racingRed) {
+                    PitStopsView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Sector Waterfall", "chart.bar.xaxis", Theme.Palette.info) {
+                    QualifyingSectorsView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Mini-Sectors", "map.fill", Theme.Palette.positive) {
+                    MiniSectorsView(year: event.year, round: event.round, title: event.displayName)
                 }
                 tile("Qualifying", "stopwatch.fill", Theme.Palette.info) {
                     QualifyingView(year: event.year, round: event.round, title: event.displayName)

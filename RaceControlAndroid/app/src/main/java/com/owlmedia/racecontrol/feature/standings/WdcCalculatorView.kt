@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -105,6 +106,9 @@ fun WdcCalculatorView(
                     maxRemainingPoints = data.maxRemainingPoints,
                     canWinCount = canWinCount,
                 )
+            }
+            item(key = "title-scenarios") {
+                TitleScenarioMatrix(appState.selectedYear)
             }
             items(
                 items = data.drivers,
@@ -261,7 +265,7 @@ private fun WdcRoundTicks(
 }
 
 @Composable
-private fun WdcRoundTick(
+private fun RowScope.WdcRoundTick(
     label: String,
     isCurrent: Boolean,
     isPast: Boolean,

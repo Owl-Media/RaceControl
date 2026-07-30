@@ -14,6 +14,7 @@ backend/*.key.json
 # Xcode
 RaceControlApp/build/
 RaceControlApp/DerivedData/
+RaceControlAndroid/.kotlin/
 *.xcuserstate
 xcuserdata/
 .DS_Store

@@ -7,6 +7,7 @@ import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
 import { TeamColorDot } from "@/components/StateViews";
 import { TeamLogo } from "@/components/TeamLogo";
 import { WdcPointsBreakdown } from "@/components/WdcPointsBreakdown";
+import { TitleScenarioMatrix } from "@/components/TitleScenarioMatrix";
 import type { WdcCalculator, WdcDriver } from "@/lib/types";
 
 const CAN_WIN_COLOR = "#22c55e";
@@ -212,6 +213,7 @@ export function WdcCalculatorTable({ year }: { year: number }) {
       </div>
 
       <WdcPointsBreakdown />
+      <TitleScenarioMatrix year={year} />
     </div>
   );
 }

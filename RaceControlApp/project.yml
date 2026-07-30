@@ -27,3 +27,26 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         TARGETED_DEVICE_FAMILY: "1,2"
         ENABLE_PREVIEWS: YES
+  RaceControlTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: RaceControlTests
+    dependencies:
+      - target: RaceControl
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.owlmedia.racecontrol.tests
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "1,2"
+schemes:
+  RaceControl:
+    build:
+      targets:
+        RaceControl: all
+        RaceControlTests: [test]
+    test:
+      targets:
+        - RaceControlTests
+    run:
+      config: Debug

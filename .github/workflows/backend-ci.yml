@@ -42,8 +42,12 @@ jobs:
           # needed to run the app itself, only to test it.
           pip install pytest httpx
 
+      # Whole-directory collection, deliberately: naming files here meant the
+      # 19 service test suites never ran in CI. They are all fast, mock-backed
+      # unit tests (no network, no FastF1 download), so there is no reason to
+      # select a subset.
       - name: Run test suite
-        run: python -m pytest -v test_attest.py test_attest_endpoints.py
+        run: python -m pytest -v
 
       - name: Import check (no auth configured, mirrors local ./run.sh)
         run: python -c "import main; print('main.py imports cleanly with no env vars set')"

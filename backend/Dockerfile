@@ -40,4 +40,12 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
 # One worker by default: each worker keeps its own in-process session cache, so
 # extra workers multiply memory use rather than sharing it. Raise WEB_CONCURRENCY
 # only if you also raise the container's memory limit.
-CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WEB_CONCURRENCY:-1} --timeout-keep-alive 65"]
+#
+# --proxy-headers/--forwarded-allow-ips: the container is only ever reached
+# through Coolify's reverse proxy, which is not 127.0.0.1, so uvicorn's default
+# forwarded-ips allowlist would discard X-Forwarded-For and every request would
+# look like it came from the proxy. That collapses the per-IP rate limiter
+# (see _client_key in main.py) into one shared bucket for all users. Trusting
+# "*" is safe only because the proxy is the sole ingress path and overwrites
+# the header; do not expose this port directly to the internet.
+CMD ["sh", "-c", "exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8000} --workers ${WEB_CONCURRENCY:-1} --timeout-keep-alive 65 --proxy-headers --forwarded-allow-ips='*'"]

@@ -1,5 +1,161 @@
 import Foundation
 
+// MARK: - Race trace
+
+struct RaceTraceResponse: Codable {
+    let year: Int
+    let round: Int
+    let session: String
+    let eventName: String?
+    let available: Bool
+    let mode: String
+    let totalLaps: Int
+    let greenFlagMedianLapMs: Int?
+    let yDomainMs: [Int]?
+    let periods: [FlagPeriod]
+    let drivers: [RaceTraceDriver]
+}
+
+struct RaceTraceDriver: Codable, Identifiable, Hashable {
+    let code: String
+    let driverId: String?
+    let fullName: String?
+    let teamName: String?
+    let teamColor: String?
+    let finishPosition: Int?
+    let retired: Bool
+    let status: String?
+    let lapsCompleted: Int
+    let laps: [RaceTraceLap]
+    var id: String { code }
+}
+
+struct RaceTraceLap: Codable, Hashable {
+    let lap: Int
+    let deltaMs: Int
+    let cumulativeMs: Int
+    let lapTimeMs: Int?
+    let compound: String?
+}
+
+// MARK: - Tyre degradation
+
+struct TyrePerformanceResponse: Codable {
+    let year: Int
+    let round: Int
+    let session: String
+    let eventName: String?
+    let available: Bool
+    let xDomain: [Int]?
+    let yDomainMs: [Int]?
+    let compoundBaselines: [CompoundBaseline]
+    let stints: [TyrePerformanceStint]
+}
+
+struct CompoundBaseline: Codable, Identifiable, Hashable {
+    let compound: String
+    let slopeSecPerLap: Double
+    let stintCount: Int
+    var id: String { compound }
+}
+
+struct TyrePerformanceStint: Codable, Identifiable, Hashable {
+    let id: String
+    let driverCode: String
+    let driverId: String?
+    let fullName: String?
+    let teamName: String?
+    let teamColor: String?
+    let stint: Int
+    let compound: String?
+    let freshTyre: Bool?
+    let startLap: Int
+    let endLap: Int
+    let bestLapMs: Int
+    let slopeSecPerLap: Double
+    let points: [TyrePerformancePoint]
+    let fit: [TyrePerformanceFitPoint]
+}
+
+struct TyrePerformancePoint: Codable, Hashable {
+    let lap: Int
+    let tyreLife: Double
+    let lapTimeMs: Int
+    let deltaMs: Int
+}
+
+struct TyrePerformanceFitPoint: Codable, Hashable {
+    let tyreLife: Double
+    let deltaMs: Int
+}
+
+// MARK: - Pit-stop ledger
+
+struct PitStopsResponse: Codable {
+    let year: Int
+    let round: Int
+    let session: String
+    let eventName: String?
+    let available: Bool
+    let circuitMedianLossMs: Int?
+    let lossDomainMs: [Int]?
+    let stops: [PitStopLedgerItem]
+}
+
+struct PitStopLedgerItem: Codable, Identifiable, Hashable {
+    let id: String
+    let driverCode: String
+    let driverId: String?
+    let fullName: String?
+    let teamName: String?
+    let teamColor: String?
+    let stop: Int
+    let lap: Int
+    let compoundIn: String?
+    let compoundOut: String?
+    let lossMs: Int
+    let deltaToMedianMs: Int
+    let entryPosition: Int?
+    let rejoinPosition: Int?
+    let positionsGained: Int?
+    let outcome: String
+    let rivals: [String]
+}
+
+// MARK: - Qualifying sector waterfall
+
+struct QualifyingSectorsResponse: Codable {
+    let year: Int
+    let round: Int
+    let session: String
+    let eventName: String?
+    let available: Bool
+    let poleCode: String?
+    let poleLapMs: Int?
+    let gapDomainMs: [Int]?
+    let drivers: [QualifyingSectorDriver]
+}
+
+struct QualifyingSectorDriver: Codable, Identifiable, Hashable {
+    let code: String
+    let driverId: String?
+    let fullName: String?
+    let teamName: String?
+    let teamColor: String?
+    let lapMs: Int
+    let gapToPoleMs: Int
+    let sectorMs: [Int]
+    let sectorDeltaMs: [Int]
+    let idealSectorMs: [Int]
+    let idealLapMs: Int
+    let idealGainMs: Int
+    let speedI1: Double?
+    let speedI2: Double?
+    let speedFL: Double?
+    let speedST: Double?
+    var id: String { code }
+}
+
 // MARK: - Lap-time evolution
 
 struct LapTimesResponse: Codable {
@@ -73,6 +229,99 @@ struct WeatherResponse: Codable {
     let rainfall: Bool?
     let airTempMax: Double?
     let trackTempMax: Double?
+    let timeline: [WeatherSample]?
+}
+
+struct WeatherSample: Codable, Identifiable, Hashable {
+    let timeSeconds: Double
+    let airTemp: Double?
+    let trackTemp: Double?
+    let humidity: Double?
+    let pressure: Double?
+    let windSpeed: Double?
+    let rainfall: Bool
+    var id: Double { timeSeconds }
+}
+
+// MARK: - Mini-sector dominance
+
+struct MiniSectorsResponse: Codable {
+    let year: Int
+    let round: Int
+    let session: String
+    let eventName: String?
+    let available: Bool
+    let driverCount: Int
+    let segmentCount: Int
+    let outlineSourceCode: String?
+    let legend: [MiniSectorLegend]
+    let segments: [MiniSectorSegment]
+}
+
+struct MiniSectorLegend: Codable, Identifiable, Hashable {
+    let code: String
+    let teamColor: String?
+    let segmentsWon: Int
+    var id: String { code }
+}
+
+struct MiniSectorSegment: Codable, Identifiable, Hashable {
+    let index: Int
+    let startDistance: Double
+    let endDistance: Double
+    let points: [[Double]]
+    let winnerCode: String
+    let teamColor: String?
+    let timeMs: Int
+    let gapMs: Int
+    var id: Int { index }
+}
+
+// MARK: - Title scenarios
+
+struct TitleScenariosResponse: Codable {
+    let year: Int
+    let available: Bool
+    let roundsRemaining: Int
+    let positions: [Int]
+    let drivers: [TitleScenarioDriver]
+    let cells: [TitleScenarioCell]
+    let clinchText: String?
+}
+
+struct TitleScenarioDriver: Codable, Identifiable, Hashable {
+    let driverId: String
+    let code: String
+    let teamColor: String?
+    let points: Double
+    var id: String { driverId }
+}
+
+struct TitleScenarioCell: Codable, Identifiable, Hashable {
+    let d1Position: Int
+    let d2Position: Int
+    let d1Points: Double
+    let d2Points: Double
+    let margin: Double
+    let outcome: String
+    var id: String { "\(d1Position)-\(d2Position)" }
+}
+
+// MARK: - Driver fingerprint
+
+struct DriverFingerprintResponse: Codable {
+    let year: Int
+    let driverId: String
+    let available: Bool
+    let axes: [FingerprintAxis]
+}
+
+struct FingerprintAxis: Codable, Identifiable, Hashable {
+    let key: String
+    let label: String
+    let percentile: Int
+    let rawValue: Double
+    var id: String { key }
 }
 
 // MARK: - Telemetry

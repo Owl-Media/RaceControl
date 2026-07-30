@@ -6,6 +6,22 @@ export function formatMs(ms: number | null | undefined): string {
   return `${minutes}:${String(seconds).padStart(2, "0")}.${String(millis).padStart(3, "0")}`;
 }
 
+/**
+ * A signed time delta in seconds, e.g. "+11.330" / "-6.663".
+ *
+ * Distinct from `formatMs`: a race-trace value is a *difference*, so the sign
+ * carries the meaning and minutes are folded into seconds (the same convention
+ * F1 timing uses for gaps over a minute).
+ */
+export function formatDeltaMs(ms: number | null | undefined): string {
+  if (ms == null) return "-";
+  const sign = ms < 0 ? "-" : "+";
+  const abs = Math.abs(ms);
+  const seconds = Math.floor(abs / 1000);
+  const millis = Math.round(abs % 1000);
+  return `${sign}${seconds}.${String(millis).padStart(3, "0")}`;
+}
+
 export function formatDate(iso: string | null | undefined): string {
   if (!iso) return "TBC";
   const d = new Date(iso);

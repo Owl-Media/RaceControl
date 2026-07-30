@@ -7,13 +7,20 @@ import type {
   CompareResponse,
   ConstructorStanding,
   DriverDetail,
+  DriverFingerprintResponse,
   DriverStanding,
   Driver,
   FlagsResponse,
   LapTimesResponse,
+  MiniSectorsResponse,
   PenaltiesResponse,
+  PitStopsResponse,
+  QualifyingSectorsResponse,
   RaceDriver,
   RaceReplay,
+  RaceTraceMode,
+  RaceTraceResponse,
+  TyrePerformanceResponse,
   ReplayPositions,
   RaceControlResponse,
   ReliabilityResponse,
@@ -25,6 +32,7 @@ import type {
   Team,
   TelemetryCompareResponse,
   TelemetryResponse,
+  TitleScenariosResponse,
   WdcCalculator,
   WeatherResponse,
 } from "@/lib/types";
@@ -113,3 +121,21 @@ export const useCompare = (year: number, d1: string | null, d2: string | null) =
   useApi<CompareResponse>(d1 && d2 ? `/api/compare/${year}/${d1}/${d2}` : null);
 export const useStandingsEvolution = (year: number) =>
   useApi<StandingsEvolutionResponse>(`/api/standings-evolution/${year}`);
+
+// Derived analysis (analytics_service). Payloads arrive chart-ready: series are
+// pre-sorted, colours resolved and axis domains supplied, so these hooks feed a
+// chart directly rather than being reshaped here.
+export const useRaceTrace = (year: number, rnd: number, mode: RaceTraceMode = "median") =>
+  useApi<RaceTraceResponse>(`/api/race-trace/${year}/${rnd}`, { mode });
+export const useTyrePerformance = (year: number, rnd: number) =>
+  useApi<TyrePerformanceResponse>(`/api/tyre-performance/${year}/${rnd}`);
+export const usePitStops = (year: number, rnd: number) =>
+  useApi<PitStopsResponse>(`/api/pit-stops/${year}/${rnd}`);
+export const useQualifyingSectors = (year: number, rnd: number) =>
+  useApi<QualifyingSectorsResponse>(`/api/qualifying-sectors/${year}/${rnd}`);
+export const useMiniSectors = (year: number, rnd: number, session = "Q", top = 10) =>
+  useApi<MiniSectorsResponse>(`/api/minisectors/${year}/${rnd}`, { session, top });
+export const useTitleScenarios = (year: number, d1?: string, d2?: string) =>
+  useApi<TitleScenariosResponse>(`/api/title-scenarios/${year}`, { d1, d2 });
+export const useDriverFingerprint = (year: number, driverId: string | null) =>
+  useApi<DriverFingerprintResponse>(driverId ? `/api/driver-fingerprint/${year}/${driverId}` : null);

@@ -245,8 +245,9 @@ def _session_has_data(session, laps_requested: bool) -> bool:
 
 def _load_session(year: int, rnd: int, identifier: str, with_laps: bool,
                   with_telemetry: bool = False, with_messages: bool = False,
+                  with_weather: bool = False,
                   force: bool = False):
-    key = (year, rnd, identifier, with_laps, with_telemetry, with_messages)
+    key = (year, rnd, identifier, with_laps, with_telemetry, with_messages, with_weather)
     if not force and key in _SESSION_CACHE:
         return _SESSION_CACHE[key]
 
@@ -257,7 +258,7 @@ def _load_session(year: int, rnd: int, identifier: str, with_laps: bool,
     session.load(
         laps=load_laps,
         telemetry=with_telemetry,
-        weather=False,
+        weather=with_weather,
         messages=with_messages,
     )
 
@@ -1670,8 +1671,9 @@ def _flag_periods(events: list[dict[str, Any]], total_laps: int) -> list[dict[st
 # --------------------------------------------------------------------------- #
 def get_weather(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
     """Session weather summary (temps, humidity, wind, rainfall)."""
-    session = fastf1.get_session(year, rnd, identifier)
-    session.load(laps=False, telemetry=False, weather=True, messages=False)
+    session = _load_session(
+        year, rnd, identifier, with_laps=False, with_weather=True,
+    )
     payload: dict[str, Any] = {
         "year": year, "round": rnd, "session": identifier,
         "eventName": _clean(session.event.get("EventName")),
@@ -1697,6 +1699,21 @@ def get_weather(year: int, rnd: int, identifier: str = "R") -> dict[str, Any]:
             "rainfall": rain_any,
             "airTempMax": round(float(pd.to_numeric(wx["AirTemp"], errors="coerce").max()), 1) if "AirTemp" in wx else None,
             "trackTempMax": round(float(pd.to_numeric(wx["TrackTemp"], errors="coerce").max()), 1) if "TrackTemp" in wx else None,
+            "timeline": [
+                {
+                    "timeSeconds": round(float(row.get("Time").total_seconds()), 1)
+                    if row.get("Time") is not None and not pd.isna(row.get("Time"))
+                    and hasattr(row.get("Time"), "total_seconds") else float(index),
+                    "airTemp": _clean(row.get("AirTemp")),
+                    "trackTemp": _clean(row.get("TrackTemp")),
+                    "humidity": _clean(row.get("Humidity")),
+                    "pressure": _clean(row.get("Pressure")),
+                    "windSpeed": _clean(row.get("WindSpeed")),
+                    "rainfall": bool(row.get("Rainfall"))
+                    if row.get("Rainfall") is not None and not pd.isna(row.get("Rainfall")) else False,
+                }
+                for index, (_, row) in enumerate(wx.iterrows())
+            ],
         })
     except Exception as exc:  # noqa: BLE001
         log.warning("weather unavailable %s r%s: %s", year, rnd, exc)

@@ -131,6 +131,7 @@ fun DriverDetailScreen(
             modifier = modifier,
         ) { driver ->
             DriverDetailContent(
+                year = year,
                 driver = driver,
                 pointsSeries = pointsSeries,
                 canWinWdc = canWinWdc,
@@ -142,6 +143,7 @@ fun DriverDetailScreen(
 
 @Composable
 private fun DriverDetailContent(
+    year: Int,
     driver: DriverDetailDto,
     pointsSeries: List<EvolutionPointDto>,
     canWinWdc: Boolean?,
@@ -256,6 +258,10 @@ private fun DriverDetailContent(
                     }
                 }
             }
+        }
+
+        item(key = "fingerprint") {
+            DriverFingerprintCard(year, driver.driverId, accent)
         }
 
         val finishes = results.mapNotNull { it.positionInt?.toFloat() }

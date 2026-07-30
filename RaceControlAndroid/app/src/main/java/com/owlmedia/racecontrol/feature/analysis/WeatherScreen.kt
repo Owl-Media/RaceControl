@@ -24,9 +24,13 @@ import com.owlmedia.racecontrol.R
 import com.owlmedia.racecontrol.core.design.Dimens
 import com.owlmedia.racecontrol.core.design.RcTheme
 import com.owlmedia.racecontrol.core.ui.EmptyState
+import com.owlmedia.racecontrol.core.ui.ChartBand
+import com.owlmedia.racecontrol.core.ui.ChartPoint
+import com.owlmedia.racecontrol.core.ui.ChartSeries
 import com.owlmedia.racecontrol.core.ui.LoadableContent
 import com.owlmedia.racecontrol.core.ui.RcCard
 import com.owlmedia.racecontrol.core.ui.RcDetailScaffold
+import com.owlmedia.racecontrol.core.ui.RcLineChart
 import com.owlmedia.racecontrol.core.ui.StatCell
 import com.owlmedia.racecontrol.core.ui.UiState
 import com.owlmedia.racecontrol.data.remote.dto.WeatherResponseDto
@@ -127,6 +131,32 @@ fun WeatherScreen(
                                 modifier = Modifier.weight(1f),
                             )
                         }
+                    }
+                }
+
+                if (weather.timeline.size > 1) {
+                    RcCard {
+                        RcLineChart(
+                            series = listOf(
+                                ChartSeries(
+                                    "Air",
+                                    RcTheme.colors.info,
+                                    weather.timeline.mapNotNull { sample ->
+                                        sample.airTemp?.let { ChartPoint(sample.timeSeconds, it) }
+                                    },
+                                ),
+                                ChartSeries(
+                                    "Track",
+                                    RcTheme.colors.warning,
+                                    weather.timeline.mapNotNull { sample ->
+                                        sample.trackTemp?.let { ChartPoint(sample.timeSeconds, it) }
+                                    },
+                                ),
+                            ),
+                            bands = weather.timeline.filter { it.rainfall }.map {
+                                ChartBand(it.timeSeconds, it.timeSeconds + 60, RcTheme.colors.info.copy(alpha = 0.12f))
+                            },
+                        )
                     }
                 }
 

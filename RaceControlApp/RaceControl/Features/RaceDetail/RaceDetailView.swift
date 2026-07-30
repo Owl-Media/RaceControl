@@ -171,30 +171,10 @@ private struct ResultRow: View {
         }
     }
 
+    // Lives on ResultEntry (see Models/Formatters.swift) rather than here so it
+    // is unit-testable and stays in step with the Android implementation.
     private var raceTime: String {
-        if let status = entry.status, status != "Finished", !status.hasPrefix("+"),
-           entry.timeMs == nil {
-            return status // DNF, +1 Lap, Accident, etc.
-        }
-        guard let ms = entry.timeMs else { return entry.status ?? "–" }
-        if entry.position == 1 {
-            return format(ms: ms, leading: true)
-        }
-        if let winner = winnerTimeMs {
-            let gap = ms - winner
-            return "+" + format(ms: gap, leading: false)
-        }
-        return format(ms: ms, leading: true)
-    }
-
-    private func format(ms: Int, leading: Bool) -> String {
-        let minutes = ms / 60_000
-        let seconds = (ms % 60_000) / 1000
-        let millis = ms % 1000
-        if leading, minutes > 0 {
-            return String(format: "%d:%02d.%03d", minutes, seconds, millis)
-        }
-        return String(format: "%d.%03d", seconds + minutes * 60, millis)
+        entry.raceTimeLabel(winnerTimeMs: winnerTimeMs)
     }
 }
 

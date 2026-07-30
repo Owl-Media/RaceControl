@@ -11,14 +11,19 @@ import com.owlmedia.racecontrol.data.remote.dto.CompareResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.ConstructorStandingDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverDetailDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverDto
+import com.owlmedia.racecontrol.data.remote.dto.DriverFingerprintResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverStandingDto
 import com.owlmedia.racecontrol.data.remote.dto.FlagsResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.LapTimesResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.MiniSectorsResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.PenaltiesResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.PitStopsResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.QualifyingSectorsResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceControlResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceDriverDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceEventDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceReplayDto
+import com.owlmedia.racecontrol.data.remote.dto.RaceTraceResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.ReliabilityResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RetirementsResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.SessionResultsDto
@@ -27,6 +32,8 @@ import com.owlmedia.racecontrol.data.remote.dto.StrategyResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.TeamDto
 import com.owlmedia.racecontrol.data.remote.dto.TelemetryCompareResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.TelemetryResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.TitleScenariosResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.TyrePerformanceResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.WdcCalculatorDto
 import com.owlmedia.racecontrol.data.remote.dto.WeatherResponseDto
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -102,6 +109,25 @@ class RaceControlRepository @Inject constructor(
     suspend fun replay(year: Int, round: Int): Result<RaceReplayDto> =
         call { api.replay(year, round) }
 
+    suspend fun raceTrace(year: Int, round: Int, mode: String = "median"): Result<RaceTraceResponseDto> =
+        call { api.raceTrace(year, round, mode) }
+
+    suspend fun tyrePerformance(year: Int, round: Int): Result<TyrePerformanceResponseDto> =
+        call { api.tyrePerformance(year, round) }
+
+    suspend fun pitStops(year: Int, round: Int): Result<PitStopsResponseDto> =
+        call { api.pitStops(year, round) }
+
+    suspend fun qualifyingSectors(year: Int, round: Int): Result<QualifyingSectorsResponseDto> =
+        call { api.qualifyingSectors(year, round) }
+
+    suspend fun miniSectors(
+        year: Int,
+        round: Int,
+        session: String = "Q",
+        top: Int = 10,
+    ): Result<MiniSectorsResponseDto> = call { api.miniSectors(year, round, session, top) }
+
     suspend fun lapTimes(year: Int, round: Int): Result<LapTimesResponseDto> =
         call { api.lapTimes(year, round) }
 
@@ -154,6 +180,15 @@ class RaceControlRepository @Inject constructor(
 
     suspend fun wdcCalculator(year: Int, throughRound: Int? = null): Result<WdcCalculatorDto> =
         call { api.wdcCalculator(year, throughRound) }
+
+    suspend fun titleScenarios(
+        year: Int,
+        d1: String? = null,
+        d2: String? = null,
+    ): Result<TitleScenariosResponseDto> = call { api.titleScenarios(year, d1, d2) }
+
+    suspend fun driverFingerprint(year: Int, driverId: String): Result<DriverFingerprintResponseDto> =
+        call { api.driverFingerprint(year, driverId) }
 
     /** Unauthenticated reachability probe, used by Settings > Test Connection. */
     suspend fun health(): Result<Int> = call { api.health().code() }

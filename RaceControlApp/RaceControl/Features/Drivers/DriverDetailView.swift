@@ -15,6 +15,7 @@ struct DriverDetailView: View {
                 hero
                 statsRow
                 pointsProgressionChart
+                DriverFingerprintView(year: year, driverId: driver.driverId, accent: accent)
                 seasonResults
             }
             .padding(Theme.Space.md)

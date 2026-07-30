@@ -165,6 +165,34 @@ extension APIClient {
         let path = "api/wdc-calculator/\(year)" + (throughRound.map { "?through_round=\($0)" } ?? "")
         return try await get(path, as: WdcCalculator.self)
     }
+    func raceTrace(year: Int, round: Int, mode: String = "median") async throws -> RaceTraceResponse {
+        try await get("api/race-trace/\(year)/\(round)?mode=\(mode)", as: RaceTraceResponse.self)
+    }
+    func tyrePerformance(year: Int, round: Int) async throws -> TyrePerformanceResponse {
+        try await get("api/tyre-performance/\(year)/\(round)", as: TyrePerformanceResponse.self)
+    }
+    func pitStops(year: Int, round: Int) async throws -> PitStopsResponse {
+        try await get("api/pit-stops/\(year)/\(round)", as: PitStopsResponse.self)
+    }
+    func qualifyingSectors(year: Int, round: Int) async throws -> QualifyingSectorsResponse {
+        try await get("api/qualifying-sectors/\(year)/\(round)", as: QualifyingSectorsResponse.self)
+    }
+    func miniSectors(year: Int, round: Int, session: String = "Q", top: Int = 10) async throws -> MiniSectorsResponse {
+        try await get(
+            "api/minisectors/\(year)/\(round)?session=\(session)&top=\(top)",
+            as: MiniSectorsResponse.self
+        )
+    }
+    func titleScenarios(year: Int, d1: String? = nil, d2: String? = nil) async throws -> TitleScenariosResponse {
+        var query: [String] = []
+        if let d1 { query.append("d1=\(d1)") }
+        if let d2 { query.append("d2=\(d2)") }
+        let suffix = query.isEmpty ? "" : "?\(query.joined(separator: "&"))"
+        return try await get("api/title-scenarios/\(year)\(suffix)", as: TitleScenariosResponse.self)
+    }
+    func driverFingerprint(year: Int, driverId: String) async throws -> DriverFingerprintResponse {
+        try await get("api/driver-fingerprint/\(year)/\(driverId)", as: DriverFingerprintResponse.self)
+    }
 }
 
 // MARK: - Errors & config

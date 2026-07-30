@@ -62,6 +62,18 @@
     <string name="analysis_weather">Weather</string>
     <string name="analysis_retirements">Retirements</string>
     <string name="analysis_flags">Flags</string>
+    <string name="analysis_race_trace">Race Trace</string>
+    <string name="analysis_position_chart">Positions</string>
+    <string name="analysis_tyre_performance">Tyre Degradation</string>
+    <string name="analysis_pit_stops">Pit Stops</string>
+    <string name="analysis_qualifying_sectors">Sector Waterfall</string>
+    <string name="analysis_minisectors">Mini-Sectors</string>
+    <string name="no_race_trace_title">No Race Trace</string>
+    <string name="no_race_trace_message">Cumulative race timing isn’t available.</string>
+    <string name="no_position_data_title">No Position Data</string>
+    <string name="no_position_data_message">Lap-by-lap positions aren’t available.</string>
+    <string name="no_tyre_data_title">No Tyre Data</string>
+    <string name="no_tyre_data_message">Tyre degradation data isn’t available.</string>
 
     <!-- Replay -->
     <string name="lap">LAP</string>

@@ -10,12 +10,18 @@ import androidx.navigation.navigation
 import androidx.navigation.toRoute
 import com.owlmedia.racecontrol.feature.analysis.FlagsScreen
 import com.owlmedia.racecontrol.feature.analysis.LapTimesScreen
+import com.owlmedia.racecontrol.feature.analysis.MiniSectorsScreen
 import com.owlmedia.racecontrol.feature.analysis.PenaltiesScreen
+import com.owlmedia.racecontrol.feature.analysis.PositionChartScreen
+import com.owlmedia.racecontrol.feature.analysis.PitStopsScreen
 import com.owlmedia.racecontrol.feature.analysis.QualifyingScreen
+import com.owlmedia.racecontrol.feature.analysis.QualifyingSectorsScreen
 import com.owlmedia.racecontrol.feature.analysis.RaceControlScreen
+import com.owlmedia.racecontrol.feature.analysis.RaceTraceScreen
 import com.owlmedia.racecontrol.feature.analysis.RetirementsScreen
 import com.owlmedia.racecontrol.feature.analysis.StrategyScreen
 import com.owlmedia.racecontrol.feature.analysis.TelemetryScreen
+import com.owlmedia.racecontrol.feature.analysis.TyrePerformanceScreen
 import com.owlmedia.racecontrol.feature.analysis.WeatherScreen
 import com.owlmedia.racecontrol.feature.circuits.CircuitDetailScreen
 import com.owlmedia.racecontrol.feature.circuits.CircuitsScreen
@@ -220,6 +226,30 @@ private fun NavGraphBuilder.analysisDestinations(navController: NavHostControlle
             onBack = navController::popBackStack,
             onOpenDriver = { driverId -> navController.navigate(Routes.DriverDetail(route.year, driverId)) },
         )
+    }
+    composable<Routes.RaceTrace> { entry ->
+        val route = entry.toRoute<Routes.RaceTrace>()
+        RaceTraceScreen(route.year, route.round, route.title, navController::popBackStack)
+    }
+    composable<Routes.PositionChart> { entry ->
+        val route = entry.toRoute<Routes.PositionChart>()
+        PositionChartScreen(route.year, route.round, route.title, navController::popBackStack)
+    }
+    composable<Routes.TyrePerformance> { entry ->
+        val route = entry.toRoute<Routes.TyrePerformance>()
+        TyrePerformanceScreen(route.year, route.round, route.title, navController::popBackStack)
+    }
+    composable<Routes.PitStops> { entry ->
+        val route = entry.toRoute<Routes.PitStops>()
+        PitStopsScreen(route.year, route.round, route.title, navController::popBackStack)
+    }
+    composable<Routes.QualifyingSectors> { entry ->
+        val route = entry.toRoute<Routes.QualifyingSectors>()
+        QualifyingSectorsScreen(route.year, route.round, route.title, navController::popBackStack)
+    }
+    composable<Routes.MiniSectors> { entry ->
+        val route = entry.toRoute<Routes.MiniSectors>()
+        MiniSectorsScreen(route.year, route.round, route.title, navController::popBackStack)
     }
     composable<Routes.Qualifying> { entry ->
         val route = entry.toRoute<Routes.Qualifying>()

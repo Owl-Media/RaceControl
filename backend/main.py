@@ -24,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+import analytics_service as analytics
 import fastf1_service as svc
 
 logging.basicConfig(level=logging.INFO)
@@ -143,33 +144,84 @@ _rate_hits: dict[str, list[float]] = {}
 _rate_lock_window = 60.0
 
 
+def _client_key(request: Request) -> str:
+    """The identity to rate-limit on.
+
+    In deployment the app sits behind a reverse proxy (Coolify/Traefik), so
+    `request.client.host` is the *proxy's* address and is identical for every
+    caller — keying on it turns a per-IP limit into a single global throttle
+    where one abusive client 429s the entire user base. The real client is the
+    leftmost entry of `X-Forwarded-For`.
+
+    Trusting a client-settable header is only safe because the proxy overwrites
+    it on ingress; `--forwarded-allow-ips` on the uvicorn command line (see the
+    Dockerfile) is what makes that true. With no proxy in front (local
+    `./run.sh`), no such header is present and this falls back to the peer
+    address, which is then genuinely the client.
+    """
+    forwarded = request.headers.get("x-forwarded-for", "")
+    if forwarded:
+        # "client, proxy1, proxy2" — the first entry is the origin client.
+        first = forwarded.split(",")[0].strip()
+        if first:
+            return first
+    return request.client.host if request.client else "unknown"
+
+
 @app.middleware("http")
 async def rate_limit(request: Request, call_next):
     if _RATE_LIMIT > 0 and request.url.path != "/api/health":
-        client = request.client.host if request.client else "unknown"
+        client = _client_key(request)
         now = time.time()
         hits = [t for t in _rate_hits.get(client, []) if now - t < _rate_lock_window]
         if len(hits) >= _RATE_LIMIT:
             return JSONResponse(status_code=429, content={"detail": "Too many requests"})
         hits.append(now)
         _rate_hits[client] = hits
+        # Without this sweep the map retains one entry per IP ever seen: an
+        # entry is only pruned when *that* client comes back, which a one-shot
+        # scanner never does. Sweep on every write so even a low-volume service
+        # eventually releases absent clients rather than waiting for an
+        # arbitrary high-water mark.
+        for stale in [
+            k for k, v in _rate_hits.items()
+            if k != client and (not v or now - v[-1] >= _rate_lock_window)
+        ]:
+            _rate_hits.pop(stale, None)
     return await call_next(request)
 
 # --------------------------------------------------------------------------- #
 #  Tiny in-process response cache (FastF1 loads are expensive)
 # --------------------------------------------------------------------------- #
 _CACHE: dict[str, tuple[float, Any]] = {}
+_CACHE_ORDER: list[str] = []
 # 6 hours by default; historical data is effectively static.
 _TTL_SECONDS = int(os.environ.get("CACHE_TTL_SECONDS", 60 * 60 * 6))
+# Bounded for the same reason `SESSION_CACHE_MAX` bounds the session cache in
+# fastf1_service: the TTL is only consulted on read, so an entry nobody asks
+# for again is retained forever. Keys multiply across year x round x session x
+# driver, and some payloads (telemetry, replay positions) are large, on a
+# container the README sizes at 1-2 GB.
+_CACHE_MAX_ENTRIES = int(os.environ.get("CACHE_MAX_ENTRIES", 256))
 
 
 def cached(key: str, producer: Callable[[], Any]) -> Any:
     now = time.time()
     hit = _CACHE.get(key)
     if hit and (now - hit[0]) < _TTL_SECONDS:
+        # A hit makes this the most recently used key.
+        if key in _CACHE_ORDER:
+            _CACHE_ORDER.remove(key)
+        _CACHE_ORDER.append(key)
         return hit[1]
     value = producer()
+    # Recomputing an expired entry also makes it most recently used.
+    if key in _CACHE_ORDER:
+        _CACHE_ORDER.remove(key)
+    _CACHE_ORDER.append(key)
     _CACHE[key] = (now, value)
+    while _CACHE_MAX_ENTRIES > 0 and len(_CACHE_ORDER) > _CACHE_MAX_ENTRIES:
+        _CACHE.pop(_CACHE_ORDER.pop(0), None)
     return value
 
 
@@ -446,6 +498,72 @@ def compare(year: int, d1: str, d2: str) -> Any:
 def standings_evolution(year: int) -> Any:
     key = f"standevo:{year}"
     return cached(key, lambda: _guard(lambda: svc.get_standings_evolution(year), "standings evolution"))
+
+
+# --------------------------------------------------------------------------- #
+#  Derived analysis (analytics_service)
+# --------------------------------------------------------------------------- #
+@app.get("/api/race-trace/{year}/{rnd}")
+def race_trace(year: int, rnd: int, mode: str = "median") -> Any:
+    key = f"racetrace:{year}:{rnd}:{mode}"
+    return cached(key, lambda: _guard(lambda: analytics.get_race_trace(year, rnd, mode), "race trace"))
+
+
+@app.get("/api/tyre-performance/{year}/{rnd}")
+def tyre_performance(year: int, rnd: int) -> Any:
+    key = f"tyreperformance:{year}:{rnd}"
+    return cached(
+        key,
+        lambda: _guard(lambda: analytics.get_tyre_performance(year, rnd), "tyre performance"),
+    )
+
+
+@app.get("/api/pit-stops/{year}/{rnd}")
+def pit_stops(year: int, rnd: int) -> Any:
+    key = f"pitstops:{year}:{rnd}"
+    return cached(key, lambda: _guard(lambda: analytics.get_pit_stops(year, rnd), "pit stops"))
+
+
+@app.get("/api/qualifying-sectors/{year}/{rnd}")
+def qualifying_sectors(year: int, rnd: int) -> Any:
+    key = f"qualifyingsectors:{year}:{rnd}"
+    return cached(
+        key,
+        lambda: _guard(lambda: analytics.get_qualifying_sectors(year, rnd), "qualifying sectors"),
+    )
+
+
+@app.get("/api/minisectors/{year}/{rnd}")
+def minisectors(year: int, rnd: int, session: str = "Q", top: int = 10) -> Any:
+    key = f"minisectors:{year}:{rnd}:{session}:{top}"
+    return cached(
+        key,
+        lambda: _guard(
+            lambda: analytics.get_minisectors(year, rnd, session, top),
+            "mini sectors",
+        ),
+    )
+
+
+@app.get("/api/title-scenarios/{year}")
+def title_scenarios(year: int, d1: str | None = None, d2: str | None = None) -> Any:
+    key = f"titlescenarios:{year}:{d1 or ''}:{d2 or ''}"
+    return cached(
+        key,
+        lambda: _guard(lambda: analytics.get_title_scenarios(year, d1, d2), "title scenarios"),
+    )
+
+
+@app.get("/api/driver-fingerprint/{year}/{driver_id}")
+def driver_fingerprint(year: int, driver_id: str) -> Any:
+    key = f"driverfingerprint:{year}:{driver_id}"
+    return cached(
+        key,
+        lambda: _guard(
+            lambda: analytics.get_driver_fingerprint(year, driver_id),
+            "driver fingerprint",
+        ),
+    )
 
 
 # Normalise any uncaught error into JSON rather than an HTML 500 page.

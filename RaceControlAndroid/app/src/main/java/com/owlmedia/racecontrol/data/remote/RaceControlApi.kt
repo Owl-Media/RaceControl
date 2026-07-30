@@ -6,14 +6,19 @@ import com.owlmedia.racecontrol.data.remote.dto.CompareResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.ConstructorStandingDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverDetailDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverDto
+import com.owlmedia.racecontrol.data.remote.dto.DriverFingerprintResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverStandingDto
 import com.owlmedia.racecontrol.data.remote.dto.FlagsResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.LapTimesResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.MiniSectorsResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.PenaltiesResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.PitStopsResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.QualifyingSectorsResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceControlResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceDriverDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceEventDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceReplayDto
+import com.owlmedia.racecontrol.data.remote.dto.RaceTraceResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.ReliabilityResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RetirementsResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.SessionResultsDto
@@ -22,6 +27,8 @@ import com.owlmedia.racecontrol.data.remote.dto.StrategyResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.TeamDto
 import com.owlmedia.racecontrol.data.remote.dto.TelemetryCompareResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.TelemetryResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.TitleScenariosResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.TyrePerformanceResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.WdcCalculatorDto
 import com.owlmedia.racecontrol.data.remote.dto.WeatherResponseDto
 import retrofit2.Response
@@ -94,6 +101,39 @@ interface RaceControlApi {
         @Path("year") year: Int,
         @Path("round") round: Int,
     ): RaceReplayDto
+
+    @GET("api/race-trace/{year}/{round}")
+    suspend fun raceTrace(
+        @Path("year") year: Int,
+        @Path("round") round: Int,
+        @Query("mode") mode: String = "median",
+    ): RaceTraceResponseDto
+
+    @GET("api/tyre-performance/{year}/{round}")
+    suspend fun tyrePerformance(
+        @Path("year") year: Int,
+        @Path("round") round: Int,
+    ): TyrePerformanceResponseDto
+
+    @GET("api/pit-stops/{year}/{round}")
+    suspend fun pitStops(
+        @Path("year") year: Int,
+        @Path("round") round: Int,
+    ): PitStopsResponseDto
+
+    @GET("api/qualifying-sectors/{year}/{round}")
+    suspend fun qualifyingSectors(
+        @Path("year") year: Int,
+        @Path("round") round: Int,
+    ): QualifyingSectorsResponseDto
+
+    @GET("api/minisectors/{year}/{round}")
+    suspend fun miniSectors(
+        @Path("year") year: Int,
+        @Path("round") round: Int,
+        @Query("session") session: String = "Q",
+        @Query("top") top: Int = 10,
+    ): MiniSectorsResponseDto
 
     @GET("api/laptimes/{year}/{round}")
     suspend fun lapTimes(
@@ -181,4 +221,17 @@ interface RaceControlApi {
         @Path("year") year: Int,
         @Query("through_round") throughRound: Int? = null,
     ): WdcCalculatorDto
+
+    @GET("api/title-scenarios/{year}")
+    suspend fun titleScenarios(
+        @Path("year") year: Int,
+        @Query("d1") d1: String? = null,
+        @Query("d2") d2: String? = null,
+    ): TitleScenariosResponseDto
+
+    @GET("api/driver-fingerprint/{year}/{driverId}")
+    suspend fun driverFingerprint(
+        @Path("year") year: Int,
+        @Path("driverId") driverId: String,
+    ): DriverFingerprintResponseDto
 }

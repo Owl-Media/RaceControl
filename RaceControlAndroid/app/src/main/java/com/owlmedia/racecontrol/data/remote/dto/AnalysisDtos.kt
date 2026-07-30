@@ -5,6 +5,171 @@ import com.owlmedia.racecontrol.core.util.pointsLabel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+/* -------------------------------------------------------------- race trace */
+
+@Serializable
+data class RaceTraceResponseDto(
+    val year: Int = 0,
+    val round: Int = 0,
+    val session: String = "R",
+    val eventName: String? = null,
+    val available: Boolean = false,
+    val mode: String = "median",
+    val totalLaps: Int = 0,
+    val greenFlagMedianLapMs: Int? = null,
+    val yDomainMs: List<Int>? = null,
+    val periods: List<FlagPeriodDto> = emptyList(),
+    val drivers: List<RaceTraceDriverDto> = emptyList(),
+)
+
+@Serializable
+data class RaceTraceDriverDto(
+    val code: String = "",
+    val driverId: String? = null,
+    val fullName: String? = null,
+    val teamName: String? = null,
+    val teamColor: String? = null,
+    val finishPosition: Int? = null,
+    val retired: Boolean = false,
+    val status: String? = null,
+    val lapsCompleted: Int = 0,
+    val laps: List<RaceTraceLapDto> = emptyList(),
+)
+
+@Serializable
+data class RaceTraceLapDto(
+    val lap: Int = 0,
+    val deltaMs: Int = 0,
+    val cumulativeMs: Int = 0,
+    val lapTimeMs: Int? = null,
+    val compound: String? = null,
+)
+
+/* --------------------------------------------------------- tyre degradation */
+
+@Serializable
+data class TyrePerformanceResponseDto(
+    val year: Int = 0,
+    val round: Int = 0,
+    val session: String = "R",
+    val eventName: String? = null,
+    val available: Boolean = false,
+    val xDomain: List<Int>? = null,
+    val yDomainMs: List<Int>? = null,
+    val compoundBaselines: List<CompoundBaselineDto> = emptyList(),
+    val stints: List<TyrePerformanceStintDto> = emptyList(),
+)
+
+@Serializable
+data class CompoundBaselineDto(
+    val compound: String = "",
+    val slopeSecPerLap: Double = 0.0,
+    val stintCount: Int = 0,
+)
+
+@Serializable
+data class TyrePerformanceStintDto(
+    val id: String = "",
+    val driverCode: String = "",
+    val driverId: String? = null,
+    val fullName: String? = null,
+    val teamName: String? = null,
+    val teamColor: String? = null,
+    val stint: Int = 0,
+    val compound: String? = null,
+    val freshTyre: Boolean? = null,
+    val startLap: Int = 0,
+    val endLap: Int = 0,
+    val bestLapMs: Int = 0,
+    val slopeSecPerLap: Double = 0.0,
+    val points: List<TyrePerformancePointDto> = emptyList(),
+    val fit: List<TyrePerformanceFitPointDto> = emptyList(),
+)
+
+@Serializable
+data class TyrePerformancePointDto(
+    val lap: Int = 0,
+    val tyreLife: Double = 0.0,
+    val lapTimeMs: Int = 0,
+    val deltaMs: Int = 0,
+)
+
+@Serializable
+data class TyrePerformanceFitPointDto(
+    val tyreLife: Double = 0.0,
+    val deltaMs: Int = 0,
+)
+
+/* ---------------------------------------------------------- pit-stop ledger */
+
+@Serializable
+data class PitStopsResponseDto(
+    val year: Int = 0,
+    val round: Int = 0,
+    val session: String = "R",
+    val eventName: String? = null,
+    val available: Boolean = false,
+    val circuitMedianLossMs: Int? = null,
+    val lossDomainMs: List<Int>? = null,
+    val stops: List<PitStopLedgerItemDto> = emptyList(),
+)
+
+@Serializable
+data class PitStopLedgerItemDto(
+    val id: String = "",
+    val driverCode: String = "",
+    val driverId: String? = null,
+    val fullName: String? = null,
+    val teamName: String? = null,
+    val teamColor: String? = null,
+    val stop: Int = 0,
+    val lap: Int = 0,
+    val compoundIn: String? = null,
+    val compoundOut: String? = null,
+    val lossMs: Int = 0,
+    val deltaToMedianMs: Int = 0,
+    val entryPosition: Int? = null,
+    val rejoinPosition: Int? = null,
+    val positionsGained: Int? = null,
+    val outcome: String = "HELD",
+    val rivals: List<String> = emptyList(),
+)
+
+/* ----------------------------------------------- qualifying sector waterfall */
+
+@Serializable
+data class QualifyingSectorsResponseDto(
+    val year: Int = 0,
+    val round: Int = 0,
+    val session: String = "Q",
+    val eventName: String? = null,
+    val available: Boolean = false,
+    val poleCode: String? = null,
+    val poleLapMs: Int? = null,
+    val gapDomainMs: List<Int>? = null,
+    val drivers: List<QualifyingSectorDriverDto> = emptyList(),
+)
+
+@Serializable
+data class QualifyingSectorDriverDto(
+    val code: String = "",
+    val driverId: String? = null,
+    val fullName: String? = null,
+    val teamName: String? = null,
+    val teamColor: String? = null,
+    val lapMs: Int = 0,
+    val gapToPoleMs: Int = 0,
+    val sectorMs: List<Int> = emptyList(),
+    val sectorDeltaMs: List<Int> = emptyList(),
+    val idealSectorMs: List<Int> = emptyList(),
+    val idealLapMs: Int = 0,
+    val idealGainMs: Int = 0,
+    val speedI1: Double? = null,
+    val speedI2: Double? = null,
+    val speedFL: Double? = null,
+    val speedST: Double? = null,
+)
+
 /* -------------------------------------------------------- lap-time evolution */
 
 @Serializable
@@ -83,6 +248,102 @@ data class WeatherResponseDto(
     val rainfall: Boolean? = null,
     val airTempMax: Double? = null,
     val trackTempMax: Double? = null,
+    val timeline: List<WeatherSampleDto> = emptyList(),
+)
+
+@Serializable
+data class WeatherSampleDto(
+    val timeSeconds: Double = 0.0,
+    val airTemp: Double? = null,
+    val trackTemp: Double? = null,
+    val humidity: Double? = null,
+    val pressure: Double? = null,
+    val windSpeed: Double? = null,
+    val rainfall: Boolean = false,
+)
+
+/* ----------------------------------------------------- mini-sector dominance */
+
+@Serializable
+data class MiniSectorsResponseDto(
+    val year: Int = 0,
+    val round: Int = 0,
+    val session: String = "Q",
+    val eventName: String? = null,
+    val available: Boolean = false,
+    val driverCount: Int = 0,
+    val segmentCount: Int = 0,
+    val outlineSourceCode: String? = null,
+    val legend: List<MiniSectorLegendDto> = emptyList(),
+    val segments: List<MiniSectorSegmentDto> = emptyList(),
+)
+
+@Serializable
+data class MiniSectorLegendDto(
+    val code: String = "",
+    val teamColor: String? = null,
+    val segmentsWon: Int = 0,
+)
+
+@Serializable
+data class MiniSectorSegmentDto(
+    val index: Int = 0,
+    val startDistance: Double = 0.0,
+    val endDistance: Double = 0.0,
+    val points: List<List<Double>> = emptyList(),
+    val winnerCode: String = "",
+    val teamColor: String? = null,
+    val timeMs: Int = 0,
+    val gapMs: Int = 0,
+)
+
+/* --------------------------------------------------------- title scenarios */
+
+@Serializable
+data class TitleScenariosResponseDto(
+    val year: Int = 0,
+    val available: Boolean = false,
+    val roundsRemaining: Int = 0,
+    val positions: List<Int> = emptyList(),
+    val drivers: List<TitleScenarioDriverDto> = emptyList(),
+    val cells: List<TitleScenarioCellDto> = emptyList(),
+    val clinchText: String? = null,
+)
+
+@Serializable
+data class TitleScenarioDriverDto(
+    val driverId: String = "",
+    val code: String = "",
+    val teamColor: String? = null,
+    val points: Double = 0.0,
+)
+
+@Serializable
+data class TitleScenarioCellDto(
+    val d1Position: Int = 0,
+    val d2Position: Int = 0,
+    val d1Points: Double = 0.0,
+    val d2Points: Double = 0.0,
+    val margin: Double = 0.0,
+    val outcome: String = "TIED",
+)
+
+/* ------------------------------------------------------- driver fingerprint */
+
+@Serializable
+data class DriverFingerprintResponseDto(
+    val year: Int = 0,
+    val driverId: String = "",
+    val available: Boolean = false,
+    val axes: List<FingerprintAxisDto> = emptyList(),
+)
+
+@Serializable
+data class FingerprintAxisDto(
+    val key: String = "",
+    val label: String = "",
+    val percentile: Int = 0,
+    val rawValue: Double = 0.0,
 )
 
 /* ----------------------------------------------------------------- telemetry */

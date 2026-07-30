@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 /// Session weather conditions: temperatures, humidity, wind and rainfall.
 struct WeatherView: View {
@@ -43,6 +44,45 @@ struct WeatherView: View {
                     metric("Humidity", value: wx.humidity, unit: "%", icon: "humidity.fill")
                     metric("Wind", value: wx.windSpeed, unit: " m/s", icon: "wind")
                     metric("Pressure", value: wx.pressure, unit: " mbar", icon: "gauge.medium")
+                }
+                if let timeline = wx.timeline, timeline.count > 1 {
+                    Card {
+                        Chart(timeline) { sample in
+                            if sample.rainfall {
+                                RectangleMark(
+                                    xStart: .value("Start", sample.timeSeconds),
+                                    xEnd: .value("End", sample.timeSeconds + 60)
+                                )
+                                .foregroundStyle(Theme.Palette.info.opacity(0.12))
+                            }
+                            if let air = sample.airTemp {
+                                LineMark(
+                                    x: .value("Time", sample.timeSeconds),
+                                    y: .value("Air", air),
+                                    series: .value("Series", "Air")
+                                )
+                                .foregroundStyle(Theme.Palette.info)
+                            }
+                            if let track = sample.trackTemp {
+                                LineMark(
+                                    x: .value("Time", sample.timeSeconds),
+                                    y: .value("Track", track),
+                                    series: .value("Series", "Track")
+                                )
+                                .foregroundStyle(Theme.Palette.warning)
+                            }
+                        }
+                        .chartXAxis {
+                            AxisMarks { value in
+                                AxisValueLabel {
+                                    if let seconds = value.as(Double.self) {
+                                        Text("\(Int(seconds / 60))m")
+                                    }
+                                }
+                            }
+                        }
+                        .frame(height: 240)
+                    }
                 }
             }
             .padding(Theme.Space.md)

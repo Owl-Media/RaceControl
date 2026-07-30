@@ -52,6 +52,9 @@ data class ChartSeries(
     val color: Color,
     val points: List<ChartPoint>,
     val strokeWidth: Dp = 2.dp,
+    val showLine: Boolean = true,
+    val showPoints: Boolean = false,
+    val pointRadius: Dp = 3.dp,
 )
 
 data class ChartPoint(val x: Double, val y: Double)
@@ -256,26 +259,28 @@ private fun DrawScope.drawSeries(
     width: Float,
     height: Float,
 ) {
-    if (s.points.size < 2) return
-    val path = Path()
-    var started = false
-    s.points.forEach { p ->
+    if (s.points.isEmpty()) return
+    val mapped = s.points.mapNotNull { p ->
         val x = left + ((p.x - domain.minX) / domain.spanX).toFloat() * width
         val y = height - ((p.y - domain.minY) / domain.spanY).toFloat() * height
-        if (!x.isFinite() || !y.isFinite()) return@forEach
-        if (!started) {
-            path.moveTo(x, y)
-            started = true
-        } else {
-            path.lineTo(x, y)
+        if (x.isFinite() && y.isFinite()) Offset(x, y) else null
+    }
+    if (s.showLine && mapped.size >= 2) {
+        val path = Path().apply {
+            moveTo(mapped.first().x, mapped.first().y)
+            mapped.drop(1).forEach { lineTo(it.x, it.y) }
+        }
+        drawPath(
+            path = path,
+            color = s.color,
+            style = Stroke(width = s.strokeWidth.toPx(), cap = StrokeCap.Round),
+        )
+    }
+    if (s.showPoints) {
+        mapped.forEach { point ->
+            drawCircle(color = s.color, radius = s.pointRadius.toPx(), center = point)
         }
     }
-    if (!started) return
-    drawPath(
-        path = path,
-        color = s.color,
-        style = Stroke(width = s.strokeWidth.toPx(), cap = StrokeCap.Round),
-    )
 }
 
 /**
@@ -329,6 +334,32 @@ data class BarSegment(
     val color: Color,
     val label: String? = null,
 )
+
+data class WaterfallSegment(val value: Float, val color: Color)
+
+/** Signed horizontal waterfall centred on zero. */
+@Composable
+fun RcWaterfallBars(
+    segments: List<WaterfallSegment>,
+    modifier: Modifier = Modifier,
+    height: Dp = 22.dp,
+) {
+    Canvas(modifier.fillMaxWidth().height(height)) {
+        val extent = segments.sumOf { kotlin.math.abs(it.value.toDouble()) }.toFloat()
+            .coerceAtLeast(0.001f)
+        val scale = size.width / (extent * 2f)
+        val centre = size.width / 2f
+        drawLine(RcPalette.TextTertiary, Offset(centre, 0f), Offset(centre, size.height), 1f)
+        var positive = centre
+        var negative = centre
+        segments.forEach { segment ->
+            val width = kotlin.math.abs(segment.value) * scale
+            val left = if (segment.value >= 0) positive else negative - width
+            drawRect(segment.color, Offset(left, 0f), androidx.compose.ui.geometry.Size(width, size.height))
+            if (segment.value >= 0) positive += width else negative -= width
+        }
+    }
+}
 
 /**
  * Horizontal stacked bar, used for tyre stint timelines and reliability

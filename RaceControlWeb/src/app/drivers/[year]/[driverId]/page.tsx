@@ -7,6 +7,7 @@ import { TeamLogo } from "@/components/TeamLogo";
 import { DriverFavoriteButton } from "./DriverFavoriteButton";
 import { DriverWdcBadge } from "./DriverWdcBadge";
 import { DriverPointsChart } from "./DriverPointsChart";
+import { DriverFingerprint } from "./DriverFingerprint";
 
 export default async function DriverDetailPage({
   params,
@@ -59,6 +60,7 @@ export default async function DriverDetailPage({
       <div className="mb-6">
         <DriverPointsChart year={Number(year)} driverId={driver.driverId} teamColor={driver.teamColor} />
       </div>
+      <DriverFingerprint year={Number(year)} driverId={driver.driverId} color={driver.teamColor} />
 
       <h2 className="mb-3 text-lg font-semibold">Season Results</h2>
       <div className="overflow-hidden rounded-lg border border-border">

@@ -84,7 +84,7 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | GET | `/api/replay-positions/{year}/{round}` | Per-driver car X/Y positions sampled across each lap, for animating cars around the track outline (`/api/circuit/{year}/{round}`) during replay |
 | GET | `/api/laptimes/{year}/{round}` | Per-driver lap-time series (evolution chart) |
 | GET | `/api/strategy/{year}/{round}` | Tyre stints & pit-stop counts per driver |
-| GET | `/api/weather/{year}/{round}/{session}` | Session weather summary |
+| GET | `/api/weather/{year}/{round}/{session}` | Session weather summary plus the full cached weather timeline |
 | GET | `/api/flags/{year}/{round}?session=R` | Track flags & safety-car history: raw race-control events plus collapsed lap-range periods (yellow/double-yellow/red/VSC/SC) for a flags timeline and chart overlays |
 | GET | `/api/racecontrol/{year}/{round}?session=R` | The complete race-control message log — flags and safety car, but also DRS enable/disable, car events, and investigations/penalties/reprimands — in chronological order |
 | GET | `/api/telemetry/{year}/{round}/{driver}` | Fastest-lap telemetry trace |
@@ -93,6 +93,33 @@ uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 | GET | `/api/retirements/{year}/{round}` | Non-finishers with cause |
 | GET | `/api/reliability/{year}` | Season DNF breakdown per driver/team |
 | GET | `/api/compare/{year}/{d1}/{d2}` | Two-driver season head-to-head |
+| GET | `/api/standings-evolution/{year}` | Round-by-round cumulative championship points per driver |
+
+### Derived analysis endpoints
+
+Served by [`analytics_service.py`](backend/analytics_service.py) rather than
+`fastf1_service.py`. These answer questions the raw endpoints only pose, from columns
+FastF1 already loads. Payloads are deliberately **chart-ready** — series arrive
+pre-binned and pre-sorted with team colours resolved and axis domains supplied — because
+three clients render them with three different chart stacks, and any arithmetic left to
+the client is arithmetic that can diverge between platforms. Each returns
+`available: false` with a valid empty body rather than erroring when a session's data is
+partial.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/race-trace/{year}/{round}?mode=median\|leader` | **Race trace** — cumulative time delta per driver per lap. `mode=median` (default) subtracts a fixed race-wide green-flag median lap from cumulative elapsed time; `mode=leader` reports the gap to the leader on each lap. Includes safety-car/flag periods and chart domains. |
+| GET | `/api/tyre-performance/{year}/{round}` | **Tyre degradation** — filtered per-stint samples, fitted slopes, and field-wide compound baselines |
+| GET | `/api/pit-stops/{year}/{round}` | **Pit-stop ledger** — real pit-lane transit loss, entry/rejoin positions, rival-window outcome, and circuit median |
+| GET | `/api/qualifying-sectors/{year}/{round}` | **Qualifying sector waterfall** — gap-to-pole sector decomposition, ideal laps, and speed traps |
+| GET | `/api/minisectors/{year}/{round}?session=Q&top=10` | **Mini-sector dominance** — approximately 24 curved track segments coloured by their fastest driver; the first uncached request loads telemetry and is intentionally the expensive path |
+| GET | `/api/title-scenarios/{year}?d1=&d2=` | **Title permutations** — next-race finish-position matrix and generated clinch summary |
+| GET | `/api/driver-fingerprint/{year}/{driver_id}` | **Driver fingerprint** — six season percentile axes covering qualifying, race pace, tyres, starts, reliability, and wet pace. Tyre degradation uses an evenly spaced season sample capped by `FINGERPRINT_TYRE_ROUNDS` (default 6) to keep cold requests within proxy budgets. |
+
+The median race-trace baseline is fixed for the whole race:
+`elapsed_time − lap_number × green_flag_median_lap`. This preserves the defining trace
+property that the vertical distance between two drivers equals their real on-track time
+gap. Neutralised periods remain visible and are explicitly returned as chart bands.
 
 ---
 
