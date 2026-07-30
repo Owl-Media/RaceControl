@@ -281,12 +281,14 @@ struct MiniSectorSegment: Codable, Identifiable, Hashable {
 
 struct TitleScenariosResponse: Codable {
     let year: Int
+    let throughRound: Int?
     let available: Bool
     let roundsRemaining: Int
     let positions: [Int]
     let drivers: [TitleScenarioDriver]
     let cells: [TitleScenarioCell]
     let clinchText: String?
+    let summary: String?
 }
 
 struct TitleScenarioDriver: Codable, Identifiable, Hashable {

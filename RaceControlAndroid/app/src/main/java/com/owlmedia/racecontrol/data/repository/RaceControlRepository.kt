@@ -185,7 +185,8 @@ class RaceControlRepository @Inject constructor(
         year: Int,
         d1: String? = null,
         d2: String? = null,
-    ): Result<TitleScenariosResponseDto> = call { api.titleScenarios(year, d1, d2) }
+        throughRound: Int? = null,
+    ): Result<TitleScenariosResponseDto> = call { api.titleScenarios(year, d1, d2, throughRound) }
 
     suspend fun driverFingerprint(year: Int, driverId: String): Result<DriverFingerprintResponseDto> =
         call { api.driverFingerprint(year, driverId) }

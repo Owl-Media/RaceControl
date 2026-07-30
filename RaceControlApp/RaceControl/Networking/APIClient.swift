@@ -183,10 +183,16 @@ extension APIClient {
             as: MiniSectorsResponse.self
         )
     }
-    func titleScenarios(year: Int, d1: String? = nil, d2: String? = nil) async throws -> TitleScenariosResponse {
+    func titleScenarios(
+        year: Int,
+        d1: String? = nil,
+        d2: String? = nil,
+        throughRound: Int? = nil
+    ) async throws -> TitleScenariosResponse {
         var query: [String] = []
         if let d1 { query.append("d1=\(d1)") }
         if let d2 { query.append("d2=\(d2)") }
+        if let throughRound { query.append("through_round=\(throughRound)") }
         let suffix = query.isEmpty ? "" : "?\(query.joined(separator: "&"))"
         return try await get("api/title-scenarios/\(year)\(suffix)", as: TitleScenariosResponse.self)
     }

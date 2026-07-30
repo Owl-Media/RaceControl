@@ -108,7 +108,7 @@ fun WdcCalculatorView(
                 )
             }
             item(key = "title-scenarios") {
-                TitleScenarioMatrix(appState.selectedYear)
+                TitleScenarioMatrix(appState.selectedYear, throughRound)
             }
             items(
                 items = data.drivers,

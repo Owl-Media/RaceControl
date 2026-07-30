@@ -227,6 +227,7 @@ interface RaceControlApi {
         @Path("year") year: Int,
         @Query("d1") d1: String? = null,
         @Query("d2") d2: String? = null,
+        @Query("through_round") throughRound: Int? = null,
     ): TitleScenariosResponseDto
 
     @GET("api/driver-fingerprint/{year}/{driverId}")

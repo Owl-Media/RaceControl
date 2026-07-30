@@ -135,7 +135,16 @@ export const useQualifyingSectors = (year: number, rnd: number) =>
   useApi<QualifyingSectorsResponse>(`/api/qualifying-sectors/${year}/${rnd}`);
 export const useMiniSectors = (year: number, rnd: number, session = "Q", top = 10) =>
   useApi<MiniSectorsResponse>(`/api/minisectors/${year}/${rnd}`, { session, top });
-export const useTitleScenarios = (year: number, d1?: string, d2?: string) =>
-  useApi<TitleScenariosResponse>(`/api/title-scenarios/${year}`, { d1, d2 });
+export const useTitleScenarios = (
+  year: number,
+  d1?: string,
+  d2?: string,
+  throughRound?: number | null,
+) =>
+  useApi<TitleScenariosResponse>(`/api/title-scenarios/${year}`, {
+    d1,
+    d2,
+    through_round: throughRound ?? undefined,
+  });
 export const useDriverFingerprint = (year: number, driverId: string | null) =>
   useApi<DriverFingerprintResponse>(driverId ? `/api/driver-fingerprint/${year}/${driverId}` : null);

@@ -113,7 +113,7 @@ partial.
 | GET | `/api/pit-stops/{year}/{round}` | **Pit-stop ledger** — real pit-lane transit loss, entry/rejoin positions, rival-window outcome, and circuit median |
 | GET | `/api/qualifying-sectors/{year}/{round}` | **Qualifying sector waterfall** — gap-to-pole sector decomposition, ideal laps, and speed traps |
 | GET | `/api/minisectors/{year}/{round}?session=Q&top=10` | **Mini-sector dominance** — approximately 24 curved track segments coloured by their fastest driver; the first uncached request loads telemetry and is intentionally the expensive path |
-| GET | `/api/title-scenarios/{year}?d1=&d2=` | **Title permutations** — next-race finish-position matrix and generated clinch summary |
+| GET | `/api/title-scenarios/{year}?d1=&d2=&through_round=` | **Title permutations** — next-race finish-position matrix, projected points margins, and generated clinch/uniform-outcome summaries. Historical snapshots follow the WDC time machine; no hypothetical race is shown after a season has finished. |
 | GET | `/api/driver-fingerprint/{year}/{driver_id}` | **Driver fingerprint** — six season percentile axes covering qualifying, race pace, tyres, starts, reliability, and wet pace. Tyre degradation uses an evenly spaced season sample capped by `FINGERPRINT_TYRE_ROUNDS` (default 6) to keep cold requests within proxy budgets. |
 
 The median race-trace baseline is fixed for the whole race:

@@ -26,7 +26,7 @@ struct WdcCalculatorView: View {
                 timeMachineControl(data)
                 statusHeader(data)
                 pointsBreakdown
-                TitleScenarioMatrixView(year: year)
+                TitleScenarioMatrixView(year: year, throughRound: vm.selectedRound)
                 LazyVStack(spacing: Theme.Space.sm) {
                     ForEach(data.drivers) { driver in
                         WdcDriverRow(driver: driver, year: year, driversById: vm.driversById)

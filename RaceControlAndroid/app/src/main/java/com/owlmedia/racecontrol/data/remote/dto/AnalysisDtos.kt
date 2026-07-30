@@ -302,12 +302,14 @@ data class MiniSectorSegmentDto(
 @Serializable
 data class TitleScenariosResponseDto(
     val year: Int = 0,
+    val throughRound: Int? = null,
     val available: Boolean = false,
     val roundsRemaining: Int = 0,
     val positions: List<Int> = emptyList(),
     val drivers: List<TitleScenarioDriverDto> = emptyList(),
     val cells: List<TitleScenarioCellDto> = emptyList(),
     val clinchText: String? = null,
+    val summary: String? = null,
 )
 
 @Serializable

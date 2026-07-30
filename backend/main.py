@@ -546,11 +546,19 @@ def minisectors(year: int, rnd: int, session: str = "Q", top: int = 10) -> Any:
 
 
 @app.get("/api/title-scenarios/{year}")
-def title_scenarios(year: int, d1: str | None = None, d2: str | None = None) -> Any:
-    key = f"titlescenarios:{year}:{d1 or ''}:{d2 or ''}"
+def title_scenarios(
+    year: int,
+    d1: str | None = None,
+    d2: str | None = None,
+    through_round: int | None = None,
+) -> Any:
+    key = f"titlescenarios:{year}:{d1 or ''}:{d2 or ''}:{through_round if through_round is not None else 'live'}"
     return cached(
         key,
-        lambda: _guard(lambda: analytics.get_title_scenarios(year, d1, d2), "title scenarios"),
+        lambda: _guard(
+            lambda: analytics.get_title_scenarios(year, d1, d2, through_round),
+            "title scenarios",
+        ),
     )
 
 

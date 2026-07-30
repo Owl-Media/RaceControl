@@ -213,7 +213,7 @@ export function WdcCalculatorTable({ year }: { year: number }) {
       </div>
 
       <WdcPointsBreakdown />
-      <TitleScenarioMatrix year={year} />
+      <TitleScenarioMatrix year={year} throughRound={committedRound} />
     </div>
   );
 }

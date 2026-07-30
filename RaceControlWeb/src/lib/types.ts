@@ -769,12 +769,14 @@ export interface TitleScenarioCell {
 
 export interface TitleScenariosResponse {
   year: number;
+  throughRound: number | null;
   available: boolean;
   roundsRemaining: number;
   positions: number[];
   drivers: { driverId: string; code: string; teamColor: string | null; points: number }[];
   cells: TitleScenarioCell[];
   clinchText: string | null;
+  summary: string | null;
 }
 
 export interface DriverFingerprintResponse {

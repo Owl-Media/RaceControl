@@ -897,23 +897,26 @@ def get_title_scenarios(
     year: int,
     d1: Optional[str] = None,
     d2: Optional[str] = None,
+    through_round: Optional[int] = None,
 ) -> dict[str, Any]:
     """Next-race finish permutations for two title contenders."""
-    calculator = f1.get_wdc_calculator(year)
+    calculator = f1.get_wdc_calculator(year, through_round=through_round)
     contenders = calculator.get("drivers", [])
     by_id = {driver.get("driverId"): driver for driver in contenders if driver.get("driverId")}
     first = by_id.get(d1) if d1 else (contenders[0] if contenders else None)
     second = by_id.get(d2) if d2 else (contenders[1] if len(contenders) > 1 else None)
     payload: dict[str, Any] = {
         "year": year,
+        "throughRound": calculator.get("throughRound"),
         "available": False,
         "roundsRemaining": calculator.get("roundsRemaining", 0),
         "positions": list(range(1, 11)) + [0],
         "drivers": [],
         "cells": [],
         "clinchText": None,
+        "summary": None,
     }
-    if not first or not second:
+    if not first or not second or int(calculator.get("roundsRemaining", 0)) <= 0:
         return payload
 
     positions = payload["positions"]
@@ -955,6 +958,18 @@ def get_title_scenarios(
         if scoring_positions:
             best_required = max(scoring_positions)
             clinch_text = f"{d1_code} clinches with P{best_required} or better if the rival finishes P2."
+    outcomes = {cell["outcome"] for cell in cells}
+    summary = None
+    if len(outcomes) == 1:
+        only_outcome = next(iter(outcomes))
+        second_code = second.get("driverCode") or second.get("driverId")
+        summary = {
+            "D1_CLINCHED": f"{d1_code} clinches the title in every combination shown.",
+            "D2_CLINCHED": f"{second_code} clinches the title in every combination shown.",
+            "D1_LEADS": f"{d1_code} remains championship leader in every combination shown.",
+            "D2_LEADS": f"{second_code} remains championship leader in every combination shown.",
+            "TIED": "Every combination shown leaves the drivers tied.",
+        }.get(only_outcome)
     payload.update({
         "available": True,
         "drivers": [
@@ -973,6 +988,7 @@ def get_title_scenarios(
         ],
         "cells": cells,
         "clinchText": clinch_text,
+        "summary": summary,
     })
     return payload
 
