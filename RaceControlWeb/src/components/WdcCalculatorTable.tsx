@@ -132,12 +132,20 @@ export function WdcCalculatorTable({ year }: { year: number }) {
             per-round markers makes that discreteness explicit (it's a
             timeline of specific races, not a continuous scale) and gives a
             precise tap target for any round instead of trying to land a
-            drag exactly on it.
+            drag exactly on it. Each marker also carries its round number so
+            you can see at a glance what each interval represents without
+            having to hover for the tooltip.
           */}
-          <div className="mt-2 flex items-center justify-between">
-            {completedRounds.map((e) => {
+          <div className="mt-2 flex items-start justify-between">
+            {completedRounds.map((e, i) => {
               const isPast = e.round < sliderRound;
               const isCurrent = e.round === sliderRound;
+              // Thin the numeric labels once there are too many rounds to
+              // print every one legibly, but always keep the current round
+              // and the very first/last labelled so the ends of the scale
+              // are never ambiguous.
+              const labelStride = completedRounds.length > 15 ? Math.ceil(completedRounds.length / 12) : 1;
+              const showLabel = isCurrent || i === 0 || i === completedRounds.length - 1 || i % labelStride === 0;
               return (
                 <button
                   key={e.round}
@@ -145,7 +153,7 @@ export function WdcCalculatorTable({ year }: { year: number }) {
                   title={`Round ${e.round}: ${e.name}`}
                   aria-label={`Jump to Round ${e.round}, ${e.name}`}
                   onClick={() => commitRound(e.round)}
-                  className="group flex flex-1 items-center justify-center py-1"
+                  className="group flex flex-1 flex-col items-center gap-1 py-1"
                 >
                   <span
                     className={`rounded-full transition-all ${
@@ -156,13 +164,16 @@ export function WdcCalculatorTable({ year }: { year: number }) {
                           : "h-1.5 w-1.5 bg-border group-hover:bg-muted"
                     }`}
                   />
+                  <span
+                    className={`tabular text-[10px] leading-none ${
+                      isCurrent ? "font-semibold text-racing-red" : "text-muted"
+                    } ${showLabel ? "" : "invisible"}`}
+                  >
+                    {e.round}
+                  </span>
                 </button>
               );
             })}
-          </div>
-          <div className="flex justify-between text-[11px] text-muted">
-            <span>Round 1</span>
-            <span>Round {lastCompletedRound} (latest)</span>
           </div>
         </div>
       )}
