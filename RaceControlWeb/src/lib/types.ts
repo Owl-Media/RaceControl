@@ -206,6 +206,8 @@ export interface ReplayEntry {
   lapTime: string | null;
   compound: string | null;
   tyreLife: number | null;
+  gapMs?: number | null;
+  gap?: string | null;
 }
 
 export interface ReplayFrame {

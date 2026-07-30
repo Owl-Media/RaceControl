@@ -122,6 +122,9 @@ extension APIClient {
     func replay(year: Int, round: Int) async throws -> RaceReplay {
         try await get("api/replay/\(year)/\(round)", as: RaceReplay.self)
     }
+    func replayPositions(year: Int, round: Int) async throws -> ReplayPositions {
+        try await get("api/replay-positions/\(year)/\(round)", as: ReplayPositions.self)
+    }
     func lapTimes(year: Int, round: Int) async throws -> LapTimesResponse {
         try await get("api/laptimes/\(year)/\(round)", as: LapTimesResponse.self)
     }

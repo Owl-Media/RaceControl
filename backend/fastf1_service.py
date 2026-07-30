@@ -1140,10 +1140,28 @@ def get_race_replay(year: int, rnd: int) -> dict[str, Any]:
                     "lapTime": _fmt_lap(lp.get("LapTime")),
                     "compound": _clean(lp.get("Compound")),
                     "tyreLife": _clean(lp.get("TyreLife")),
+                    # Cumulative session time at this lap's timing line. It is
+                    # removed below after deriving the broadcast gap.
+                    "_completionMs": _td_ms(lp.get("Time")),
                 }
             )
         entries.sort(key=lambda e: e["position"])
         if entries:
+            leader = next((entry for entry in entries if entry["position"] == 1), entries[0])
+            leader_ms = leader.get("_completionMs")
+            for entry in entries:
+                completion_ms = entry.pop("_completionMs", None)
+                gap_ms = (
+                    max(completion_ms - leader_ms, 0)
+                    if completion_ms is not None and leader_ms is not None
+                    else None
+                )
+                entry["gapMs"] = gap_ms
+                entry["gap"] = (
+                    "LEADER"
+                    if entry["position"] == 1
+                    else f"+{gap_ms / 1000:.3f}" if gap_ms is not None else None
+                )
             frames.append({"lap": lap_no, "order": entries})
 
     return {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "motion/react";
@@ -22,8 +22,13 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
   // down, otherwise the map reports "no data" during its own fetch.
   const { data: circuit, isLoading: circuitLoading } = useCircuitMap(year, round);
   const { data: positions, isLoading: positionsLoading } = useReplayPositions(year, round);
-  const [lapIndex, setLapIndex] = useState(0);
+  const [currentLap, setCurrentLap] = useState(1);
+  const [scrubFraction, setScrubFraction] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
+  const raceProgressRef = useRef(0);
+  const sliderRef = useRef<HTMLInputElement>(null);
+  const animationRef = useRef(0);
   // Only affects the stacked (mobile) layout; on `lg` and up the map lives in
   // its own column and is always shown.
   const [mapCollapsed, setMapCollapsed] = useLocalStorageFlag("replay:map-collapsed", false);
@@ -35,8 +40,26 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
   const isDesktopLayout = useMediaQuery("(min-width: 1024px)");
   const mapVisible = isDesktopLayout || !mapCollapsed;
 
-  const frames = data?.frames ?? [];
-  const frame = frames[lapIndex];
+  const frames = useMemo(() => data?.frames ?? [], [data]);
+  const totalLaps = data?.totalLaps ?? 0;
+
+  const framesByLap = useMemo(() => {
+    const map = new Map<number, (typeof frames)[number]>();
+    for (const replayFrame of frames) map.set(replayFrame.lap, replayFrame);
+    return map;
+  }, [frames]);
+
+  const frame = useMemo(
+    () =>
+      framesByLap.get(currentLap) ??
+      [...frames].reverse().find((candidate) => candidate.lap <= currentLap) ??
+      frames[0],
+    [currentLap, frames, framesByLap],
+  );
+  const previousFrame = useMemo(
+    () => [...frames].reverse().find((candidate) => candidate.lap < currentLap),
+    [currentLap, frames],
+  );
 
   const positionsByLap = useMemo(() => {
     const map = new Map<number, ReplayLapPositions>();
@@ -50,19 +73,71 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
     return out;
   }, [data]);
 
+  const setProgress = useCallback(
+    (nextProgress: number, pause = true) => {
+      const clamped = Math.min(Math.max(nextProgress, 0), Math.max(totalLaps, 1));
+      raceProgressRef.current = clamped;
+      if (sliderRef.current) sliderRef.current.value = String(clamped);
+      const lap = Math.min(Math.floor(clamped) + 1, Math.max(totalLaps, 1));
+      setCurrentLap(lap);
+      setScrubFraction(clamped >= totalLaps && totalLaps > 0 ? 1 : clamped - Math.floor(clamped));
+      if (pause) setPlaying(false);
+    },
+    [totalLaps],
+  );
+
   useEffect(() => {
-    if (!playing || frames.length === 0) return;
-    const id = setInterval(() => {
-      setLapIndex((i) => {
-        if (i >= frames.length - 1) {
-          setPlaying(false);
-          return i;
-        }
-        return i + 1;
-      });
-    }, REPLAY_TICK_MS);
-    return () => clearInterval(id);
-  }, [playing, frames.length]);
+    const firstLap = frames[0]?.lap ?? 1;
+    const resetFrame = requestAnimationFrame(() => {
+      setProgress(Math.max(firstLap - 1, 0));
+    });
+    return () => cancelAnimationFrame(resetFrame);
+  }, [frames, setProgress, year, round]);
+
+  useEffect(() => {
+    if (!playing || totalLaps <= 0) return;
+    let previousTime = performance.now();
+
+    function tick(now: number) {
+      const elapsed = Math.min(now - previousTime, 250);
+      previousTime = now;
+      const next = raceProgressRef.current + (elapsed * speed) / REPLAY_TICK_MS;
+
+      if (next >= totalLaps) {
+        raceProgressRef.current = totalLaps;
+        if (sliderRef.current) sliderRef.current.value = String(totalLaps);
+        setCurrentLap(totalLaps);
+        setScrubFraction(1);
+        setPlaying(false);
+        return;
+      }
+
+      raceProgressRef.current = next;
+      if (sliderRef.current) sliderRef.current.value = String(next);
+      const nextLap = Math.floor(next) + 1;
+      setCurrentLap((lap) => (lap === nextLap ? lap : nextLap));
+      animationRef.current = requestAnimationFrame(tick);
+    }
+
+    animationRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [playing, speed, totalLaps]);
+
+  const togglePlaying = useCallback(() => {
+    if (playing) {
+      const progress = raceProgressRef.current;
+      setScrubFraction(progress >= totalLaps ? 1 : progress - Math.floor(progress));
+      setPlaying(false);
+      return;
+    }
+    if (raceProgressRef.current >= totalLaps) setProgress(0, false);
+    setPlaying(true);
+  }, [playing, setProgress, totalLaps]);
+
+  const previousPositions = useMemo(
+    () => new Map(previousFrame?.order.map((entry) => [entry.driver, entry.position]) ?? []),
+    [previousFrame],
+  );
 
   if (isLoading) return <LoadingState label="Loading replay…" />;
   if (error) return <ErrorState message="Replay data isn't available for this race." />;
@@ -70,28 +145,87 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
 
   return (
     <div>
-      <div className="mb-4 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => setPlaying((p) => !p)}
-          className="rounded-md bg-racing-red px-4 py-1.5 text-sm font-semibold text-white"
-        >
-          {playing ? "Pause" : "Play"}
-        </button>
+      <div className="mb-4 rounded-lg border border-border bg-surface p-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={() => setProgress(0)}
+            className="min-h-9 rounded-md border border-border px-2 text-xs font-semibold text-muted transition-colors hover:text-foreground"
+            aria-label="Back to first lap"
+          >
+            |◀
+          </button>
+          <button
+            type="button"
+            onClick={() => setProgress(raceProgressRef.current - 5)}
+            className="min-h-9 rounded-md border border-border px-2 text-xs font-semibold text-muted transition-colors hover:text-foreground"
+            aria-label="Back five laps"
+          >
+            −5
+          </button>
+          <button
+            type="button"
+            onClick={togglePlaying}
+            className="min-h-9 min-w-16 rounded-md bg-racing-red px-3 text-sm font-semibold text-white"
+            aria-label={playing ? "Pause replay" : "Play replay"}
+          >
+            {playing ? "Pause" : "Play"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setProgress(raceProgressRef.current + 5)}
+            className="min-h-9 rounded-md border border-border px-2 text-xs font-semibold text-muted transition-colors hover:text-foreground"
+            aria-label="Forward five laps"
+          >
+            +5
+          </button>
+          <button
+            type="button"
+            onClick={() => setProgress(Math.max(totalLaps - 1, 0))}
+            className="min-h-9 rounded-md border border-border px-2 text-xs font-semibold text-muted transition-colors hover:text-foreground"
+            aria-label="Skip to final lap"
+          >
+            ▶|
+          </button>
+          <span
+            className="tabular ml-auto w-24 shrink-0 text-right text-sm text-muted"
+            aria-live="polite"
+          >
+            Lap {currentLap} / {data.totalLaps}
+          </span>
+        </div>
+
         <input
+          ref={sliderRef}
           type="range"
           min={0}
-          max={frames.length - 1}
-          value={lapIndex}
-          onChange={(e) => {
-            setPlaying(false);
-            setLapIndex(parseInt(e.target.value, 10));
-          }}
-          className="flex-1 accent-[color:var(--racing-red)]"
+          max={Math.max(totalLaps, 1)}
+          step={0.01}
+          defaultValue={0}
+          onChange={(event) => setProgress(Number(event.target.value))}
+          aria-label={`Replay position, lap ${currentLap} of ${data.totalLaps}`}
+          className="mt-3 w-full accent-[color:var(--racing-red)]"
         />
-        <span className="tabular w-24 shrink-0 text-right text-sm text-muted">
-          Lap {frame?.lap ?? 0} / {data.totalLaps}
-        </span>
+
+        <div className="mt-2 flex items-center justify-end gap-1" aria-label="Playback speed">
+          <span className="mr-1 text-xs text-muted">Speed</span>
+          {[0.5, 1, 2, 4].map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setSpeed(value)}
+              aria-pressed={speed === value}
+              className={clsx(
+                "min-h-8 min-w-11 rounded-md border px-2 text-xs font-semibold transition-colors",
+                speed === value
+                  ? "border-racing-red bg-racing-red/15 text-foreground"
+                  : "border-border text-muted hover:text-foreground",
+              )}
+            >
+              {value}×
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Desktop puts the map and the running order side by side so neither
@@ -115,8 +249,12 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
               circuit={circuit}
               circuitLoading={circuitLoading}
               positionsLoading={positionsLoading}
-              lapPositions={frame ? positionsByLap.get(frame.lap) : undefined}
+              lapPositions={positionsByLap.get(currentLap)}
               driverTeamColors={driverTeamColors}
+              order={frame?.order ?? []}
+              lapFraction={scrubFraction}
+              raceProgressRef={raceProgressRef}
+              totalLaps={totalLaps}
               playing={playing}
               active={mapVisible}
             />
@@ -138,6 +276,35 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
                   className="flex items-center gap-3 rounded-lg border border-border bg-surface px-3 py-2"
                 >
                   <span className="tabular w-6 shrink-0 text-center font-semibold">{entry.position}</span>
+                  <span
+                    className={clsx(
+                      "w-3 shrink-0 text-center text-xs",
+                      previousPositions.has(entry.driver) &&
+                        (previousPositions.get(entry.driver) ?? entry.position) > entry.position
+                        ? "text-positive"
+                        : previousPositions.has(entry.driver) &&
+                            (previousPositions.get(entry.driver) ?? entry.position) < entry.position
+                          ? "text-negative"
+                          : "text-muted",
+                    )}
+                    aria-label={
+                      previousPositions.has(entry.driver) &&
+                      (previousPositions.get(entry.driver) ?? entry.position) > entry.position
+                        ? "Gained a place"
+                        : previousPositions.has(entry.driver) &&
+                            (previousPositions.get(entry.driver) ?? entry.position) < entry.position
+                          ? "Lost a place"
+                          : "Position held"
+                    }
+                  >
+                    {previousPositions.has(entry.driver) &&
+                    (previousPositions.get(entry.driver) ?? entry.position) > entry.position
+                      ? "▲"
+                      : previousPositions.has(entry.driver) &&
+                          (previousPositions.get(entry.driver) ?? entry.position) < entry.position
+                        ? "▼"
+                        : "−"}
+                  </span>
                   <TeamColorDot color={entry.teamColor} />
                   <TeamLogo src={entry.teamLogoUrl} name={entry.teamName} sizeClassName="h-5 w-5" />
                   {entry.driverId ? (
@@ -158,7 +325,14 @@ export function ReplayTab({ year, round }: { year: number; round: number }) {
                       title={entry.compound}
                     />
                   )}
-                  <span className="tabular w-20 shrink-0 text-right text-sm text-muted">{entry.lapTime ?? "-"}</span>
+                  <span
+                    className={clsx(
+                      "tabular w-20 shrink-0 text-right font-mono text-sm",
+                      entry.position === 1 ? "text-racing-red-text" : "text-muted",
+                    )}
+                  >
+                    {entry.gap ?? entry.lapTime ?? "-"}
+                  </span>
                 </motion.li>
               ))}
             </AnimatePresence>

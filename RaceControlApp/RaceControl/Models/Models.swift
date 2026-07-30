@@ -317,6 +317,26 @@ struct ReplayEntry: Codable, Identifiable, Hashable {
     let lapTime: String?
     let compound: String?
     let tyreLife: JSONValue?
+    let gapMs: Int?
+    let gap: String?
 
     var id: String { driver }
+}
+
+/// Sparse X/Y samples for every car, grouped by race lap.
+///
+/// The position feed intentionally uses nested arrays on the wire to keep a
+/// full race reasonably small: each point is `[x, y]`.
+struct ReplayPositions: Codable {
+    let year: Int
+    let round: Int
+    let eventName: String?
+    let totalLaps: Int
+    let drivers: [ReplayDriver]
+    let laps: [ReplayLapPositions]
+}
+
+struct ReplayLapPositions: Codable {
+    let lap: Int
+    let positions: [String: [[Double]]]
 }

@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -131,10 +132,15 @@ private fun ReplayContent(
     onOpenDriver: (String) -> Unit,
 ) {
     val currentLap by viewModel.currentLap.collectAsStateWithLifecycle()
+    val raceProgress by viewModel.raceProgress.collectAsStateWithLifecycle()
     val isPlaying by viewModel.isPlaying.collectAsStateWithLifecycle()
     val speed by viewModel.speed.collectAsStateWithLifecycle()
+    val circuitMap by viewModel.circuitMap.collectAsStateWithLifecycle()
+    val replayPositions by viewModel.replayPositions.collectAsStateWithLifecycle()
+    val isSpatialLoading by viewModel.isSpatialLoading.collectAsStateWithLifecycle()
 
     val frame = remember(currentLap, replay) { viewModel.frameFor(currentLap) }
+    val lapPositions = remember(currentLap, replayPositions) { viewModel.positionsFor(currentLap) }
 
     Column(Modifier.fillMaxWidth()) {
         LapHeader(
@@ -142,6 +148,48 @@ private fun ReplayContent(
             currentLap = currentLap,
             totalLaps = replay.totalLaps,
         )
+
+        val map = circuitMap
+        if (map != null && map.outline.isNotEmpty()) {
+            ReplayGridTrackMap(
+                map = map,
+                lapPositions = lapPositions,
+                lapFraction = viewModel.lapFraction(),
+                order = frame?.order.orEmpty(),
+                drivers = replay.drivers,
+                modifier = Modifier.padding(horizontal = Dimens.MD, vertical = Dimens.SM),
+            )
+        } else {
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimens.MD, vertical = Dimens.SM)
+                    .height(if (isSpatialLoading) 112.dp else 64.dp),
+                color = MaterialTheme.colorScheme.surface,
+                shape = RcShapes.Medium,
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (isSpatialLoading) {
+                        CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Text(
+                            text = "Loading full-grid positions…",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = RcTheme.colors.textSecondary,
+                            modifier = Modifier.padding(start = Dimens.SM),
+                        )
+                    } else {
+                        Text(
+                            text = "Track positions aren't available for this race.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = RcTheme.colors.textSecondary,
+                        )
+                    }
+                }
+            }
+        }
 
         LazyColumn(
             modifier = Modifier.weight(1f),
@@ -168,9 +216,14 @@ private fun ReplayContent(
         TransportControls(
             currentLap = currentLap,
             totalLaps = replay.totalLaps,
+            raceProgress = raceProgress,
             isPlaying = isPlaying,
             speed = speed,
             onScrub = viewModel::scrubTo,
+            onScrubProgress = {
+                viewModel.stop()
+                viewModel.scrubToProgress(it)
+            },
             onTogglePlay = viewModel::togglePlay,
             onSpeed = viewModel::setSpeed,
         )
@@ -278,12 +331,13 @@ private fun ReplayRow(
 
         entry.compound?.let { TyreBadge(compound = it, size = 22.dp) }
 
-        entry.lapTime?.let {
+        (entry.gap ?: entry.lapTime)?.let {
             Text(
                 text = it,
                 style = MaterialTheme.typography.bodySmall.tabular(),
                 fontFamily = MonoFamily,
-                color = RcTheme.colors.textSecondary,
+                color = if (entry.position == 1) RcTheme.colors.racingRedText
+                else RcTheme.colors.textSecondary,
             )
         }
     }
@@ -320,9 +374,11 @@ private fun MovementIndicator(movement: Int?) {
 private fun TransportControls(
     currentLap: Int,
     totalLaps: Int,
+    raceProgress: Float,
     isPlaying: Boolean,
     speed: Float,
     onScrub: (Int) -> Unit,
+    onScrubProgress: (Float) -> Unit,
     onTogglePlay: () -> Unit,
     onSpeed: (Float) -> Unit,
 ) {
@@ -336,10 +392,9 @@ private fun TransportControls(
             verticalArrangement = Arrangement.spacedBy(Dimens.SM),
         ) {
             Slider(
-                value = currentLap.toFloat(),
-                onValueChange = { onScrub(it.toInt()) },
-                valueRange = 1f..totalLaps.coerceAtLeast(1).toFloat(),
-                steps = (totalLaps - 2).coerceAtLeast(0),
+                value = raceProgress,
+                onValueChange = onScrubProgress,
+                valueRange = 0f..totalLaps.coerceAtLeast(1).toFloat(),
                 modifier = Modifier.semantics {
                     contentDescription = "Lap $currentLap of $totalLaps"
                 },

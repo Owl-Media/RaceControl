@@ -403,4 +403,22 @@ data class ReplayEntryDto(
     val lapTime: String? = null,
     val compound: String? = null,
     val tyreLife: JsonValue? = null,
+    val gapMs: Int? = null,
+    val gap: String? = null,
+)
+
+@Serializable
+data class ReplayPositionsDto(
+    val year: Int = 0,
+    val round: Int = 0,
+    val eventName: String? = null,
+    val totalLaps: Int = 0,
+    val drivers: List<ReplayDriverDto> = emptyList(),
+    val laps: List<ReplayLapPositionsDto> = emptyList(),
+)
+
+@Serializable
+data class ReplayLapPositionsDto(
+    val lap: Int = 0,
+    val positions: Map<String, List<List<Double>>> = emptyMap(),
 )

@@ -23,6 +23,7 @@ import com.owlmedia.racecontrol.data.remote.dto.RaceControlResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceDriverDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceEventDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceReplayDto
+import com.owlmedia.racecontrol.data.remote.dto.ReplayPositionsDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceTraceResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.ReliabilityResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RetirementsResponseDto
@@ -108,6 +109,9 @@ class RaceControlRepository @Inject constructor(
 
     suspend fun replay(year: Int, round: Int): Result<RaceReplayDto> =
         call { api.replay(year, round) }
+
+    suspend fun replayPositions(year: Int, round: Int): Result<ReplayPositionsDto> =
+        call { api.replayPositions(year, round) }
 
     suspend fun raceTrace(year: Int, round: Int, mode: String = "median"): Result<RaceTraceResponseDto> =
         call { api.raceTrace(year, round, mode) }

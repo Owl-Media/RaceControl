@@ -18,6 +18,7 @@ import com.owlmedia.racecontrol.data.remote.dto.RaceControlResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceDriverDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceEventDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceReplayDto
+import com.owlmedia.racecontrol.data.remote.dto.ReplayPositionsDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceTraceResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.ReliabilityResponseDto
 import com.owlmedia.racecontrol.data.remote.dto.RetirementsResponseDto
@@ -101,6 +102,12 @@ interface RaceControlApi {
         @Path("year") year: Int,
         @Path("round") round: Int,
     ): RaceReplayDto
+
+    @GET("api/replay-positions/{year}/{round}")
+    suspend fun replayPositions(
+        @Path("year") year: Int,
+        @Path("round") round: Int,
+    ): ReplayPositionsDto
 
     @GET("api/race-trace/{year}/{round}")
     suspend fun raceTrace(

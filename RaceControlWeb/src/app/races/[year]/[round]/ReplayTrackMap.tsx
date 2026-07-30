@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { createProjector, densifyTrace, rotatePoints } from "@/lib/trackGeometry";
 import { LoadingState } from "@/components/StateViews";
-import { REPLAY_TICK_MS } from "@/lib/replay";
-import type { CircuitMap, ReplayLapPositions } from "@/lib/types";
+import type { CircuitMap, ReplayEntry, ReplayLapPositions } from "@/lib/types";
 
 const VB = 600;
 
@@ -14,6 +13,10 @@ export function ReplayTrackMap({
   positionsLoading = false,
   lapPositions,
   driverTeamColors,
+  order,
+  lapFraction,
+  raceProgressRef,
+  totalLaps,
   playing,
   active = true,
 }: {
@@ -27,6 +30,13 @@ export function ReplayTrackMap({
   /** Position samples for the lap currently on screen, or undefined if unavailable. */
   lapPositions: ReplayLapPositions | undefined;
   driverTeamColors: Record<string, string | null>;
+  /** Timing tower for the active lap, used to preserve real gaps on track. */
+  order: ReplayEntry[];
+  /** Explicit fraction used while paused or scrubbing. */
+  lapFraction: number;
+  /** Shared replay clock owned by ReplayTab; read directly at animation rate. */
+  raceProgressRef: { current: number };
+  totalLaps: number;
   playing: boolean;
   /** Whether the map is actually visible right now. The per-frame animation
    * loop below is real CPU work (trig + DOM writes on every driver, every
@@ -50,6 +60,11 @@ export function ReplayTrackMap({
 
   const rotation = circuit?.rotation ?? 0;
   const drivers = lapPositions ? Object.keys(lapPositions.positions) : [];
+  const timingByDriver = useMemo(
+    () => new Map(order.map((entry) => [entry.driver, entry])),
+    [order],
+  );
+  const leaderLapMs = order[0]?.lapTimeMs ?? null;
 
   // Cars are animated imperatively (direct DOM writes via refs), not through
   // React state, so a ~60fps loop never triggers a React re-render; this
@@ -65,7 +80,6 @@ export function ReplayTrackMap({
     // `place(0)` runs again as soon as `active` flips back to true.
     if (!active) return;
 
-    const start = performance.now();
     // Hoisted out of the per-point loop below: `rotatePoints` recomputes
     // sin/cos from scratch (plus an array + object allocation) for every
     // single point, and this loop calls it for every driver on every
@@ -77,35 +91,63 @@ export function ReplayTrackMap({
     const cos = Math.cos(theta);
     const sin = Math.sin(theta);
 
-    function place(fraction: number) {
+    function place(baseFraction: number) {
       if (!projector || !lapPositions) return;
       for (const [code, pts] of Object.entries(lapPositions.positions)) {
         const el = dotRefs.current[code];
         if (!el || pts.length === 0) continue;
-        const idx = Math.min(pts.length - 1, Math.floor(fraction * pts.length));
-        const point = pts[idx];
-        if (!point) continue;
-        const [x, y] = point;
+        const gapMs = timingByDriver.get(code)?.gapMs;
+        const gapFraction =
+          gapMs != null && leaderLapMs != null && leaderLapMs > 0
+            ? gapMs / leaderLapMs
+            : 0;
+        const rawFraction = baseFraction - gapFraction;
+        const fraction = rawFraction - Math.floor(rawFraction);
+        const samplePosition = fraction * Math.max(pts.length - 1, 0);
+        const lower = Math.min(Math.floor(samplePosition), pts.length - 1);
+        const upper = Math.min(lower + 1, pts.length - 1);
+        const amount = samplePosition - lower;
+        const first = pts[lower];
+        const second = pts[upper];
+        if (!first || !second) continue;
+        const x = first[0] + (second[0] - first[0]) * amount;
+        const y = first[1] + (second[1] - first[1]) * amount;
         if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
         const screen = projector.project({ x: x * cos - y * sin, y: x * sin + y * cos });
         el.setAttribute("transform", `translate(${screen.x}, ${screen.y})`);
       }
     }
 
-    // Always place the first sample immediately (covers the paused case, and
-    // avoids a blank frame right as a new lap starts while playing).
-    place(0);
+    function clockFraction() {
+      const progress = raceProgressRef.current;
+      if (totalLaps > 0 && progress >= totalLaps) return 1;
+      return progress - Math.floor(progress);
+    }
+
+    // Place immediately from the shared clock so pause, resume and lap changes
+    // never reset cars to the first position sample.
+    place(playing ? clockFraction() : lapFraction);
 
     if (!playing) return;
 
-    function step(now: number) {
-      const t = Math.min(1, (now - start) / REPLAY_TICK_MS);
-      place(t);
-      if (t < 1) frameRef.current = requestAnimationFrame(step);
+    function step() {
+      place(clockFraction());
+      frameRef.current = requestAnimationFrame(step);
     }
     frameRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(frameRef.current);
-  }, [playing, lapPositions, projector, rotation, active]);
+  }, [
+    playing,
+    lapPositions,
+    projector,
+    rotation,
+    active,
+    lapFraction,
+    raceProgressRef,
+    timingByDriver,
+    leaderLapMs,
+    totalLaps,
+  ]);
 
   // Only report missing data once the request has actually finished; while
   // it's in flight there is legitimately nothing to draw yet, and showing the
@@ -131,6 +173,10 @@ export function ReplayTrackMap({
 
   return (
     <div className="relative">
+      <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-1.5 rounded-full border border-racing-red/30 bg-surface/90 px-2.5 py-1 text-[10px] font-extrabold tracking-wide text-racing-red-text backdrop-blur">
+        <span className={playing ? "h-1.5 w-1.5 animate-pulse rounded-full bg-racing-red-text" : "h-1.5 w-1.5 rounded-full bg-muted"} />
+        LIVE REPLAY
+      </div>
       {/* The viewBox is square, so an unconstrained `w-full` makes the map as
           tall as the container is wide, over 1100px on a desktop layout,
           pushing the running order entirely below the fold. Cap the height and
@@ -176,6 +222,13 @@ export function ReplayTrackMap({
               className="h-3 w-3 animate-spin rounded-full border-2 border-border border-t-racing-red"
             />
             Loading car positions…
+          </span>
+        </div>
+      )}
+      {!positionsLoading && drivers.length === 0 && (
+        <div className="absolute inset-x-0 bottom-3 flex justify-center">
+          <span className="rounded-full border border-border bg-surface/90 px-3 py-1.5 text-xs text-muted backdrop-blur">
+            Car positions aren&apos;t available for this lap.
           </span>
         </div>
       )}
