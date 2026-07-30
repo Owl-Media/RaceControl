@@ -11,9 +11,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +48,7 @@ import com.owlmedia.racecontrol.core.ui.TeamLogo
 import com.owlmedia.racecontrol.data.remote.dto.RaceEventDto
 import com.owlmedia.racecontrol.data.remote.dto.WdcDriverDto
 import com.owlmedia.racecontrol.feature.AppState
+import kotlin.math.ceil
 import kotlin.math.roundToInt
 
 /**
@@ -191,6 +194,106 @@ private fun WdcTimeMachine(
                         "Round scrubber, round $displayedRound of $lastRound"
                     }
                 },
+        )
+        WdcRoundTicks(
+            completedRounds = completedRounds,
+            displayedRound = displayedRound,
+            isLive = isLive,
+            onSelectRound = { round ->
+                sliderValue = round.toFloat()
+                onThroughRoundChange(round)
+            },
+            onSelectLive = {
+                sliderValue = liveStop
+                onThroughRoundChange(null)
+            },
+        )
+    }
+}
+
+/**
+ * Per-round tick marks below the slider. With only a handful of rounds run so far, the
+ * slider's few steps are spread across the whole track, so a small drag jumps a
+ * disproportionately large visual gap between adjacent rounds. Showing every round's number
+ * makes that discreteness explicit (it's a timeline of specific races, not a continuous
+ * scale) and gives a precise tap target instead of trying to land a drag exactly on it.
+ * Labels thin out once there are too many rounds to print legibly, but the current round and
+ * both ends stay labelled. Includes one extra tick for "Live", mirroring the slider's own
+ * extra stop past the last completed round.
+ */
+@Composable
+private fun WdcRoundTicks(
+    completedRounds: List<RaceEventDto>,
+    displayedRound: Int,
+    isLive: Boolean,
+    onSelectRound: (Int) -> Unit,
+    onSelectLive: () -> Unit,
+) {
+    val labelStride = if (completedRounds.size > 15) {
+        ceil(completedRounds.size / 12.0).toInt()
+    } else {
+        1
+    }
+
+    Row(modifier = Modifier.fillMaxWidth()) {
+        completedRounds.forEachIndexed { index, event ->
+            val isCurrent = !isLive && event.round == displayedRound
+            val isPast = event.round < displayedRound
+            val showLabel = isCurrent || index == 0 || index == completedRounds.lastIndex || index % labelStride == 0
+            WdcRoundTick(
+                label = event.round.toString(),
+                isCurrent = isCurrent,
+                isPast = isPast,
+                showLabel = showLabel,
+                contentDescription = "Round ${event.round}, ${event.displayName}",
+                onClick = { onSelectRound(event.round) },
+            )
+        }
+        WdcRoundTick(
+            label = "Live",
+            isCurrent = isLive,
+            isPast = false,
+            showLabel = true,
+            contentDescription = "Live standings",
+            onClick = onSelectLive,
+        )
+    }
+}
+
+@Composable
+private fun WdcRoundTick(
+    label: String,
+    isCurrent: Boolean,
+    isPast: Boolean,
+    showLabel: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .weight(1f)
+            .clickable(onClickLabel = contentDescription, onClick = onClick)
+            .padding(vertical = 4.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(if (isCurrent) 8.dp else 5.dp)
+                .clip(CircleShape)
+                .background(
+                    when {
+                        isCurrent -> RcTheme.colors.racingRed
+                        isPast -> RcTheme.colors.racingRed.copy(alpha = 0.5f)
+                        else -> RcTheme.colors.surfaceElevated
+                    },
+                ),
+        )
+        Spacer(Modifier.height(2.dp))
+        Text(
+            text = if (showLabel) label else "",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Normal,
+            color = if (isCurrent) RcTheme.colors.racingRed else RcTheme.colors.textTertiary,
         )
     }
 }

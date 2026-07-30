@@ -69,12 +69,51 @@ struct WdcCalculatorView: View {
                     }
                 )
                 .tint(Theme.Palette.racingRed)
+                timelineTicks(rounds: rounds)
             }
             .padding(Theme.Space.md)
             .background(Theme.Palette.surface, in: RoundedRectangle(cornerRadius: Theme.Radius.md))
             .overlay(RoundedRectangle(cornerRadius: Theme.Radius.md).stroke(Theme.Palette.stroke, lineWidth: 1))
             .onAppear {
                 scrubValue = Double(vm.selectedRound ?? lastRound)
+            }
+        }
+    }
+
+    /// Per-round markers below the slider: with only a handful of rounds run
+    /// so far, the slider's few steps are spread across the whole track, so
+    /// a small drag jumps a disproportionately large visual gap between
+    /// adjacent rounds. Showing every round's number makes that discreteness
+    /// explicit (it's a timeline of specific races, not a continuous scale)
+    /// and gives a precise tap target instead of trying to land a drag
+    /// exactly on it. Labels thin out once there are too many rounds to
+    /// print legibly, but the current round and both ends stay labelled.
+    @ViewBuilder
+    private func timelineTicks(rounds: [RaceEvent]) -> some View {
+        let labelStride = rounds.count > 15 ? Int((Double(rounds.count) / 12.0).rounded(.up)) : 1
+        let currentRound = Int(scrubValue.rounded())
+        HStack(spacing: 2) {
+            ForEach(Array(rounds.enumerated()), id: \.offset) { index, event in
+                let isCurrent = event.round == currentRound
+                let isPast = event.round < currentRound
+                let showLabel = isCurrent || index == 0 || index == rounds.count - 1 || index % labelStride == 0
+                Button {
+                    scrubValue = Double(event.round)
+                    Task { await vm.load(year: year, through: event.round) }
+                } label: {
+                    VStack(spacing: 2) {
+                        Circle()
+                            .fill(isCurrent ? Theme.Palette.racingRed : (isPast ? Theme.Palette.racingRed.opacity(0.5) : Theme.Palette.stroke))
+                            .frame(width: isCurrent ? 8 : 5, height: isCurrent ? 8 : 5)
+                        Text(showLabel ? "\(event.round)" : "")
+                            .font(.system(size: 9, weight: isCurrent ? .semibold : .regular))
+                            .foregroundStyle(isCurrent ? Theme.Palette.racingRed : Theme.Palette.textTertiary)
+                            .frame(height: 10)
+                    }
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Round \(event.round), \(event.displayName)")
             }
         }
     }
