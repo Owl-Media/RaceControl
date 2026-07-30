@@ -7,6 +7,39 @@ import type { CircuitMap, ReplayEntry, ReplayLapPositions } from "@/lib/types";
 
 const VB = 600;
 
+type SnappedTrace = {
+  indices: number[];
+  direction: 1 | -1;
+};
+
+function nearestTrackIndex(
+  point: { x: number; y: number },
+  outline: { x: number; y: number }[],
+): number {
+  let nearest = 0;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+  for (let index = 0; index < outline.length; index++) {
+    const dx = outline[index].x - point.x;
+    const dy = outline[index].y - point.y;
+    const distance = dx * dx + dy * dy;
+    if (distance < nearestDistance) {
+      nearest = index;
+      nearestDistance = distance;
+    }
+  }
+  return nearest;
+}
+
+function traceDirection(indices: number[], outlineLength: number): 1 | -1 {
+  let signedTravel = 0;
+  for (let index = 1; index < indices.length; index++) {
+    let delta = (indices[index] - indices[index - 1] + outlineLength) % outlineLength;
+    if (delta > outlineLength / 2) delta -= outlineLength;
+    signedTravel += delta;
+  }
+  return signedTravel >= 0 ? 1 : -1;
+}
+
 export function ReplayTrackMap({
   circuit,
   circuitLoading = false,
@@ -47,15 +80,25 @@ export function ReplayTrackMap({
    * hides the map) don't need to pass anything. */
   active?: boolean;
 }) {
-  const { screenOutline, projector } = useMemo(() => {
-    if (!circuit || circuit.outline.length === 0) return { screenOutline: [] as { x: number; y: number }[], projector: null };
+  const { screenOutline, rotatedOutline, projector } = useMemo(() => {
+    if (!circuit || circuit.outline.length === 0) {
+      return {
+        screenOutline: [] as { x: number; y: number }[],
+        rotatedOutline: [] as { x: number; y: number }[],
+        projector: null,
+      };
+    }
     // Smooth the drawn outline the same way the circuits page does: the
     // backend's ~350 evenly-spaced points are accurate but still show
     // visible facets through tight corners without curve interpolation.
     const dense = densifyTrace(circuit.outline, 6);
     const rotated = rotatePoints(dense, circuit.rotation);
     const proj = createProjector(rotated, VB, VB, 36);
-    return { screenOutline: rotated.map((p) => proj.project(p)), projector: proj };
+    return {
+      screenOutline: rotated.map((point) => proj.project(point)),
+      rotatedOutline: rotated,
+      projector: proj,
+    };
   }, [circuit]);
 
   const rotation = circuit?.rotation ?? 0;
@@ -65,6 +108,31 @@ export function ReplayTrackMap({
     [order],
   );
   const leaderLapMs = order[0]?.lapTimeMs ?? null;
+  const snappedTraces = useMemo(() => {
+    const traces: Record<string, SnappedTrace> = {};
+    if (!lapPositions || rotatedOutline.length < 2) return traces;
+
+    const theta = (rotation * Math.PI) / 180;
+    const cos = Math.cos(theta);
+    const sin = Math.sin(theta);
+    for (const [code, points] of Object.entries(lapPositions.positions)) {
+      const indices = points
+        .filter(([x, y]) => Number.isFinite(x) && Number.isFinite(y))
+        .map(([x, y]) =>
+          nearestTrackIndex(
+            { x: x * cos - y * sin, y: x * sin + y * cos },
+            rotatedOutline,
+          ),
+        );
+      if (indices.length > 0) {
+        traces[code] = {
+          indices,
+          direction: traceDirection(indices, rotatedOutline.length),
+        };
+      }
+    }
+    return traces;
+  }, [lapPositions, rotatedOutline, rotation]);
 
   // Cars are animated imperatively (direct DOM writes via refs), not through
   // React state, so a ~60fps loop never triggers a React re-render; this
@@ -80,22 +148,12 @@ export function ReplayTrackMap({
     // `place(0)` runs again as soon as `active` flips back to true.
     if (!active) return;
 
-    // Hoisted out of the per-point loop below: `rotatePoints` recomputes
-    // sin/cos from scratch (plus an array + object allocation) for every
-    // single point, and this loop calls it for every driver on every
-    // animation frame: ~20 drivers x 60fps = over a thousand redundant
-    // trig calls a second. Computing theta once per effect run and inlining
-    // the rotation match keeps the same math with none of that per-frame
-    // waste, which matters more on weaker mobile CPUs than on desktop.
-    const theta = (rotation * Math.PI) / 180;
-    const cos = Math.cos(theta);
-    const sin = Math.sin(theta);
-
     function place(baseFraction: number) {
-      if (!projector || !lapPositions) return;
-      for (const [code, pts] of Object.entries(lapPositions.positions)) {
+      if (!lapPositions || screenOutline.length < 2) return;
+      for (const code of Object.keys(lapPositions.positions)) {
         const el = dotRefs.current[code];
-        if (!el || pts.length === 0) continue;
+        const trace = snappedTraces[code];
+        if (!el || !trace || trace.indices.length === 0) continue;
         const gapMs = timingByDriver.get(code)?.gapMs;
         const gapFraction =
           gapMs != null && leaderLapMs != null && leaderLapMs > 0
@@ -103,18 +161,29 @@ export function ReplayTrackMap({
             : 0;
         const rawFraction = baseFraction - gapFraction;
         const fraction = rawFraction - Math.floor(rawFraction);
-        const samplePosition = fraction * Math.max(pts.length - 1, 0);
-        const lower = Math.min(Math.floor(samplePosition), pts.length - 1);
-        const upper = Math.min(lower + 1, pts.length - 1);
-        const amount = samplePosition - lower;
-        const first = pts[lower];
-        const second = pts[upper];
-        if (!first || !second) continue;
-        const x = first[0] + (second[0] - first[0]) * amount;
-        const y = first[1] + (second[1] - first[1]) * amount;
-        if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
-        const screen = projector.project({ x: x * cos - y * sin, y: x * sin + y * cos });
-        el.setAttribute("transform", `translate(${screen.x}, ${screen.y})`);
+        const samplePosition = fraction * trace.indices.length;
+        const sampleSegment = Math.floor(samplePosition);
+        const lower = sampleSegment % trace.indices.length;
+        const upper = (lower + 1) % trace.indices.length;
+        const amount = samplePosition - sampleSegment;
+        const from = trace.indices[lower];
+        const to = trace.indices[upper];
+        const outlineLength = screenOutline.length;
+        const travel =
+          trace.direction > 0
+            ? (to - from + outlineLength) % outlineLength
+            : -((from - to + outlineLength) % outlineLength);
+        const rawOutlinePosition = from + travel * amount;
+        const outlinePosition =
+          ((rawOutlinePosition % outlineLength) + outlineLength) % outlineLength;
+        const outlineLower = Math.floor(outlinePosition);
+        const outlineUpper = (outlineLower + 1) % outlineLength;
+        const outlineAmount = outlinePosition - outlineLower;
+        const first = screenOutline[outlineLower];
+        const second = screenOutline[outlineUpper];
+        const x = first.x + (second.x - first.x) * outlineAmount;
+        const y = first.y + (second.y - first.y) * outlineAmount;
+        el.setAttribute("transform", `translate(${x}, ${y})`);
       }
     }
 
@@ -139,14 +208,14 @@ export function ReplayTrackMap({
   }, [
     playing,
     lapPositions,
-    projector,
-    rotation,
     active,
     lapFraction,
     raceProgressRef,
     timingByDriver,
     leaderLapMs,
     totalLaps,
+    screenOutline,
+    snappedTraces,
   ]);
 
   // Only report missing data once the request has actually finished; while
