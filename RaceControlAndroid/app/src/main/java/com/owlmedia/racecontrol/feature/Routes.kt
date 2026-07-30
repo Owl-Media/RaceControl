@@ -35,6 +35,7 @@ object Routes {
     @Serializable data class DriverDetail(val year: Int, val driverId: String)
     @Serializable data class TeamDetail(val year: Int, val teamId: String)
     @Serializable data class HeadToHead(val year: Int)
+    @Serializable data class TitleDecider(val year: Int)
     @Serializable data class CircuitDetail(
         val year: Int,
         val round: Int,

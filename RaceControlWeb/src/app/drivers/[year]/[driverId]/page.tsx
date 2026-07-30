@@ -5,6 +5,8 @@ import { TeamColorDot } from "@/components/StateViews";
 import { DriverAvatar } from "@/components/DriverAvatar";
 import { TeamLogo } from "@/components/TeamLogo";
 import { DriverFavoriteButton } from "./DriverFavoriteButton";
+import { DriverWdcBadge } from "./DriverWdcBadge";
+import { DriverPointsChart } from "./DriverPointsChart";
 
 export default async function DriverDetailPage({
   params,
@@ -34,9 +36,12 @@ export default async function DriverDetailPage({
           textClassName="text-lg"
         />
         <div className="min-w-0 flex-1">
-          <h1 className="text-xl font-bold">
-            {driver.givenName} {driver.familyName}
-          </h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-bold">
+              {driver.givenName} {driver.familyName}
+            </h1>
+            <DriverWdcBadge year={Number(year)} driverId={driver.driverId} />
+          </div>
           <p className="flex items-center gap-1.5 text-sm text-muted">
             <TeamColorDot color={driver.teamColor} />
             <TeamLogo src={driver.teamLogoUrl} name={driver.teamName} sizeClassName="h-4 w-4" />
@@ -48,6 +53,11 @@ export default async function DriverDetailPage({
           <p className="text-xs uppercase tracking-wide text-muted">pts · P{driver.position ?? "-"}</p>
         </div>
         <DriverFavoriteButton driverId={driver.driverId} name={`${driver.givenName} ${driver.familyName}`} />
+      </div>
+
+      <h2 className="mb-3 text-lg font-semibold">Points Progression</h2>
+      <div className="mb-6">
+        <DriverPointsChart year={Number(year)} driverId={driver.driverId} teamColor={driver.teamColor} />
       </div>
 
       <h2 className="mb-3 text-lg font-semibold">Season Results</h2>

@@ -107,6 +107,10 @@
     <string name="driver_b">Driver B</string>
     <string name="h2h_race_wins">Race wins (head-to-head)</string>
     <string name="h2h_quali_wins">Qualifying wins (head-to-head)</string>
+    <string name="points_progression">POINTS PROGRESSION</string>
+    <string name="can_win_wdc">Can win WDC</string>
+    <string name="cant_win_wdc">Can’t win WDC</string>
+    <string name="title_decider">Title Decider</string>
 
     <!-- Teams -->
     <string name="no_teams_title">No Teams</string>

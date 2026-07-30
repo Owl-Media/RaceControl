@@ -29,6 +29,7 @@ import com.owlmedia.racecontrol.feature.replay.ReplayScreen
 import com.owlmedia.racecontrol.feature.schedule.ScheduleScreen
 import com.owlmedia.racecontrol.feature.settings.SettingsScreen
 import com.owlmedia.racecontrol.feature.standings.StandingsScreen
+import com.owlmedia.racecontrol.feature.standings.TitleDeciderScreen
 import com.owlmedia.racecontrol.feature.teams.TeamDetailScreen
 import com.owlmedia.racecontrol.feature.teams.TeamsScreen
 
@@ -87,11 +88,24 @@ fun RaceControlNavHost(
                     year = route.year,
                     driverId = route.driverId,
                     onBack = navController::popBackStack,
+                    onOpenTitleDecider = {
+                        navController.navigate(Routes.TitleDecider(route.year))
+                    },
                 )
             }
             composable<Routes.HeadToHead> { entry ->
                 val route = entry.toRoute<Routes.HeadToHead>()
                 HeadToHeadScreen(year = route.year, onBack = navController::popBackStack)
+            }
+            composable<Routes.TitleDecider> { entry ->
+                val route = entry.toRoute<Routes.TitleDecider>()
+                TitleDeciderScreen(
+                    year = route.year,
+                    onBack = navController::popBackStack,
+                    onOpenDriver = { driverId ->
+                        navController.navigate(Routes.DriverDetail(route.year, driverId))
+                    },
+                )
             }
         }
 

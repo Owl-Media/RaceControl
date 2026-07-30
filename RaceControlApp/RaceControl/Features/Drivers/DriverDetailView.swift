@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 struct DriverDetailView: View {
     let year: Int
@@ -13,6 +14,7 @@ struct DriverDetailView: View {
             VStack(spacing: Theme.Space.md) {
                 hero
                 statsRow
+                pointsProgressionChart
                 seasonResults
             }
             .padding(Theme.Space.md)
@@ -37,6 +39,21 @@ struct DriverDetailView: View {
                     .font(.title2.weight(.bold))
                     .foregroundStyle(Theme.Palette.textPrimary)
                     .multilineTextAlignment(.center)
+                if let canWin = vm.canWinWdc {
+                    NavigationLink {
+                        WdcCalculatorView(year: year)
+                    } label: {
+                        Text(canWin ? "Can win WDC" : "Can't win WDC")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(canWin ? Theme.Palette.positive : Theme.Palette.textTertiary)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(
+                                (canWin ? Theme.Palette.positive : Theme.Palette.textTertiary).opacity(0.15),
+                                in: Capsule()
+                            )
+                    }
+                }
                 HStack(spacing: Theme.Space.sm) {
                     if let num = driver.numberString {
                         Text("#\(num)").font(.headline).foregroundStyle(accent)
@@ -71,6 +88,48 @@ struct DriverDetailView: View {
                 if let dob = age(from: driver.dateOfBirth) {
                     Divider().frame(height: 36).overlay(Theme.Palette.stroke)
                     StatCell(value: dob, label: "Age")
+                }
+            }
+        }
+    }
+
+    /// Cumulative championship points, round by round. Reuses the same
+    /// `/api/standings-evolution` data as the Standings page's Progress
+    /// chart, just for this one driver instead of a multi-driver legend.
+    @ViewBuilder private var pointsProgressionChart: some View {
+        if !vm.pointsSeries.isEmpty {
+            Card {
+                VStack(alignment: .leading, spacing: Theme.Space.sm) {
+                    Text("POINTS PROGRESSION")
+                        .font(.caption.weight(.bold)).tracking(1)
+                        .foregroundStyle(Theme.Palette.textSecondary)
+                    Chart {
+                        ForEach(vm.pointsSeries, id: \.round) { pt in
+                            LineMark(x: .value("Round", pt.round), y: .value("Points", pt.points))
+                                .foregroundStyle(accent)
+                                .interpolationMethod(.monotone)
+                        }
+                        if let last = vm.pointsSeries.last {
+                            PointMark(x: .value("Round", last.round), y: .value("Points", last.points))
+                                .foregroundStyle(accent)
+                        }
+                    }
+                    .chartXAxis {
+                        AxisMarks { _ in
+                            AxisGridLine().foregroundStyle(Theme.Palette.stroke); AxisValueLabel().font(.caption2)
+                        }
+                    }
+                    .chartYAxis {
+                        AxisMarks { _ in
+                            AxisGridLine().foregroundStyle(Theme.Palette.stroke); AxisValueLabel().font(.caption2)
+                        }
+                    }
+                    .frame(height: 180)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Points progression chart")
+                    .accessibilityValue(
+                        vm.pointsSeries.map { "Round \($0.round): \(Int($0.points)) points" }.joined(separator: ", ")
+                    )
                 }
             }
         }
@@ -161,6 +220,12 @@ struct DriverDetailView: View {
 @MainActor
 final class DriverDetailViewModel: ObservableObject {
     @Published var state: Loadable<DriverDetail> = .idle
+    /// This driver's cumulative points, round by round, for the progression
+    /// chart. Empty until the secondary fetch below resolves.
+    @Published var pointsSeries: [EvolutionPoint] = []
+    /// nil until the secondary fetch resolves, or if the driver isn't in the
+    /// WDC calculator's data for this year (e.g. no standings on record).
+    @Published var canWinWdc: Bool?
 
     func load(year: Int, driverId: String) async {
         if case .loaded = state { return }
@@ -169,6 +234,14 @@ final class DriverDetailViewModel: ObservableObject {
             state = .loaded(try await APIClient.shared.driverDetail(year: year, driverId: driverId))
         } catch {
             state = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)
+        }
+        // Secondary lookups for the points-progression chart and the WDC
+        // badge; failure shouldn't block the main screen.
+        if let evolution = try? await APIClient.shared.standingsEvolution(year: year) {
+            pointsSeries = evolution.drivers.first(where: { $0.driverId == driverId })?.series ?? []
+        }
+        if let wdc = try? await APIClient.shared.wdcCalculator(year: year) {
+            canWinWdc = wdc.drivers.first(where: { $0.driverId == driverId })?.canWin
         }
     }
 }
