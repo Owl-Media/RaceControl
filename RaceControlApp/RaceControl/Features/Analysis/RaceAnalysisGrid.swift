@@ -25,6 +25,9 @@ struct RaceAnalysisGrid: View {
                 tile("Telemetry", "waveform.path.ecg", Theme.Palette.info) {
                     TelemetryView(year: event.year, round: event.round, title: event.displayName)
                 }
+                tile("Brake/Throttle", "flame.fill", Theme.Palette.racingRed) {
+                    BrakeThrottleMapView(year: event.year, round: event.round, title: event.displayName)
+                }
                 tile("Lap Times", "chart.xyaxis.line", Theme.Palette.positive) {
                     LapTimesChartView(year: event.year, round: event.round, title: event.displayName)
                 }
@@ -43,8 +46,14 @@ struct RaceAnalysisGrid: View {
                 tile("Pit Stops", "wrench.and.screwdriver", Theme.Palette.racingRed) {
                     PitStopsView(year: event.year, round: event.round, title: event.displayName)
                 }
+                tile("Pit Swimlane", "arrow.triangle.branch", Theme.Palette.info) {
+                    PitSwimlaneView(year: event.year, round: event.round, title: event.displayName)
+                }
                 tile("Sector Waterfall", "chart.bar.xaxis", Theme.Palette.info) {
                     QualifyingSectorsView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Speed Trap", "speedometer", Theme.Palette.positive) {
+                    SpeedTrapView(year: event.year, round: event.round, title: event.displayName)
                 }
                 tile("Mini-Sectors", "map.fill", Theme.Palette.positive) {
                     MiniSectorsView(year: event.year, round: event.round, title: event.displayName)
@@ -52,8 +61,14 @@ struct RaceAnalysisGrid: View {
                 tile("Qualifying", "stopwatch.fill", Theme.Palette.info) {
                     QualifyingView(year: event.year, round: event.round, title: event.displayName)
                 }
+                tile("Qualifying Ladder", "chart.line.downtrend.xyaxis", Theme.Palette.warning) {
+                    QualifyingLadderView(year: event.year, round: event.round, title: event.displayName)
+                }
                 tile("Track Map", "map.fill", Theme.Palette.textSecondary) {
                     CircuitMapView(year: event.year, round: event.round, title: event.displayName)
+                }
+                tile("Corner Speeds", "chart.bar.fill", Theme.Palette.positive) {
+                    CornerSpeedProfileView(year: event.year, round: event.round, title: event.displayName)
                 }
                 tile("Weather", "cloud.sun.fill", Theme.Palette.info) {
                     WeatherView(year: event.year, round: event.round, title: event.displayName)

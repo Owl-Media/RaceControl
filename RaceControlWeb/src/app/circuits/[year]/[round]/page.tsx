@@ -5,6 +5,7 @@ import { TeamColorDot } from "@/components/StateViews";
 import { TeamLogo } from "@/components/TeamLogo";
 import { TrackMap } from "./TrackMap";
 import { ElevationProfile } from "./ElevationProfile";
+import { CornerSpeedProfile } from "./CornerSpeedProfile";
 
 export default async function CircuitDetailPage({
   params,
@@ -48,6 +49,10 @@ export default async function CircuitDetailPage({
             <p className="text-sm text-muted">{map.fastestLap.compound}</p>
           </div>
         )}
+      </div>
+
+      <div className="mt-4">
+        <CornerSpeedProfile map={map} />
       </div>
     </div>
   );

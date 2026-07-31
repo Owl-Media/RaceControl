@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 /// Head-to-head: pick two drivers and compare their season, points, wins,
 /// podiums, poles, best finish, DNFs, and direct qualifying/race records.
@@ -122,6 +123,7 @@ struct HeadToHeadView: View {
 
     private func comparison(_ a: CompareDriver, _ b: CompareDriver) -> some View {
         VStack(spacing: Theme.Space.sm) {
+            formLine
             Card {
                 VStack(spacing: Theme.Space.sm) {
                     Text("HEAD-TO-HEAD RECORD")
@@ -138,6 +140,60 @@ struct HeadToHeadView: View {
             statRow("Best Finish", best(a.bestFinish), best(b.bestFinish),
                     a.bestFinish.map { -Double($0) } ?? -99, b.bestFinish.map { -Double($0) } ?? -99)
             statRow("DNFs", "\(a.dnf)", "\(b.dnf)", -Double(a.dnf), -Double(b.dnf))
+        }
+    }
+
+    // MARK: Form line
+
+    @ViewBuilder private var formLine: some View {
+        switch vm.formLineState {
+        case .idle, .failed:
+            EmptyView()
+        case .loading:
+            Card { LoadingIndicator(label: "Loading form").frame(height: 120) }
+        case .loaded(let series) where series.allSatisfy({ $0.points.isEmpty }):
+            EmptyView()
+        case .loaded(let series):
+            Card {
+                VStack(alignment: .leading, spacing: Theme.Space.sm) {
+                    Text("FORM LINE").font(.caption.weight(.bold)).tracking(1)
+                        .foregroundStyle(Theme.Palette.textSecondary)
+                    Chart {
+                        ForEach(series) { s in
+                            ForEach(s.points) { point in
+                                LineMark(x: .value("Round", point.round), y: .value("Position", -Double(point.position)))
+                                    .foregroundStyle(Color.team(s.teamColor))
+                                    .interpolationMethod(.monotone)
+                            }
+                            ForEach(s.points) { point in
+                                PointMark(x: .value("Round", point.round), y: .value("Position", -Double(point.position)))
+                                    .foregroundStyle(Color.team(s.teamColor))
+                            }
+                        }
+                    }
+                    .chartLegend(.hidden)
+                    .chartYAxis {
+                        AxisMarks { value in
+                            AxisGridLine().foregroundStyle(Theme.Palette.stroke)
+                            AxisValueLabel {
+                                if let v = value.as(Double.self) { Text("P\(Int(-v))").font(.caption2) }
+                            }
+                        }
+                    }
+                    .chartXAxis {
+                        AxisMarks { _ in AxisGridLine().foregroundStyle(Theme.Palette.stroke); AxisValueLabel().font(.caption2) }
+                    }
+                    .frame(height: 160)
+                    HStack(spacing: Theme.Space.md) {
+                        ForEach(series) { s in
+                            HStack(spacing: 4) {
+                                Circle().fill(Color.team(s.teamColor)).frame(width: 8, height: 8)
+                                Text(s.code).font(.caption2.weight(.bold)).foregroundStyle(Theme.Palette.textSecondary)
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -191,6 +247,20 @@ struct HeadToHeadView: View {
     private func best(_ pos: Int?) -> String { pos.map { "P\($0)" } ?? "–" }
 }
 
+struct FormLinePoint: Identifiable {
+    let round: Int
+    let position: Int
+    var id: Int { round }
+}
+
+struct FormLineSeries: Identifiable {
+    let driverId: String
+    let code: String
+    let teamColor: String?
+    let points: [FormLinePoint]
+    var id: String { driverId }
+}
+
 @MainActor
 final class HeadToHeadViewModel: ObservableObject {
     @Published var drivers: [Driver] = []
@@ -198,6 +268,7 @@ final class HeadToHeadViewModel: ObservableObject {
     @Published var driver1: Driver?
     @Published var driver2: Driver?
     @Published var compareState: Loadable<CompareResponse> = .idle
+    @Published var formLineState: Loadable<[FormLineSeries]> = .idle
 
     func loadDrivers(year: Int) async {
         guard drivers.isEmpty else { return }
@@ -233,6 +304,7 @@ final class HeadToHeadViewModel: ObservableObject {
             driver2 = d
         }
         Task { await compare(year: year) }
+        Task { await loadFormLine(year: year) }
     }
 
     func compare(year: Int) async {
@@ -245,6 +317,54 @@ final class HeadToHeadViewModel: ObservableObject {
             compareState = .loaded(try await APIClient.shared.compare(year: year, d1: d1.driverId, d2: d2.driverId))
         } catch {
             compareState = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)
+        }
+    }
+
+    /// Round-by-round finishing position for both selected drivers. There's
+    /// no per-round series on `/api/compare`, so this fans out one results
+    /// request per completed round, same v1 tradeoff the season form guide
+    /// makes, filtered down to the two selected drivers.
+    func loadFormLine(year: Int) async {
+        guard let d1 = driver1, let d2 = driver2, d1.driverId != d2.driverId else {
+            formLineState = .idle
+            return
+        }
+        formLineState = .loading
+        do {
+            let schedule = try await APIClient.shared.schedule(year: year)
+            let completedRounds = schedule.filter(\.completed).sorted { $0.round < $1.round }
+            guard !completedRounds.isEmpty else {
+                formLineState = .loaded([])
+                return
+            }
+
+            var pointsById: [String: [FormLinePoint]] = [d1.driverId: [], d2.driverId: []]
+            try await withThrowingTaskGroup(of: (Int, SessionResultsResponse).self) { group in
+                for event in completedRounds {
+                    group.addTask {
+                        let response = try await APIClient.shared.results(year: year, round: event.round, session: "R")
+                        return (event.round, response)
+                    }
+                }
+                for try await (round, response) in group {
+                    for entry in response.results {
+                        guard let position = entry.position else { continue }
+                        if entry.driverId == d1.driverId || entry.abbreviation == d1.code {
+                            pointsById[d1.driverId, default: []].append(FormLinePoint(round: round, position: Int(position)))
+                        } else if entry.driverId == d2.driverId || entry.abbreviation == d2.code {
+                            pointsById[d2.driverId, default: []].append(FormLinePoint(round: round, position: Int(position)))
+                        }
+                    }
+                }
+            }
+
+            let s1 = FormLineSeries(driverId: d1.driverId, code: d1.code ?? "?", teamColor: d1.teamColor,
+                                     points: (pointsById[d1.driverId] ?? []).sorted { $0.round < $1.round })
+            let s2 = FormLineSeries(driverId: d2.driverId, code: d2.code ?? "?", teamColor: d2.teamColor,
+                                     points: (pointsById[d2.driverId] ?? []).sorted { $0.round < $1.round })
+            formLineState = .loaded([s1, s2])
+        } catch {
+            formLineState = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)
         }
     }
 }

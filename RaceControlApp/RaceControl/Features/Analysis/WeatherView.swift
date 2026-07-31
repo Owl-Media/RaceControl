@@ -47,11 +47,15 @@ struct WeatherView: View {
                 }
                 if let timeline = wx.timeline, timeline.count > 1 {
                     Card {
-                        Chart(timeline) { sample in
+                        Chart(Array(timeline.enumerated()), id: \.element.id) { index, sample in
                             if sample.rainfall {
+                                // Band to the next sample's timestamp rather than a fixed
+                                // +60s, so it tiles without gaps or overlaps regardless of
+                                // the session's actual weather-sampling interval.
+                                let end = index + 1 < timeline.count ? timeline[index + 1].timeSeconds : sample.timeSeconds + 60
                                 RectangleMark(
                                     xStart: .value("Start", sample.timeSeconds),
-                                    xEnd: .value("End", sample.timeSeconds + 60)
+                                    xEnd: .value("End", end)
                                 )
                                 .foregroundStyle(Theme.Palette.info.opacity(0.12))
                             }

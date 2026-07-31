@@ -13,8 +13,11 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.Bolt
+import androidx.compose.material.icons.filled.CallSplit
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MonitorHeart
 import androidx.compose.material.icons.filled.PlayCircleFilled
@@ -62,16 +65,21 @@ fun RaceAnalysisGrid(
     val tiles = listOf(
         AnalysisTile(R.string.analysis_replay, Icons.Filled.PlayCircleFilled, RcTheme.colors.racingRed, Routes.Replay(year, round, title)),
         AnalysisTile(R.string.analysis_telemetry, Icons.Filled.MonitorHeart, RcTheme.colors.info, Routes.Telemetry(year, round, title)),
+        AnalysisTile(R.string.analysis_brake_throttle, Icons.Filled.LocalFireDepartment, RcTheme.colors.racingRed, Routes.BrakeThrottle(year, round, title)),
         AnalysisTile(R.string.analysis_lap_times, Icons.Filled.ShowChart, RcTheme.colors.positive, Routes.LapTimes(year, round, title)),
         AnalysisTile(R.string.analysis_strategy, Icons.Filled.Timeline, RcTheme.colors.warning, Routes.Strategy(year, round, title)),
         AnalysisTile(R.string.analysis_race_trace, Icons.Filled.ShowChart, RcTheme.colors.positive, Routes.RaceTrace(year, round, title)),
         AnalysisTile(R.string.analysis_position_chart, Icons.Filled.Timeline, RcTheme.colors.info, Routes.PositionChart(year, round, title)),
         AnalysisTile(R.string.analysis_tyre_performance, Icons.Filled.ShowChart, RcTheme.colors.warning, Routes.TyrePerformance(year, round, title)),
         AnalysisTile(R.string.analysis_pit_stops, Icons.Filled.Timeline, RcTheme.colors.racingRed, Routes.PitStops(year, round, title)),
+        AnalysisTile(R.string.analysis_pit_swimlane, Icons.Filled.CallSplit, RcTheme.colors.info, Routes.PitSwimlane(year, round, title)),
         AnalysisTile(R.string.analysis_qualifying_sectors, Icons.Filled.ShowChart, RcTheme.colors.info, Routes.QualifyingSectors(year, round, title)),
+        AnalysisTile(R.string.analysis_speed_trap, Icons.Filled.Bolt, RcTheme.colors.positive, Routes.SpeedTrap(year, round, title)),
         AnalysisTile(R.string.analysis_minisectors, Icons.Filled.Map, RcTheme.colors.positive, Routes.MiniSectors(year, round, title)),
         AnalysisTile(R.string.analysis_qualifying, Icons.Filled.Timer, RcTheme.colors.info, Routes.Qualifying(year, round, title)),
+        AnalysisTile(R.string.analysis_qualifying_ladder, Icons.Filled.Timeline, RcTheme.colors.warning, Routes.QualifyingLadder(year, round, title)),
         AnalysisTile(R.string.analysis_track_map, Icons.Filled.Map, RcTheme.colors.textSecondary, Routes.TrackMap(year, round, title)),
+        AnalysisTile(R.string.analysis_corner_speeds, Icons.Filled.ShowChart, RcTheme.colors.positive, Routes.CornerSpeedProfile(year, round, title)),
         AnalysisTile(R.string.analysis_weather, Icons.Filled.Cloud, RcTheme.colors.info, Routes.Weather(year, round, title)),
         AnalysisTile(R.string.analysis_retirements, Icons.Filled.WarningAmber, RcTheme.colors.negative, Routes.Retirements(year, round, title)),
         AnalysisTile(R.string.analysis_flags, Icons.Filled.Flag, RcTheme.colors.warning, Routes.Flags(year, round, title)),

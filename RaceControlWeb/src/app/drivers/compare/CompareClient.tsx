@@ -6,6 +6,7 @@ import { useQueryParam } from "@/lib/useQueryParam";
 import { useCompare, useDrivers } from "@/lib/api";
 import { SeasonPicker } from "@/components/SeasonPicker";
 import { LoadingState, ErrorState, EmptyState } from "@/components/StateViews";
+import { HeadToHeadFormLine } from "./HeadToHeadFormLine";
 
 function StatRow({ label, a, b }: { label: string; a: number | string; b: number | string }) {
   return (
@@ -68,24 +69,31 @@ export function CompareClient({ defaultYear }: { defaultYear: number }) {
       ) : error ? (
         <ErrorState message="Couldn't load comparison." />
       ) : data ? (
-        <div className="overflow-hidden rounded-lg border border-border">
-          <div className="grid grid-cols-2 gap-3 bg-surface px-3 py-3 text-center">
-            <p className="truncate font-semibold">{data.drivers[0].name}</p>
-            <p className="truncate font-semibold">{data.drivers[1].name}</p>
+        <>
+          {(() => {
+            const driverA = drivers?.find((d) => d.driverId === d1);
+            const driverB = drivers?.find((d) => d.driverId === d2);
+            return driverA && driverB ? <HeadToHeadFormLine year={year} a={driverA} b={driverB} /> : null;
+          })()}
+          <div className="overflow-hidden rounded-lg border border-border">
+            <div className="grid grid-cols-2 gap-3 bg-surface px-3 py-3 text-center">
+              <p className="truncate font-semibold">{data.drivers[0].name}</p>
+              <p className="truncate font-semibold">{data.drivers[1].name}</p>
+            </div>
+            <table className="w-full text-sm">
+              <tbody className="divide-y divide-border">
+                <StatRow label="Points" a={data.drivers[0].points} b={data.drivers[1].points} />
+                <StatRow label="Wins" a={data.drivers[0].wins} b={data.drivers[1].wins} />
+                <StatRow label="Podiums" a={data.drivers[0].podiums} b={data.drivers[1].podiums} />
+                <StatRow label="Poles" a={data.drivers[0].poles} b={data.drivers[1].poles} />
+                <StatRow label="Best Finish" a={data.drivers[0].bestFinish ?? "-"} b={data.drivers[1].bestFinish ?? "-"} />
+                <StatRow label="DNFs" a={data.drivers[0].dnf} b={data.drivers[1].dnf} />
+                <StatRow label="Race H2H Wins" a={data.drivers[0].raceWins_h2h} b={data.drivers[1].raceWins_h2h} />
+                <StatRow label="Qualifying H2H Wins" a={data.drivers[0].qualWins_h2h} b={data.drivers[1].qualWins_h2h} />
+              </tbody>
+            </table>
           </div>
-          <table className="w-full text-sm">
-            <tbody className="divide-y divide-border">
-              <StatRow label="Points" a={data.drivers[0].points} b={data.drivers[1].points} />
-              <StatRow label="Wins" a={data.drivers[0].wins} b={data.drivers[1].wins} />
-              <StatRow label="Podiums" a={data.drivers[0].podiums} b={data.drivers[1].podiums} />
-              <StatRow label="Poles" a={data.drivers[0].poles} b={data.drivers[1].poles} />
-              <StatRow label="Best Finish" a={data.drivers[0].bestFinish ?? "-"} b={data.drivers[1].bestFinish ?? "-"} />
-              <StatRow label="DNFs" a={data.drivers[0].dnf} b={data.drivers[1].dnf} />
-              <StatRow label="Race H2H Wins" a={data.drivers[0].raceWins_h2h} b={data.drivers[1].raceWins_h2h} />
-              <StatRow label="Qualifying H2H Wins" a={data.drivers[0].qualWins_h2h} b={data.drivers[1].qualWins_h2h} />
-            </tbody>
-          </table>
-        </div>
+        </>
       ) : null}
     </div>
   );

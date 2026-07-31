@@ -7,19 +7,14 @@ struct StandingsView: View {
 
     enum Mode: String, CaseIterable {
         case drivers = "Drivers", constructors = "Teams"
-        case progression = "Progress", reliability = "Reliability"
+        case form = "Form", progression = "Progress", reliability = "Reliability"
         case wdc = "Title"
     }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Picker("Mode", selection: $mode) {
-                    ForEach(Mode.allCases, id: \.self) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.segmented)
-                .padding(Theme.Space.md)
-                .onChange(of: mode) { _, _ in Haptics.selection() }
+                modeSelector
 
                 Group {
                     switch mode {
@@ -35,6 +30,8 @@ struct StandingsView: View {
                         } content: { standings in
                             constructorList(standings)
                         }
+                    case .form:
+                        SeasonFormGuideView(year: appState.selectedYear)
                     case .progression:
                         StandingsEvolutionView(year: appState.selectedYear)
                     case .reliability:
@@ -52,6 +49,32 @@ struct StandingsView: View {
             await vm.loadDrivers(year: appState.selectedYear)
             await vm.loadConstructors(year: appState.selectedYear)
         }
+    }
+
+    private var modeSelector: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: Theme.Space.xs) {
+                ForEach(Mode.allCases, id: \.self) { option in
+                    let selected = option == mode
+                    Button {
+                        mode = option
+                        Haptics.selection()
+                    } label: {
+                        Text(option.rawValue)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(selected ? .white : Theme.Palette.textSecondary)
+                            .padding(.horizontal, Theme.Space.md)
+                            .frame(minHeight: Theme.minTouch)
+                            .background(selected ? Theme.Palette.racingRed : Theme.Palette.surfaceElevated,
+                                        in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+                }
+            }
+            .padding(.horizontal, Theme.Space.md)
+        }
+        .padding(.vertical, Theme.Space.sm)
     }
 
     private func standingsList(_ standings: [DriverStanding]) -> some View {

@@ -275,6 +275,12 @@ struct TrackCorner: Codable, Identifiable, Hashable {
     let letter: String
     let x: Double
     let y: Double
+    /// Turn angle in degrees, when FastF1 provides it.
+    let angle: Double?
+    /// Distance along the lap (metres) at this corner.
+    let distanceMeters: Double?
+    /// Approximate speed (km/h) at this corner, cross-referenced from the fastest lap's trace.
+    let speed: Double?
     var id: String { "\(number)\(letter)" }
     var label: String { "\(number)\(letter)" }
 }

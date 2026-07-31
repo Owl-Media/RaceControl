@@ -7,17 +7,41 @@ import com.owlmedia.racecontrol.data.remote.dto.ConstructorStandingDto
 import com.owlmedia.racecontrol.data.remote.dto.DriverStandingDto
 import com.owlmedia.racecontrol.data.remote.dto.RaceEventDto
 import com.owlmedia.racecontrol.data.remote.dto.ReliabilityResponseDto
+import com.owlmedia.racecontrol.data.remote.dto.ResultEntryDto
 import com.owlmedia.racecontrol.data.remote.dto.StandingsEvolutionDto
 import com.owlmedia.racecontrol.data.remote.dto.WdcCalculatorDto
 import com.owlmedia.racecontrol.data.repository.RaceControlRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.util.UUID
 import javax.inject.Inject
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-enum class StandingsMode { DRIVERS, TEAMS, PROGRESS, RELIABILITY, WDC }
+enum class StandingsMode { DRIVERS, TEAMS, FORM, PROGRESS, RELIABILITY, WDC }
+
+/** One driver's row in the season form guide: their result per completed round. */
+data class SeasonFormDriverRow(
+    val id: String,
+    val name: String,
+    val code: String,
+    val cells: Map<Int, ResultEntryDto>,
+)
+
+data class SeasonFormGuide(
+    val rounds: List<RaceEventDto>,
+    val drivers: List<SeasonFormDriverRow>,
+)
+
+data class FormGuideSelection(
+    val driverName: String,
+    val roundName: String,
+    val resultLabel: String,
+)
 
 @HiltViewModel
 class StandingsViewModel @Inject constructor(
@@ -41,6 +65,13 @@ class StandingsViewModel @Inject constructor(
 
     private val _wdc = MutableStateFlow<UiState<WdcCalculatorDto>>(UiState.Idle)
     val wdc: StateFlow<UiState<WdcCalculatorDto>> = _wdc.asStateFlow()
+
+    private val _formGuide = MutableStateFlow<UiState<SeasonFormGuide>>(UiState.Idle)
+    val formGuide: StateFlow<UiState<SeasonFormGuide>> = _formGuide.asStateFlow()
+
+    private val _formGuideSelection = MutableStateFlow<FormGuideSelection?>(null)
+    val formGuideSelection: StateFlow<FormGuideSelection?> = _formGuideSelection.asStateFlow()
+    private var formGuideYear: Int? = null
 
     /** Selected round for the WDC "time machine" scrubber. Null means live standings. */
     private val _wdcThroughRound = MutableStateFlow<Int?>(null)
@@ -75,15 +106,97 @@ class StandingsViewModel @Inject constructor(
             _wdc.value = UiState.Idle
             _wdcThroughRound.value = null
             _wdcCompletedRounds.value = emptyList()
+            _formGuide.value = UiState.Idle
+            _formGuideSelection.value = null
             loadedYear = year
         }
         when (mode) {
             StandingsMode.DRIVERS -> loadDrivers(year, force)
             StandingsMode.TEAMS -> loadConstructors(year, force)
+            StandingsMode.FORM -> loadFormGuide(year, force)
             StandingsMode.PROGRESS -> loadEvolution(year, force)
             StandingsMode.RELIABILITY -> loadReliability(year, force)
             StandingsMode.WDC -> loadWdc(year, force)
         }
+    }
+
+    /**
+     * Builds the season form guide client-side from per-round race results —
+     * there's no season-aggregate endpoint for finishing position (only for
+     * cumulative points, via standings-evolution), so this fans out one
+     * request per completed round, same tradeoff the iOS/web builds make.
+     */
+    private fun loadFormGuide(year: Int, force: Boolean) {
+        if (!force && formGuideYear == year && _formGuide.value is UiState.Loaded) return
+        formGuideYear = year
+        viewModelScope.launch {
+            _formGuide.value = UiState.Loading
+            val scheduleResult = repository.schedule(year)
+            val schedule = scheduleResult.getOrNull()
+            if (schedule == null) {
+                _formGuide.value = UiState.Failed(
+                    repository.messageFor(scheduleResult.exceptionOrNull() ?: Exception("Unknown error")),
+                )
+                return@launch
+            }
+            val completedRounds = schedule.filter { it.completed }.sortedBy { it.round }
+            if (completedRounds.isEmpty()) {
+                _formGuide.value = UiState.Loaded(SeasonFormGuide(emptyList(), emptyList()))
+                return@launch
+            }
+
+            val resultsByRound: Map<Int, Map<String, ResultEntryDto>> = coroutineScope {
+                completedRounds.map { event ->
+                    async {
+                        val response = repository.results(year, event.round, "R").getOrNull()
+                        val byDriver = response?.results.orEmpty().associateBy {
+                            it.driverId ?: it.abbreviation ?: it.fullName ?: UUID.randomUUID().toString()
+                        }
+                        event.round to byDriver
+                    }
+                }.awaitAll().toMap()
+            }
+
+            val rosterOrder = LinkedHashMap<String, Pair<String, String>>()
+            for (event in completedRounds) {
+                val byDriver = resultsByRound[event.round] ?: continue
+                for ((key, entry) in byDriver) {
+                    if (!rosterOrder.containsKey(key)) {
+                        rosterOrder[key] = (entry.fullName ?: entry.abbreviation ?: key) to
+                            (entry.abbreviation ?: key.take(3).uppercase())
+                    }
+                }
+            }
+
+            val standingsOrder = repository.driverStandings(year).getOrNull()
+                ?.mapNotNull { it.driverId }
+                .orEmpty()
+            val orderedKeys = rosterOrder.keys.sortedWith(
+                compareBy(
+                    { key -> standingsOrder.indexOf(key).let { if (it < 0) Int.MAX_VALUE else it } },
+                    { key -> key },
+                ),
+            )
+
+            val drivers = orderedKeys.map { key ->
+                val (name, code) = rosterOrder.getValue(key)
+                val cells = completedRounds.mapNotNull { event ->
+                    resultsByRound[event.round]?.get(key)?.let { event.round to it }
+                }.toMap()
+                SeasonFormDriverRow(id = key, name = name, code = code, cells = cells)
+            }
+
+            _formGuide.value = UiState.Loaded(SeasonFormGuide(completedRounds, drivers))
+        }
+    }
+
+    fun selectFormCell(driver: SeasonFormDriverRow, round: RaceEventDto, entry: ResultEntryDto?) {
+        val resultLabel = when {
+            entry == null -> "No result"
+            entry.status != null && !isFinishStatus(entry.status) -> entry.status
+            else -> "P${entry.positionLabel}"
+        }
+        _formGuideSelection.value = FormGuideSelection(driver.name, round.displayName, resultLabel)
     }
 
     private fun loadDrivers(year: Int, force: Boolean) {
@@ -184,4 +297,10 @@ class StandingsViewModel @Inject constructor(
         val year = loadedYear ?: return
         loadWdc(year, force = true)
     }
+}
+
+/** True for a classified finish; false for DNF/DNS/DSQ/DNQ-style statuses. */
+fun isFinishStatus(status: String): Boolean {
+    val s = status.lowercase()
+    return s.isEmpty() || s == "finished" || s.startsWith("+")
 }

@@ -8,23 +8,28 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navDeepLink
 import androidx.navigation.navigation
 import androidx.navigation.toRoute
+import com.owlmedia.racecontrol.feature.analysis.BrakeThrottleScreen
 import com.owlmedia.racecontrol.feature.analysis.FlagsScreen
 import com.owlmedia.racecontrol.feature.analysis.LapTimesScreen
 import com.owlmedia.racecontrol.feature.analysis.MiniSectorsScreen
 import com.owlmedia.racecontrol.feature.analysis.PenaltiesScreen
 import com.owlmedia.racecontrol.feature.analysis.PositionChartScreen
 import com.owlmedia.racecontrol.feature.analysis.PitStopsScreen
+import com.owlmedia.racecontrol.feature.analysis.PitSwimlaneScreen
+import com.owlmedia.racecontrol.feature.analysis.QualifyingLadderScreen
 import com.owlmedia.racecontrol.feature.analysis.QualifyingScreen
 import com.owlmedia.racecontrol.feature.analysis.QualifyingSectorsScreen
 import com.owlmedia.racecontrol.feature.analysis.RaceControlScreen
 import com.owlmedia.racecontrol.feature.analysis.RaceTraceScreen
 import com.owlmedia.racecontrol.feature.analysis.RetirementsScreen
+import com.owlmedia.racecontrol.feature.analysis.SpeedTrapScreen
 import com.owlmedia.racecontrol.feature.analysis.StrategyScreen
 import com.owlmedia.racecontrol.feature.analysis.TelemetryScreen
 import com.owlmedia.racecontrol.feature.analysis.TyrePerformanceScreen
 import com.owlmedia.racecontrol.feature.analysis.WeatherScreen
 import com.owlmedia.racecontrol.feature.circuits.CircuitDetailScreen
 import com.owlmedia.racecontrol.feature.circuits.CircuitsScreen
+import com.owlmedia.racecontrol.feature.circuits.CornerSpeedProfileScreen
 import com.owlmedia.racecontrol.feature.circuits.TrackMap
 import com.owlmedia.racecontrol.feature.circuits.TrackMapScreen
 import com.owlmedia.racecontrol.feature.drivers.DriverDetailScreen
@@ -213,6 +218,10 @@ private fun NavGraphBuilder.analysisDestinations(navController: NavHostControlle
         val route = entry.toRoute<Routes.Telemetry>()
         TelemetryScreen(route.year, route.round, route.title, navController::popBackStack)
     }
+    composable<Routes.BrakeThrottle> { entry ->
+        val route = entry.toRoute<Routes.BrakeThrottle>()
+        BrakeThrottleScreen(route.year, route.round, route.title, navController::popBackStack)
+    }
     composable<Routes.LapTimes> { entry ->
         val route = entry.toRoute<Routes.LapTimes>()
         LapTimesScreen(route.year, route.round, route.title, navController::popBackStack)
@@ -239,6 +248,10 @@ private fun NavGraphBuilder.analysisDestinations(navController: NavHostControlle
         val route = entry.toRoute<Routes.TyrePerformance>()
         TyrePerformanceScreen(route.year, route.round, route.title, navController::popBackStack)
     }
+    composable<Routes.PitSwimlane> { entry ->
+        val route = entry.toRoute<Routes.PitSwimlane>()
+        PitSwimlaneScreen(route.year, route.round, route.title, navController::popBackStack)
+    }
     composable<Routes.PitStops> { entry ->
         val route = entry.toRoute<Routes.PitStops>()
         PitStopsScreen(route.year, route.round, route.title, navController::popBackStack)
@@ -246,6 +259,10 @@ private fun NavGraphBuilder.analysisDestinations(navController: NavHostControlle
     composable<Routes.QualifyingSectors> { entry ->
         val route = entry.toRoute<Routes.QualifyingSectors>()
         QualifyingSectorsScreen(route.year, route.round, route.title, navController::popBackStack)
+    }
+    composable<Routes.SpeedTrap> { entry ->
+        val route = entry.toRoute<Routes.SpeedTrap>()
+        SpeedTrapScreen(route.year, route.round, route.title, navController::popBackStack)
     }
     composable<Routes.MiniSectors> { entry ->
         val route = entry.toRoute<Routes.MiniSectors>()
@@ -255,9 +272,17 @@ private fun NavGraphBuilder.analysisDestinations(navController: NavHostControlle
         val route = entry.toRoute<Routes.Qualifying>()
         QualifyingScreen(route.year, route.round, route.title, navController::popBackStack)
     }
+    composable<Routes.QualifyingLadder> { entry ->
+        val route = entry.toRoute<Routes.QualifyingLadder>()
+        QualifyingLadderScreen(route.year, route.round, route.title, navController::popBackStack)
+    }
     composable<Routes.TrackMap> { entry ->
         val route = entry.toRoute<Routes.TrackMap>()
         TrackMapScreen(route.year, route.round, route.title, navController::popBackStack)
+    }
+    composable<Routes.CornerSpeedProfile> { entry ->
+        val route = entry.toRoute<Routes.CornerSpeedProfile>()
+        CornerSpeedProfileScreen(route.year, route.round, route.title, navController::popBackStack)
     }
     composable<Routes.Weather> { entry ->
         val route = entry.toRoute<Routes.Weather>()

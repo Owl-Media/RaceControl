@@ -346,6 +346,12 @@ data class TrackCornerDto(
     val letter: String = "",
     val x: Double = 0.0,
     val y: Double = 0.0,
+    /** Turn angle in degrees, when FastF1 provides it. */
+    val angle: Double? = null,
+    /** Distance along the lap (metres) at this corner. */
+    val distanceMeters: Double? = null,
+    /** Approximate speed (km/h) at this corner, cross-referenced from the fastest lap's trace. */
+    val speed: Double? = null,
 ) {
     val label: String get() = "$number$letter"
     val id: String get() = label

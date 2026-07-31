@@ -42,8 +42,11 @@ import com.owlmedia.racecontrol.core.ui.EmptyState
 import com.owlmedia.racecontrol.core.ui.ErrorState
 import com.owlmedia.racecontrol.core.ui.LoadableContent
 import com.owlmedia.racecontrol.core.ui.LoadingIndicator
+import com.owlmedia.racecontrol.core.ui.ChartPoint
+import com.owlmedia.racecontrol.core.ui.ChartSeries
 import com.owlmedia.racecontrol.core.ui.RcCard
 import com.owlmedia.racecontrol.core.ui.RcDetailScaffold
+import com.owlmedia.racecontrol.core.ui.RcLineChart
 import com.owlmedia.racecontrol.core.ui.UiState
 import com.owlmedia.racecontrol.core.util.pointsLabel
 import com.owlmedia.racecontrol.data.remote.dto.CompareDriverDto
@@ -52,10 +55,16 @@ import com.owlmedia.racecontrol.data.remote.dto.DriverDto
 import com.owlmedia.racecontrol.data.repository.RaceControlRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+data class FormLinePoint(val round: Int, val position: Int)
+data class FormLineSeries(val driverId: String, val code: String, val teamColor: String?, val points: List<FormLinePoint>)
 
 @HiltViewModel
 class HeadToHeadViewModel @Inject constructor(
@@ -67,6 +76,9 @@ class HeadToHeadViewModel @Inject constructor(
 
     private val _comparison = MutableStateFlow<UiState<CompareResponseDto>?>(null)
     val comparison: StateFlow<UiState<CompareResponseDto>?> = _comparison.asStateFlow()
+
+    private val _formLine = MutableStateFlow<UiState<List<FormLineSeries>>?>(null)
+    val formLine: StateFlow<UiState<List<FormLineSeries>>?> = _formLine.asStateFlow()
 
     fun loadDrivers(year: Int) {
         if (_drivers.value is UiState.Loaded) return
@@ -90,6 +102,56 @@ class HeadToHeadViewModel @Inject constructor(
                 .onFailure { _comparison.value = UiState.Failed(repository.messageFor(it)) }
         }
     }
+
+    /**
+     * Round-by-round finishing position for both selected drivers. There's
+     * no per-round series on `/api/compare`, so this fans out one results
+     * request per completed round, same v1 tradeoff the season form guide
+     * makes, filtered down to the two selected drivers.
+     */
+    fun loadFormLine(year: Int, d1: DriverDto?, d2: DriverDto?) {
+        if (d1 == null || d2 == null || d1.driverId == d2.driverId) {
+            _formLine.value = null
+            return
+        }
+        viewModelScope.launch {
+            _formLine.value = UiState.Loading
+            val scheduleResult = repository.schedule(year)
+            val schedule = scheduleResult.getOrNull()
+            if (schedule == null) {
+                _formLine.value = UiState.Failed(
+                    repository.messageFor(scheduleResult.exceptionOrNull() ?: Exception("Unknown error")),
+                )
+                return@launch
+            }
+            val completedRounds = schedule.filter { it.completed }.sortedBy { it.round }
+            if (completedRounds.isEmpty()) {
+                _formLine.value = UiState.Loaded(emptyList())
+                return@launch
+            }
+
+            val pointsByDriver = mutableMapOf(d1.driverId to mutableListOf<FormLinePoint>(), d2.driverId to mutableListOf())
+            coroutineScope {
+                completedRounds.map { event ->
+                    async { repository.results(year, event.round, "R").getOrNull()?.let { event.round to it } }
+                }.awaitAll().filterNotNull().forEach { (round, response) ->
+                    response.results.forEach { entry ->
+                        val position = entry.position?.toInt() ?: return@forEach
+                        when {
+                            entry.driverId == d1.driverId || entry.abbreviation == d1.code ->
+                                pointsByDriver.getValue(d1.driverId).add(FormLinePoint(round, position))
+                            entry.driverId == d2.driverId || entry.abbreviation == d2.code ->
+                                pointsByDriver.getValue(d2.driverId).add(FormLinePoint(round, position))
+                        }
+                    }
+                }
+            }
+
+            val s1 = FormLineSeries(d1.driverId, d1.code ?: "?", d1.teamColor, pointsByDriver.getValue(d1.driverId).sortedBy { it.round })
+            val s2 = FormLineSeries(d2.driverId, d2.code ?: "?", d2.teamColor, pointsByDriver.getValue(d2.driverId).sortedBy { it.round })
+            _formLine.value = UiState.Loaded(listOf(s1, s2))
+        }
+    }
 }
 
 @Composable
@@ -100,6 +162,7 @@ fun HeadToHeadScreen(
 ) {
     val driversState by viewModel.drivers.collectAsStateWithLifecycle()
     val comparison by viewModel.comparison.collectAsStateWithLifecycle()
+    val formLine by viewModel.formLine.collectAsStateWithLifecycle()
 
     var driverA by remember { mutableStateOf<DriverDto?>(null) }
     var driverB by remember { mutableStateOf<DriverDto?>(null) }
@@ -107,6 +170,7 @@ fun HeadToHeadScreen(
     LaunchedEffect(year) { viewModel.loadDrivers(year) }
     LaunchedEffect(driverA, driverB) {
         viewModel.compare(year, driverA?.driverId, driverB?.driverId)
+        viewModel.loadFormLine(year, driverA, driverB)
     }
 
     RcDetailScaffold(title = stringResource(R.string.head_to_head), onBack = onBack) { modifier ->
@@ -155,6 +219,7 @@ fun HeadToHeadScreen(
                     is UiState.Loaded -> {
                         val pair = state.value.drivers
                         if (pair.size >= 2) {
+                            FormLineCard(formLine)
                             ComparisonCard(pair[0], pair[1])
                         }
                     }
@@ -193,6 +258,40 @@ private fun DriverPicker(
                         onSelect(driver)
                         expanded = false
                     },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FormLineCard(formLine: UiState<List<FormLineSeries>>?) {
+    val series = (formLine as? UiState.Loaded)?.value.orEmpty()
+    if (formLine !is UiState.Loaded || series.all { it.points.isEmpty() }) return
+
+    RcCard {
+        Text(
+            text = "FORM LINE",
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = RcTheme.colors.textSecondary,
+        )
+        val chartSeries = series.map { s ->
+            ChartSeries(
+                id = s.driverId,
+                color = com.owlmedia.racecontrol.core.design.teamColor(s.teamColor),
+                points = s.points.map { ChartPoint(it.round.toDouble(), -it.position.toDouble()) },
+                showPoints = true,
+            )
+        }
+        RcLineChart(series = chartSeries, height = 140.dp)
+        Row(horizontalArrangement = Arrangement.spacedBy(Dimens.MD)) {
+            series.forEach { s ->
+                Text(
+                    text = s.code,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = com.owlmedia.racecontrol.core.design.teamColor(s.teamColor),
                 )
             }
         }

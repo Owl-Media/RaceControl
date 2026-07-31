@@ -55,10 +55,13 @@
     <!-- Analysis tiles -->
     <string name="analysis_replay">Replay</string>
     <string name="analysis_telemetry">Telemetry</string>
+    <string name="analysis_brake_throttle">Brake/Throttle</string>
     <string name="analysis_lap_times">Lap Times</string>
     <string name="analysis_strategy">Strategy</string>
     <string name="analysis_qualifying">Qualifying</string>
+    <string name="analysis_qualifying_ladder">Qualifying Ladder</string>
     <string name="analysis_track_map">Track Map</string>
+    <string name="analysis_corner_speeds">Corner Speeds</string>
     <string name="analysis_weather">Weather</string>
     <string name="analysis_retirements">Retirements</string>
     <string name="analysis_flags">Flags</string>
@@ -66,7 +69,9 @@
     <string name="analysis_position_chart">Positions</string>
     <string name="analysis_tyre_performance">Tyre Degradation</string>
     <string name="analysis_pit_stops">Pit Stops</string>
+    <string name="analysis_pit_swimlane">Pit Swimlane</string>
     <string name="analysis_qualifying_sectors">Sector Waterfall</string>
+    <string name="analysis_speed_trap">Speed Trap</string>
     <string name="analysis_minisectors">Mini-Sectors</string>
     <string name="no_race_trace_title">No Race Trace</string>
     <string name="no_race_trace_message">Cumulative race timing isn’t available.</string>
@@ -133,6 +138,7 @@
     <string name="standings">Standings</string>
     <string name="standings_drivers">Drivers</string>
     <string name="standings_teams">Teams</string>
+    <string name="standings_form">Form</string>
     <string name="standings_progress">Progress</string>
     <string name="standings_reliability">Reliability</string>
     <string name="standings_wdc">Title</string>

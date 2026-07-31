@@ -77,12 +77,13 @@ fun StandingsScreen(
         },
     ) { modifier ->
         Column(modifier) {
-            // Five peer views. iOS uses a segmented control; at this many options
+            // Six peer views. iOS uses a segmented control; at this many options
             // with words like "Reliability" that would truncate badly on a
             // compact screen, so this is a Material tab row.
             val labels = listOf(
                 stringResource(R.string.standings_drivers),
                 stringResource(R.string.standings_teams),
+                stringResource(R.string.standings_form),
                 stringResource(R.string.standings_progress),
                 stringResource(R.string.standings_reliability),
                 stringResource(R.string.standings_wdc),
@@ -112,6 +113,7 @@ fun StandingsScreen(
             when (mode) {
                 StandingsMode.DRIVERS -> DriversStandings(viewModel, appState)
                 StandingsMode.TEAMS -> ConstructorsStandings(viewModel, appState)
+                StandingsMode.FORM -> SeasonFormGuideView(viewModel, appState)
                 StandingsMode.PROGRESS -> StandingsEvolutionView(viewModel, appState)
                 StandingsMode.RELIABILITY -> ReliabilityView(viewModel, appState)
                 StandingsMode.WDC -> WdcCalculatorView(viewModel, appState, onOpenDriver)

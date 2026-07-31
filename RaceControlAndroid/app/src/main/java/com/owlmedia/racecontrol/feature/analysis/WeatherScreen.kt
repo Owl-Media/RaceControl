@@ -153,8 +153,13 @@ fun WeatherScreen(
                                     },
                                 ),
                             ),
-                            bands = weather.timeline.filter { it.rainfall }.map {
-                                ChartBand(it.timeSeconds, it.timeSeconds + 60, RcTheme.colors.info.copy(alpha = 0.12f))
+                            // Band to the next sample's timestamp rather than a fixed
+                            // +60s, so it tiles without gaps or overlaps regardless of
+                            // the session's actual weather-sampling interval.
+                            bands = weather.timeline.mapIndexedNotNull { index, sample ->
+                                if (!sample.rainfall) return@mapIndexedNotNull null
+                                val end = weather.timeline.getOrNull(index + 1)?.timeSeconds ?: (sample.timeSeconds + 60)
+                                ChartBand(sample.timeSeconds, end, RcTheme.colors.info.copy(alpha = 0.12f))
                             },
                         )
                     }
