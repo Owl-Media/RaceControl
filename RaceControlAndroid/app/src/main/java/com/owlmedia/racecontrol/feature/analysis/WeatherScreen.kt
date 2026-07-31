@@ -161,6 +161,7 @@ fun WeatherScreen(
                                 val end = weather.timeline.getOrNull(index + 1)?.timeSeconds ?: (sample.timeSeconds + 60)
                                 ChartBand(sample.timeSeconds, end, RcTheme.colors.info.copy(alpha = 0.12f))
                             },
+                            contentDescription = "Air and track temperature chart with rainfall bands",
                         )
                     }
                 }

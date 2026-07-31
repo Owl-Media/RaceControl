@@ -41,6 +41,8 @@ struct QualifyingSectorsView: View {
                         }
                         .chartLegend(.hidden)
                         .frame(height: CGFloat(max(330, data.drivers.count * 32)))
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Qualifying sector chart")
 
                         ForEach(data.drivers) { driver in
                             HStack {

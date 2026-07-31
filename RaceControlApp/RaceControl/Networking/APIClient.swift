@@ -7,15 +7,25 @@ import Foundation
 actor APIClient {
     static let shared = APIClient()
 
-    private let session: URLSession
+    private let session: URLSessionProtocol
     private let decoder = JSONDecoder()
 
-    init() {
+    /// Builds the production-tuned session used when no transport is
+    /// injected (i.e. by `shared`). Longer timeouts than `.default` since
+    /// FastF1 loads can be slow.
+    private static func makeDefaultSession() -> URLSessionProtocol {
         let config = URLSessionConfiguration.default
-        config.timeoutIntervalForRequest = 45        // FastF1 loads can be slow
+        config.timeoutIntervalForRequest = 45
         config.timeoutIntervalForResource = 90
         config.waitsForConnectivity = true
-        self.session = URLSession(configuration: config)
+        return URLSession(configuration: config)
+    }
+
+    /// `session` defaults to the production-tuned `URLSession` so
+    /// `static let shared = APIClient()` keeps working unchanged; tests can
+    /// inject a mock conforming to `URLSessionProtocol` instead.
+    init(session: URLSessionProtocol = APIClient.makeDefaultSession()) {
+        self.session = session
     }
 
     var baseURL: URL {

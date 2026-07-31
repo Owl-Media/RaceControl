@@ -37,17 +37,46 @@ CACHE_DIR = os.environ.get(
 os.makedirs(CACHE_DIR, exist_ok=True)
 svc.configure_cache(CACHE_DIR)
 
+# This process's response cache (`cached()` below), FastF1 session cache
+# (fastf1_service._SESSION_CACHE), and points-progression cache
+# (fastf1_service._progression_cache) are plain in-process dicts with no
+# cross-process sharing. That is fine — and cheap — at WEB_CONCURRENCY=1,
+# but a second uvicorn worker gets its own independent copy of all three
+# caches: memory is duplicated, hit rates fall, and a request can observe
+# different cached state depending on which worker answers it. Rather than
+# let that happen silently, fail loudly at startup so a scale-out attempt is
+# caught immediately instead of showing up later as unexplained inconsistency.
+_WEB_CONCURRENCY = int(os.environ.get("WEB_CONCURRENCY", "1"))
+if _WEB_CONCURRENCY > 1:
+    raise RuntimeError(
+        f"WEB_CONCURRENCY={_WEB_CONCURRENCY}, but main.py's in-process caches "
+        "are only correct under a single worker. Either run with "
+        "WEB_CONCURRENCY=1 (the supported deployment today) or externalize "
+        "the response/session/points-progression caches to a shared store "
+        "before scaling out."
+    )
+
 app = FastAPI(
     title="RaceControl API",
     version="1.0.0",
     description="Historical Formula 1 data (2018+) powered by FastF1.",
 )
 
-# The iOS app is a native client (no browser origin), so a permissive CORS
-# policy is harmless here; access is gated by API_TOKEN instead.
+# The iOS and Android apps are native clients (no browser Origin header), so
+# CORS is only relevant to a hypothetical direct-from-browser caller. The web
+# client (RaceControlWeb) already proxies through its own Next.js server
+# (see RaceControlWeb/src/app/api/proxy/[...path]/route.ts), so it never
+# issues a cross-origin request to this API either. Default to allowing no
+# browser origins at all; set ALLOWED_ORIGINS (comma-separated) if a genuine
+# browser-facing origin is ever added.
+_allowed_origins = [
+    origin.strip()
+    for origin in os.environ.get("ALLOWED_ORIGINS", "").split(",")
+    if origin.strip()
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_allowed_origins,
     allow_methods=["GET"],
     allow_headers=["*"],
 )

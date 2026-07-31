@@ -75,6 +75,48 @@ def test_client_key_handles_a_missing_peer():
 
 
 # --------------------------------------------------------------------------- #
+#  The proxy-trust boundary is a deployment invariant, not just code — pin the
+#  Dockerfile flags that make trusting X-Forwarded-For safe, so someone
+#  editing the CMD can't silently break the assumption _client_key relies on.
+# --------------------------------------------------------------------------- #
+def test_dockerfile_declares_the_proxy_trust_boundary():
+    dockerfile = os.path.join(os.path.dirname(__file__), "Dockerfile")
+    with open(dockerfile, encoding="utf-8") as f:
+        cmd = f.read()
+    assert "--proxy-headers" in cmd, (
+        "uvicorn must be started with --proxy-headers, or X-Forwarded-For is "
+        "ignored and the per-client rate limiter collapses to one shared bucket"
+    )
+    assert "--forwarded-allow-ips" in cmd, (
+        "without an explicit --forwarded-allow-ips, uvicorn's default "
+        "allowlist (127.0.0.1 only) discards X-Forwarded-For behind a "
+        "non-loopback reverse proxy such as Coolify/Traefik"
+    )
+
+
+def test_web_concurrency_above_one_is_rejected_at_startup():
+    # main.py's response/session/points-progression caches are per-process
+    # dicts with no cross-worker sharing (see the comments beside each cache
+    # definition); a second worker silently serves inconsistent cached state
+    # rather than failing, so this must be a hard startup error instead.
+    os.environ["WEB_CONCURRENCY"] = "2"
+    try:
+        for m in ["attest", "playintegrity", "main"]:
+            sys.modules.pop(m, None)
+        try:
+            import main as _reimported  # noqa: F401
+        except RuntimeError as exc:
+            assert "WEB_CONCURRENCY" in str(exc)
+        else:
+            raise AssertionError("expected main import to fail with WEB_CONCURRENCY=2")
+    finally:
+        os.environ.pop("WEB_CONCURRENCY", None)
+        for m in ["attest", "playintegrity", "main"]:
+            sys.modules.pop(m, None)
+        import main  # noqa: F401  (restore a clean import for subsequent tests)
+
+
+# --------------------------------------------------------------------------- #
 #  Rate limiting is per client, not global — the point of the A3 fix
 # --------------------------------------------------------------------------- #
 def test_distinct_forwarded_clients_get_independent_buckets():

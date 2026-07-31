@@ -58,6 +58,8 @@ struct SpeedTrapView: View {
                     AxisMarks { _ in AxisValueLabel().font(.caption2.weight(.bold)) }
                 }
                 .frame(height: CGFloat(max(280, data.count * 34)))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Speed trap chart")
 
                 legend
             }

@@ -34,6 +34,8 @@ struct PitStopsView: View {
                         }
                         .chartLegend(.hidden)
                         .frame(height: CGFloat(max(300, data.stops.count * 34)))
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Pit stop chart")
 
                         ForEach(data.stops) { stop in
                             HStack {

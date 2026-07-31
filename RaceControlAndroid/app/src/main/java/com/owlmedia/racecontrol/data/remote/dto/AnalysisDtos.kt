@@ -735,6 +735,10 @@ data class WdcCalculatorDto(
     val drivers: List<WdcDriverDto> = emptyList(),
     val throughRound: Int? = null,
     val roundsInSeason: Int = 0,
+    // Known scoring approximations (no countback tie-break; flat modern
+    // sprint-points scale applied to historical seasons). Absent/empty on
+    // older cached responses -- default keeps decoding safe either way.
+    val notes: List<String> = emptyList(),
 )
 
 @Serializable

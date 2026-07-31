@@ -41,6 +41,8 @@ struct TyrePerformanceView: View {
                         }
                         .chartLegend(.hidden)
                         .frame(height: 340)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Tyre performance chart")
 
                         Picker("Compound", selection: $vm.compound) {
                             Text("All").tag("ALL")

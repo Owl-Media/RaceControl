@@ -15,8 +15,13 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 # Install dependencies first so this layer caches across code changes.
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# requirements-lock.txt pins every direct + transitive dependency to the
+# exact version verified against this same python:3.12-slim base image (see
+# its header for how to regenerate); requirements.txt alone leaves every
+# entry but fastf1 version-unbounded, which is unreproducible for a
+# security-sensitive auth stack (PyJWT, cryptography, google-auth).
+COPY requirements.txt requirements-lock.txt ./
+RUN pip install --no-cache-dir -r requirements-lock.txt
 
 COPY . .
 
@@ -38,8 +43,10 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
     CMD curl -fsS "http://127.0.0.1:${PORT}/api/health" || exit 1
 
 # One worker by default: each worker keeps its own in-process session cache, so
-# extra workers multiply memory use rather than sharing it. Raise WEB_CONCURRENCY
-# only if you also raise the container's memory limit.
+# extra workers multiply memory use rather than sharing it, and can serve
+# inconsistent cached responses depending on which worker answers. main.py
+# enforces this at startup and refuses to boot if WEB_CONCURRENCY > 1 — raise
+# it only after externalizing those caches to a shared store.
 #
 # --proxy-headers/--forwarded-allow-ips: the container is only ever reached
 # through Coolify's reverse proxy, which is not 127.0.0.1, so uvicorn's default

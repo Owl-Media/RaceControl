@@ -105,6 +105,7 @@ fun WdcCalculatorView(
                     roundsRemaining = data.roundsRemaining,
                     maxRemainingPoints = data.maxRemainingPoints,
                     canWinCount = canWinCount,
+                    notes = data.notes,
                 )
             }
             item(key = "title-scenarios") {
@@ -308,6 +309,7 @@ private fun WdcHeader(
     roundsRemaining: Int,
     maxRemainingPoints: Int,
     canWinCount: Int,
+    notes: List<String> = emptyList(),
 ) {
     val statusText = when {
         decided && roundsRemaining == 0 -> "Season complete: the title is decided."
@@ -334,6 +336,13 @@ private fun WdcHeader(
             style = MaterialTheme.typography.bodySmall,
             color = RcTheme.colors.textTertiary,
         )
+        notes.forEach { note ->
+            Text(
+                text = "• $note",
+                style = MaterialTheme.typography.bodySmall,
+                color = RcTheme.colors.textTertiary,
+            )
+        }
     }
 }
 

@@ -21,6 +21,24 @@ def test_known_team_id_resolves_to_a_logo_url():
     assert "redbullracing" in url
 
 
+def test_every_mapped_team_id_resolves_to_a_well_formed_url():
+    # Broader than the single red_bull/ferrari checks above: a broken or
+    # renamed slug for any *other* entry in the table should fail here too,
+    # rather than only surfacing when that particular team happens to be
+    # exercised by another test.
+    for team_id, slug in svc._TEAM_LOGO_SLUGS.items():
+        url = svc._team_logo_url(team_id)
+        assert url is not None, f"{team_id} should resolve to a logo URL"
+        assert url.startswith("https://media.formula1.com/"), team_id
+        assert url.count(slug) == 2, (
+            f"{team_id}: expected the slug to appear twice (path segment + "
+            f"filename) in {url!r}"
+        )
+        assert str(svc._TEAM_LOGO_SEASON) in url, (
+            f"{team_id}: expected the current season ({svc._TEAM_LOGO_SEASON}) in {url!r}"
+        )
+
+
 def test_unknown_team_id_returns_none():
     assert svc._team_logo_url("not_a_real_team") is None
 

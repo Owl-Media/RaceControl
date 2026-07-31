@@ -190,12 +190,17 @@ final class StandingsViewModel: ObservableObject {
     @Published var constructorState: Loadable<[ConstructorStanding]> = .idle
     private var driverYear: Int?
     private var constructorYear: Int?
+    private let apiClient: APIClient
+
+    init(apiClient: APIClient = .shared) {
+        self.apiClient = apiClient
+    }
 
     func loadDrivers(year: Int) async {
         if driverYear == year, case .loaded = driverState { return }
         driverState = .loading
         do {
-            driverState = .loaded(try await APIClient.shared.driverStandings(year: year))
+            driverState = .loaded(try await apiClient.driverStandings(year: year))
             driverYear = year
         } catch {
             driverState = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)
@@ -206,7 +211,7 @@ final class StandingsViewModel: ObservableObject {
         if constructorYear == year, case .loaded = constructorState { return }
         constructorState = .loading
         do {
-            constructorState = .loaded(try await APIClient.shared.constructorStandings(year: year))
+            constructorState = .loaded(try await apiClient.constructorStandings(year: year))
             constructorYear = year
         } catch {
             constructorState = .failed((error as? APIError)?.errorDescription ?? error.localizedDescription)

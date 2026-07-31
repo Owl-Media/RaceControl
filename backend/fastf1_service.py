@@ -177,9 +177,12 @@ _TEAM_LOGO_SLUGS: dict[str, str] = {
     "audi": "audi",
     "cadillac": "cadillac",
 }
+# F1.com's CDN path embeds the current season twice; bump this one constant
+# each season rollover instead of editing the template string.
+_TEAM_LOGO_SEASON = 2026
 _TEAM_LOGO_URL_TEMPLATE = (
     "https://media.formula1.com/image/upload/c_lfill,w_128/q_auto/"
-    "v1740000001/common/f1/2026/{slug}/2026{slug}logowhite.webp"
+    "v1740000001/common/f1/{season}/{slug}/{season}{slug}logowhite.webp"
 )
 
 
@@ -187,7 +190,7 @@ def _team_logo_url(team_id: Any) -> Optional[str]:
     slug = _TEAM_LOGO_SLUGS.get(str(team_id)) if team_id else None
     if not slug:
         return None
-    return _TEAM_LOGO_URL_TEMPLATE.format(slug=slug)
+    return _TEAM_LOGO_URL_TEMPLATE.format(season=_TEAM_LOGO_SEASON, slug=slug)
 
 
 def _collect_multi(resp, max_pages: int = 25):
@@ -221,6 +224,10 @@ def _collect_multi(resp, max_pages: int = 25):
 # transient F1/Jolpica hiccup can return a session with no results/laps. We must
 # NOT cache such a broken session, otherwise every later request re-serves the
 # failure. This manual cache only stores loads that actually produced data.
+#
+# Per-process, in-memory, not shared across workers — see the WEB_CONCURRENCY
+# guard in main.py, which fails startup rather than let multiple workers each
+# hold a divergent copy of this cache.
 _SESSION_CACHE: dict = {}
 _SESSION_ORDER: list = []
 # Lower this on a memory-constrained container: a loaded race session with
@@ -581,6 +588,17 @@ def get_drivers(year: int) -> list[dict[str, Any]]:
 _SPRINT_POINTS_TOTAL = 8 + 25 + 1  # sprint win + race win + fastest lap
 _CONVENTIONAL_POINTS_TOTAL = 25 + 1  # race win + fastest lap
 
+# Surfaced in the API response (and from there, in the client UI) so the two
+# approximations above are visible to whoever's reading the calculator, not
+# just to whoever reads this source file.
+_WDC_CALCULATOR_NOTES = [
+    "Ties on equal points are not resolved by countback; tied drivers are "
+    "both shown as still able to win.",
+    "Sprint scoring assumes the current 8-1 scale for every remaining "
+    "sprint, even in seasons that used a different scale (e.g. 2021's "
+    "top-3-only 3-2-1).",
+]
+
 
 def _max_points_remaining(year: int, after_round: Optional[int] = None) -> tuple[int, int, int]:
     """Returns (rounds_remaining, max_points_remaining, sprint_rounds_remaining).
@@ -674,6 +692,7 @@ def get_wdc_calculator(year: int, through_round: Optional[int] = None) -> dict[s
             "leaderPoints": 0,
             "decided": True,
             "drivers": [],
+            "notes": _WDC_CALCULATOR_NOTES,
         }
 
     leader_points = float(drivers[0].get("points") or 0)
@@ -717,6 +736,7 @@ def get_wdc_calculator(year: int, through_round: Optional[int] = None) -> dict[s
         # "can-win") leader has a path left, or there's nothing left to race.
         "decided": max_remaining == 0 or can_win_count <= 1,
         "drivers": out_drivers,
+        "notes": _WDC_CALCULATOR_NOTES,
     }
 
 
@@ -2177,6 +2197,10 @@ def get_compare(year: int, d1: str, d2: str) -> dict[str, Any]:
 # cache sits one layer lower, keyed only by year, so the expensive fetch
 # happens once and every round after that is a cheap in-memory scan. TTL
 # matches main.py's default endpoint-cache TTL.
+#
+# Per-process, in-memory, not shared across workers — see the WEB_CONCURRENCY
+# guard in main.py, which fails startup rather than let multiple workers each
+# hold a divergent copy of this cache.
 _PROGRESSION_CACHE_TTL_SECONDS = 60 * 60 * 6
 _progression_cache: dict[int, tuple[float, dict[str, Any]]] = {}
 

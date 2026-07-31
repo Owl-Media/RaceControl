@@ -148,12 +148,25 @@ Local development is unaffected: `./run.sh` still runs it natively with no auth.
 | `API_TOKEN` | `openssl rand -hex 32` | Optional admin/break-glass secret. |
 | `RATE_LIMIT_PER_MINUTE` | `120` | Per-IP limit; `0` disables. |
 | `FASTF1_CACHE` | `/data/fastf1_cache` | Already the image default. |
-| `WEB_CONCURRENCY` | `1` | Each worker holds its own cache, so raise this only with more RAM. |
+| `WEB_CONCURRENCY` | `1` | **Must stay `1`.** The response, session, and points-progression caches are per-process; `main.py` refuses to start above `1` until they're externalized to a shared store. |
 | `SESSION_CACHE_MAX` | `24` | Lower than the default 48 on a small container. |
 | `CACHE_TTL_SECONDS` | `21600` | Response cache lifetime (6 hours). |
+| `ALLOWED_ORIGINS` | unset | Comma-separated browser origins to allow via CORS. Empty/unset denies all browser origins — native iOS/Android clients are unaffected (no `Origin` header), and the web app proxies server-side rather than calling this API from the browser. |
 
 See [`backend/.env.example`](backend/.env.example) for the full list. If you set
 **neither** `APP_ATTEST_ENABLED` nor `API_TOKEN`, the API is open (local dev only).
+
+### Reverse proxy trust boundary
+
+The per-IP rate limiter (`_client_key` in `main.py`) trusts the leftmost
+`X-Forwarded-For` entry as the real client address. That is only safe because
+Coolify/Traefik is the sole ingress path and overwrites that header before it
+reaches the container — see the `--proxy-headers`/`--forwarded-allow-ips` flags
+in `backend/Dockerfile`'s `CMD`, and `backend/test_main_infra.py`'s
+`test_dockerfile_declares_the_proxy_trust_boundary` test, which fails if those
+flags are ever removed. **Never expose port 8000 directly to the internet** —
+if a caller can reach the app without going through the proxy, it can forge
+`X-Forwarded-For` and bypass the rate limiter entirely.
 
 ### Persistent storage (important)
 

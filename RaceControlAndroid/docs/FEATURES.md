@@ -59,7 +59,7 @@ Anti-Patterns I Will Avoid:
 | DI | Singletons (`.shared`) | Hilt |
 | Navigation | `TabView` + `NavigationStack` | `NavigationBar` + Navigation-Compose, type-safe routes |
 | Images | `AsyncImage` | Coil 3 `AsyncImage` |
-| Charts | Swift Charts | Vico (line/bar) + Compose `Canvas` (track maps, stint timelines) |
+| Charts | Swift Charts | In-house Compose `Canvas` charting layer (`core/ui/RcCharts.kt`) — line/bar via `RcLineChart`, plus track maps and stint timelines. Vico was the original plan but was abandoned before implementation; see `RcCharts.kt`'s doc comment. |
 | Global state | `AppState: ObservableObject` (selected season) | `AppStateViewModel` scoped to the activity, exposed via `CompositionLocal` |
 | Prefs | `UserDefaults` / `@AppStorage` | DataStore (Preferences) |
 | Secrets | Keychain | EncryptedSharedPreferences |
@@ -216,7 +216,9 @@ Four modes behind a segmented control: **Drivers · Teams · Progress · Reliabi
   bar broken down by mechanical / accident / disqualified / other.
 
 Android: 4 modes exceeds comfortable segmented-button width on compact screens →
-**`PrimaryTabRow`**. Charts via Vico (Progress) and Canvas stacked bars (Reliability).
+**`PrimaryTabRow`**. Both Progress and Reliability charts render via the in-house
+`core/ui/RcCharts.kt` Canvas layer (`RcLineChart` for Progress, stacked bars for
+Reliability) — Vico was never adopted.
 
 Data: `/api/standings/drivers/{year}`, `/api/standings/constructors/{year}`,
 `/api/standings-evolution/{year}`, `/api/reliability/{year}`
@@ -240,8 +242,8 @@ Data: `/api/circuits/{year}`, `/api/circuit/{year}/{round}`
 
 | Screen | Content | Android chart approach |
 |---|---|---|
-| **Telemetry** | Multi-select up to 3 drivers; speed / throttle / gear traces over lap distance; a lap "replay" sweeping a dot along a mini track map with live speed/gear readouts and a chart playhead; 2-driver comparison summary | Vico line charts sharing an x-axis; playhead as a `Canvas` overlay; mini map as `Canvas` |
-| **Lap Times** | Multi-driver lap-time evolution; "hide outliers" toggle; All/None chips | Vico multi-series line |
+| **Telemetry** | Multi-select up to 3 drivers; speed / throttle / gear traces over lap distance; a lap "replay" sweeping a dot along a mini track map with live speed/gear readouts and a chart playhead; 2-driver comparison summary | `RcLineChart` traces sharing an x-axis (`core/ui/RcCharts.kt`); playhead as a `Canvas` overlay; mini map as `Canvas` |
+| **Lap Times** | Multi-driver lap-time evolution; "hide outliers" toggle; All/None chips | `RcLineChart` multi-series line |
 | **Strategy** | Per-driver stint timeline, compound colours, pit-stop count | `Canvas` horizontal stacked bars |
 | **Qualifying** | Q1/Q2/Q3 breakdown, gap to pole, elimination shading | Table + `LinearProgressIndicator` |
 | **Weather** | Air/track temp (+ max), humidity, pressure, wind, rainfall flag | Stat cards |
@@ -464,7 +466,7 @@ Not iOS features — Android platform requirements that have no iOS counterpart.
    addition justified by Android's more variable connectivity and the backend's slow
    cold FastF1 loads.
 9. **Low-end devices** — telemetry traces can exceed 5,000 points; downsample before
-   charting (LTTB) rather than handing everything to Vico.
+   charting (LTTB) rather than handing everything to the Canvas chart layer.
 
 ---
 

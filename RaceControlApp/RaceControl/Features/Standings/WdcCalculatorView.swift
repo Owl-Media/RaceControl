@@ -32,8 +32,28 @@ struct WdcCalculatorView: View {
                         WdcDriverRow(driver: driver, year: year, driversById: vm.driversById)
                     }
                 }
+                notesFootnote(data)
             }
             .padding(Theme.Space.md)
+        }
+    }
+
+    /// Known scoring approximations the backend flags for this calculation
+    /// (e.g. no countback tie-break, flat modern sprint-points assumption
+    /// applied to historical seasons). Backend-provided and optional, so
+    /// nothing renders until/unless the server sends notes.
+    @ViewBuilder
+    private func notesFootnote(_ data: WdcCalculator) -> some View {
+        if let notes = data.notes, !notes.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
+                ForEach(notes, id: \.self) { note in
+                    Text(note)
+                }
+            }
+            .font(.caption2)
+            .foregroundStyle(Theme.Palette.textSecondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, Theme.Space.xs)
         }
     }
 

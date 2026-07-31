@@ -16,7 +16,7 @@ Legend — `[ ]` todo · `[~]` in progress · `[x]` done
 |---|---|---|
 | 0.1 | Stack | Kotlin + Jetpack Compose, Material 3 |
 | 0.2 | Auth | Google Play Integrity (Android counterpart of iOS App Attest), admin API token as an optional override — see FEATURES.md §7 |
-| 0.3 | Charts | Vico for line/bar; Compose `Canvas` for track maps, stint timelines, sparklines |
+| 0.3 | Charts | ~~Vico for line/bar~~ — abandoned before implementation (no network access to verify Vico's API against a real artifact at the time); built as an in-house Compose `Canvas` layer instead (`core/ui/RcCharts.kt`: `RcLineChart`, track maps, stint timelines, sparklines) |
 | 0.4 | Delivery | Plan first, then phased build with a check-in between phases |
 
 **Still open — I will ask before the phase that needs them:**
@@ -36,7 +36,8 @@ Legend — `[ ]` todo · `[~]` in progress · `[x]` done
 - [ ] 1.1 Gradle project: Kotlin DSL, version catalog (`libs.versions.toml`), single `:app` module
 - [ ] 1.2 Compile SDK 35, target 35, min per 0.5; Java 17; core library desugaring
 - [ ] 1.3 Dependencies: Compose BOM, Material 3, Navigation-Compose, Hilt, Retrofit,
-      OkHttp, kotlinx-serialization, Coil 3, DataStore, security-crypto, WorkManager, Vico
+      OkHttp, kotlinx-serialization, Coil 3, DataStore, security-crypto, WorkManager
+      (no Vico — charts are an in-house Canvas layer, see 0.3)
 - [ ] 1.4 `RaceControlApplication` (`@HiltAndroidApp`), `MainActivity` with `enableEdgeToEdge()`
 - [ ] 1.5 Manifest: INTERNET, POST_NOTIFICATIONS, SCHEDULE_EXACT_ALARM, RECEIVE_BOOT_COMPLETED,
       `enableOnBackInvokedCallback="true"`, cleartext permitted only for localhost/LAN via
@@ -137,7 +138,7 @@ gaps, points and grid deltas must match exactly.
 - [ ] 6.5 Teams list and detail with livery colours and rosters
 - [ ] 6.6 Standings `PrimaryTabRow` — Drivers / Teams / Progress / Reliability
 - [ ] 6.7 Standings rows with gap-to-leader bars and win counts
-- [ ] 6.8 Standings evolution chart (Vico multi-line)
+- [ ] 6.8 Standings evolution chart (`RcLineChart` multi-line, `core/ui/RcCharts.kt`)
 - [ ] 6.9 Reliability stacked bars (`Canvas`) per driver and team
 - [ ] 6.10 Circuits list with Raced/Upcoming status
 - [ ] 6.11 Circuit detail: stats, fastest lap, podium, quick actions
@@ -225,7 +226,7 @@ gaps, points and grid deltas must match exactly.
 | Risk | Impact | Mitigation |
 |---|---|---|
 | Telemetry payloads are large (thousands of points × 8 channels) | Jank, OOM on low-end devices | LTTB downsample in the repository layer, before Compose ever sees it |
-| Vico may not support the telemetry playhead overlay cleanly | Rework mid-phase | Prototype the playhead in Phase 2 as a spike, not Phase 7 |
+| ~~Vico may not support the telemetry playhead overlay cleanly~~ (materialized: Vico was dropped before implementation) | Rework mid-phase | Resolved by building the playhead as a plain `Canvas` overlay on the in-house `RcLineChart`, which owns its own drawing and composes cleanly with an overlay |
 | Backend cold FastF1 loads take 30s+ | Looks broken on mobile | 45s timeout (as iOS), plus a "first load for this race is slow" hint after 8s |
 | Exact alarms are restricted on Android 14+ | Reminders silently don't fire | Permission check + inexact fallback + surface the state in Settings |
 | Team colours arrive as arbitrary hex | Contrast failures on dark surfaces | Luminance check; lighten below a threshold before using as text colour |

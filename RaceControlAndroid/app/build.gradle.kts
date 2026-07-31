@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -6,6 +9,27 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
 }
+
+// Play Integrity — the Google Cloud project number linked to this app in Play
+// Console (Setup > API access). Resolved from `local.properties`
+// (playIntegrityCloudProjectNumber=...), which is gitignored and never
+// committed, or from the PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER env var (CI).
+// Falls back to 0L — a placeholder that fails loudly at runtime (see
+// PlayIntegrityTokenProvider) rather than silently, and that a release build
+// refuses to ship (see the assembleRelease/bundleRelease guard below).
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        FileInputStream(file).use { load(it) }
+    }
+}
+
+val playIntegrityCloudProjectNumber: Long =
+    (localProperties.getProperty("playIntegrityCloudProjectNumber") ?: System.getenv("PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER"))
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?.toLongOrNull()
+        ?: 0L
 
 android {
     namespace = "com.owlmedia.racecontrol"
@@ -20,11 +44,11 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables.useSupportLibrary = true
 
-        // Play Integrity — the Google Cloud project number linked to this app
-        // in Play Console (Setup > API access). 0 is a placeholder that fails
-        // loudly (see PlayIntegrityTokenProvider) rather than silently; replace
-        // it with the real project number before a Play Store release.
-        buildConfigField("long", "PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER", "0L")
+        buildConfigField(
+            "long",
+            "PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER",
+            "${playIntegrityCloudProjectNumber}L",
+        )
     }
 
     buildTypes {
@@ -116,9 +140,28 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.turbine)
     testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
     testImplementation(libs.okhttp.mockwebserver)
     testImplementation(libs.kotlinx.coroutines.test)
 
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.compose.ui.test.junit4)
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
+}
+
+// A release build shipping the 0L Play Integrity placeholder would silently
+// degrade to unauthenticated requests in production (see PlayIntegrityTokenProvider
+// and the buildConfigField above) rather than failing anywhere obvious. Fail the
+// build itself instead, before it ever reaches a device.
+tasks.matching { it.name in setOf("assembleRelease", "bundleRelease") }.configureEach {
+    doFirst {
+        if (playIntegrityCloudProjectNumber == 0L) {
+            throw GradleException(
+                "PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER is still the placeholder 0L - set it in " +
+                    "local.properties (playIntegrityCloudProjectNumber=...) or the " +
+                    "PLAY_INTEGRITY_CLOUD_PROJECT_NUMBER env var before a release build.",
+            )
+        }
+    }
 }

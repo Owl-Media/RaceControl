@@ -585,6 +585,11 @@ struct WdcCalculator: Codable {
     let drivers: [WdcDriverEntry]
     let throughRound: Int?
     let roundsInSeason: Int
+    /// Optional footnotes describing known scoring approximations (e.g. no
+    /// countback tie-break, flat modern sprint-points assumption applied to
+    /// historical seasons). Absent on older backends, so it decodes to nil
+    /// rather than failing.
+    let notes: [String]?
 }
 
 struct WdcDriverEntry: Codable, Identifiable {

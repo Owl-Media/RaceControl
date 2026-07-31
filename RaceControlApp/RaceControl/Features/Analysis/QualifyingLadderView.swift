@@ -74,6 +74,8 @@ struct QualifyingLadderView: View {
                     }
                 }
                 .frame(height: 340)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Qualifying ladder chart")
                 .padding(.trailing, 46) // room for trailing driver-code labels
             }
             .padding(Theme.Space.md)

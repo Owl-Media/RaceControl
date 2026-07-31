@@ -103,6 +103,7 @@ fun StandingsEvolutionView(viewModel: StandingsViewModel, appState: AppState) {
                     domain = domain,
                     yAxisLabels = axisLabels,
                     height = 240.dp,
+                    contentDescription = "Championship progression chart",
                 )
             }
 

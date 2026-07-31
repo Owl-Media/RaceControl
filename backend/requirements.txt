@@ -1,4 +1,9 @@
 # Verified working set (Python 3.10+). fastf1 pulls pandas/numpy/scipy itself.
+#
+# This file is the human-edited floor/ceiling spec, not a reproducible build:
+# every entry below is version-unbounded except fastf1. For CI and production
+# images, install from requirements-lock.txt instead, which pins every direct
+# and transitive dependency to the exact version last verified to work.
 fastf1>=3.5,<4.0
 fastapi>=0.115
 uvicorn[standard]>=0.30

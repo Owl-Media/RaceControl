@@ -19,6 +19,8 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -45,6 +47,16 @@ import kotlinx.coroutines.flow.first
  * Everything here is deliberately behind small composables with plain data
  * inputs, so swapping in Vico later is a change to this file only.
  */
+
+/**
+ * Applies [description] as a merged content description when non-null,
+ * making a Canvas-drawn chart -- which otherwise exposes nothing to
+ * accessibility services or Compose UI tests -- assertable/announced like any
+ * other composable. A null description leaves the modifier untouched so
+ * existing call sites are unaffected.
+ */
+private fun Modifier.chartSemantics(description: String?): Modifier =
+    if (description == null) this else semantics(mergeDescendants = true) { contentDescription = description }
 
 /** One line on a [RcLineChart]. */
 data class ChartSeries(
@@ -107,6 +119,7 @@ fun RcLineChart(
     onPlayheadChange: ((Double) -> Unit)? = null,
     gridLines: Int = 4,
     bands: List<ChartBand> = emptyList(),
+    contentDescription: String? = null,
 ) {
     val textMeasurer = rememberTextMeasurer()
     val density = LocalDensity.current
@@ -118,7 +131,8 @@ fun RcLineChart(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(height),
+            .height(height)
+            .chartSemantics(contentDescription),
     ) {
         Canvas(
             modifier = Modifier
@@ -294,11 +308,13 @@ fun Sparkline(
     color: Color = RcPalette.RacingRed,
     height: Dp = 48.dp,
     invert: Boolean = true,
+    contentDescription: String? = null,
 ) {
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .height(height),
+            .height(height)
+            .chartSemantics(contentDescription),
     ) {
         if (values.size < 2) return@Canvas
         val min = values.min()
@@ -343,8 +359,9 @@ fun RcWaterfallBars(
     segments: List<WaterfallSegment>,
     modifier: Modifier = Modifier,
     height: Dp = 22.dp,
+    contentDescription: String? = null,
 ) {
-    Canvas(modifier.fillMaxWidth().height(height)) {
+    Canvas(modifier.fillMaxWidth().height(height).chartSemantics(contentDescription)) {
         val extent = segments.sumOf { kotlin.math.abs(it.value.toDouble()) }.toFloat()
             .coerceAtLeast(0.001f)
         val scale = size.width / (extent * 2f)
@@ -372,11 +389,13 @@ fun StackedBar(
     height: Dp = 22.dp,
     cornerRadius: Dp = 4.dp,
     gap: Dp = 1.dp,
+    contentDescription: String? = null,
 ) {
     Canvas(
         modifier = modifier
             .fillMaxWidth()
-            .height(height),
+            .height(height)
+            .chartSemantics(contentDescription),
     ) {
         val total = segments.sumOf { it.value.toDouble() }.toFloat()
         if (total <= 0f) return@Canvas

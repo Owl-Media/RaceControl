@@ -38,6 +38,8 @@ struct PositionChartView: View {
                     }
                     .chartLegend(.hidden)
                     .frame(height: 350)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Position chart")
                     .padding(Theme.Space.md)
 
                     ScrollView(.horizontal, showsIndicators: false) {
