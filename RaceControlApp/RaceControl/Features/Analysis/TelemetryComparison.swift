@@ -96,6 +96,8 @@ struct TelemetryComparison: View {
                                            startPoint: .top, endPoint: .bottom))
                     LineMark(x: .value("Distance", s.distance), y: .value("Delta", s.delta))
                         .foregroundStyle(Color.team(a.teamColor))
+                        .lineStyle(.init(lineWidth: Theme.Chart.lineWidth,
+                                         lineCap: .round, lineJoin: .round))
                 }
             }
             .chartXAxis { AxisMarks { _ in AxisGridLine().foregroundStyle(Theme.Palette.stroke) } }

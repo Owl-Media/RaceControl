@@ -4,12 +4,12 @@
 <dict>
 	<!--
 	  App Attest environment.
-	  "development" — Xcode debug builds on a registered device (what you use now).
-	  "production"  — REQUIRED for TestFlight / App Store. When you switch this to
-	                  production, also set APP_ATTEST_PRODUCTION=true on the backend
-	                  so the two environments match, or attestations will be rejected.
+	  "development" — Xcode debug builds on a registered device.
+	  "production"  — REQUIRED for TestFlight / App Store (must match how the app
+	                  is code-signed). APP_ATTEST_PRODUCTION=true is set on the
+	                  backend to match, or attestations will be rejected.
 	-->
 	<key>com.apple.developer.devicecheck.appattest-environment</key>
-	<string>development</string>
+	<string>production</string>
 </dict>
 </plist>

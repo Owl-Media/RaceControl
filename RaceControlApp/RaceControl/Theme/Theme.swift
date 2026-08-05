@@ -71,6 +71,62 @@ enum Theme {
 
     /// Minimum HIG touch target.
     static let minTouch: CGFloat = 44
+
+    // MARK: Charts
+    /// Geometry and stroke weights for plots, tuned for a phone-sized canvas.
+    ///
+    /// Swift Charts' defaults are laid out for a Mac window: hairline strokes,
+    /// an axis label per category, and one fixed height regardless of text
+    /// size. On a 390pt-wide phone that reads as noise, so every chart in the
+    /// app pulls its weights and heights from here instead.
+    enum Chart {
+        /// Series stroke weight. The 1pt default vanishes against the OLED
+        /// background once more than two lines overlap.
+        static let lineWidth: CGFloat = 2.5
+        /// Stroke weight for a de-emphasised (unfocused) series.
+        static let mutedLineWidth: CGFloat = 1.4
+        /// Opacity for a de-emphasised series — visible as context, never
+        /// competing with the focused one.
+        static let mutedOpacity: Double = 0.22
+        /// Symbol area for a plotted data point.
+        static let pointSize: CGFloat = 34
+        /// Minimum vertical gap between two trailing series labels.
+        static let labelSpacing: CGFloat = 15
+
+        /// Baseline plot height, grown for accessibility text sizes so the
+        /// axis labels don't crowd out the plot itself.
+        static func height(_ base: CGFloat, _ size: DynamicTypeSize) -> CGFloat {
+            size.isAccessibilitySize ? base * 1.35 : base
+        }
+
+        /// Row height for a categorical chart (one row per driver or stop).
+        static func rowHeight(_ size: DynamicTypeSize) -> CGFloat {
+            size.isAccessibilitySize ? 48 : 34
+        }
+
+        /// Show roughly `target` axis labels out of `count` categories, so a
+        /// 20-corner or 20-driver axis doesn't collapse into a grey smear.
+        static func labelStride(_ count: Int, target: Int = 8) -> Int {
+            max(1, Int((Double(count) / Double(max(target, 1))).rounded(.up)))
+        }
+
+        /// Evenly spaced ticks from 1 through `last`, about `target` of them.
+        ///
+        /// `last` is always included — the final lap, round or grid slot is
+        /// the one a reader looks for — but it replaces the preceding tick
+        /// rather than crowding it, which is what stacked "P21 P22" into an
+        /// unreadable pair at the foot of the position axis.
+        static func ticks(through last: Int, target: Int = 5) -> [Int] {
+            guard last > 1 else { return [1] }
+            let step = max(1, Int((Double(last) / Double(max(target, 1))).rounded()))
+            var values = Array(stride(from: 1, through: last, by: step))
+            if let previous = values.last, previous != last {
+                if last - previous < step { values.removeLast() }
+                values.append(last)
+            }
+            return values
+        }
+    }
 }
 
 // MARK: - Hex color support

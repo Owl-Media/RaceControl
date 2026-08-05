@@ -5,6 +5,7 @@ import Charts
 struct StandingsEvolutionView: View {
     let year: Int
     @StateObject private var vm = StandingsEvolutionViewModel()
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         LoadableView(state: vm.state) {
@@ -37,31 +38,39 @@ struct StandingsEvolutionView: View {
 
     private func chart(_ data: StandingsEvolution) -> some View {
         let drivers = data.drivers.filter { vm.selected.contains($0.driverId) }
+        let lastRound = drivers.compactMap { $0.series.last?.round }.max() ?? 1
+        // Extend the x domain just enough to park the driver codes clear of
+        // the final data point instead of clipping them at the plot edge.
+        let headroom = max(2, lastRound / 9)
         return Chart {
             ForEach(drivers) { driver in
                 ForEach(driver.series, id: \.round) { pt in
-                    LineMark(x: .value("Round", pt.round), y: .value("Points", pt.points))
+                    LineMark(x: .value("Round", Double(pt.round)), y: .value("Points", pt.points))
                         .foregroundStyle(Color.team(driver.teamColor))
                         .foregroundStyle(by: .value("Driver", driver.code ?? driver.driverId))
+                        .lineStyle(.init(lineWidth: Theme.Chart.lineWidth,
+                                         lineCap: .round, lineJoin: .round))
                         .interpolationMethod(.monotone)
                 }
                 if let last = driver.series.last {
-                    PointMark(x: .value("Round", last.round), y: .value("Points", last.points))
+                    PointMark(x: .value("Round", Double(last.round)), y: .value("Points", last.points))
                         .foregroundStyle(Color.team(driver.teamColor))
-                        .annotation(position: .trailing) {
-                            Text(driver.code ?? "")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(Color.team(driver.teamColor))
-                        }
+                        .symbolSize(Theme.Chart.pointSize)
                 }
             }
         }
         .chartForegroundStyleScale(domain: drivers.map { $0.code ?? $0.driverId },
                                    range: drivers.map { Color.team($0.teamColor) })
         .chartLegend(.hidden)
+        .chartXScale(domain: 1...Double(lastRound + headroom))
         .chartXAxis {
-            AxisMarks { _ in
-                AxisGridLine().foregroundStyle(Theme.Palette.stroke); AxisValueLabel().font(.caption2)
+            // Explicit ticks, stopping at the last round raced — the gutter
+            // beyond it exists for labels, not for rounds.
+            AxisMarks(values: vm.roundAxisValues(lastRound)) { value in
+                AxisGridLine().foregroundStyle(Theme.Palette.stroke)
+                AxisValueLabel {
+                    if let v = value.as(Double.self) { Text("\(Int(v))").font(.caption2) }
+                }
             }
         }
         .chartYAxis {
@@ -69,7 +78,20 @@ struct StandingsEvolutionView: View {
                 AxisGridLine().foregroundStyle(Theme.Palette.stroke); AxisValueLabel().font(.caption2)
             }
         }
-        .frame(height: 300)
+        .chartOverlay { proxy in
+            ChartTrailingLabels(
+                proxy: proxy,
+                labels: drivers.compactMap { driver in
+                    guard let last = driver.series.last else { return nil }
+                    return ChartSeriesLabel(id: driver.driverId, text: driver.code ?? "",
+                                            color: Color.team(driver.teamColor),
+                                            value: last.points)
+                },
+                anchorX: Double(lastRound) + 0.35,
+                width: 40
+            )
+        }
+        .frame(height: Theme.Chart.height(300, typeSize))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Championship progression chart")
         .accessibilityValue(drivers.isEmpty
@@ -138,5 +160,11 @@ final class StandingsEvolutionViewModel: ObservableObject {
     }
     func selectTop(_ drivers: [EvolutionDriver], _ n: Int) {
         selected = Set(drivers.prefix(n).map(\.driverId))
+    }
+
+    /// Round ticks, thinned to about five so a 24-race season doesn't print a
+    /// label every 14 points of width.
+    func roundAxisValues(_ lastRound: Int) -> [Double] {
+        Theme.Chart.ticks(through: lastRound).map(Double.init)
     }
 }

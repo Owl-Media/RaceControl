@@ -8,6 +8,7 @@ struct WeatherView: View {
     let title: String
 
     @StateObject private var vm = WeatherViewModel()
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         LoadableView(state: vm.state) {
@@ -47,6 +48,15 @@ struct WeatherView: View {
                 }
                 if let timeline = wx.timeline, timeline.count > 1 {
                     Card {
+                      VStack(alignment: .leading, spacing: Theme.Space.sm) {
+                        // Two same-weight lines with no key was a guessing
+                        // game; name them before the plot.
+                        HStack(spacing: Theme.Space.md) {
+                            seriesKey("Air", Theme.Palette.info)
+                            seriesKey("Track", Theme.Palette.warning)
+                            Spacer()
+                            if wx.rainfall == true { seriesKey("Rain", Theme.Palette.info.opacity(0.35)) }
+                        }
                         Chart(Array(timeline.enumerated()), id: \.element.id) { index, sample in
                             if sample.rainfall {
                                 // Band to the next sample's timestamp rather than a fixed
@@ -66,6 +76,8 @@ struct WeatherView: View {
                                     series: .value("Series", "Air")
                                 )
                                 .foregroundStyle(Theme.Palette.info)
+                                .lineStyle(.init(lineWidth: Theme.Chart.lineWidth,
+                                                 lineCap: .round, lineJoin: .round))
                             }
                             if let track = sample.trackTemp {
                                 LineMark(
@@ -74,22 +86,45 @@ struct WeatherView: View {
                                     series: .value("Series", "Track")
                                 )
                                 .foregroundStyle(Theme.Palette.warning)
+                                .lineStyle(.init(lineWidth: Theme.Chart.lineWidth,
+                                                 lineCap: .round, lineJoin: .round))
                             }
                         }
                         .chartXAxis {
                             AxisMarks { value in
+                                AxisGridLine().foregroundStyle(Theme.Palette.stroke)
                                 AxisValueLabel {
                                     if let seconds = value.as(Double.self) {
-                                        Text("\(Int(seconds / 60))m")
+                                        Text("\(Int(seconds / 60))m").font(.caption2)
                                     }
                                 }
                             }
                         }
-                        .frame(height: 240)
+                        .chartYAxis {
+                            AxisMarks { value in
+                                AxisGridLine().foregroundStyle(Theme.Palette.stroke)
+                                AxisValueLabel {
+                                    if let deg = value.as(Double.self) {
+                                        Text("\(Int(deg))°").font(.caption2)
+                                    }
+                                }
+                            }
+                        }
+                        .frame(height: Theme.Chart.height(240, typeSize))
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("Session temperature timeline")
+                      }
                     }
                 }
             }
             .padding(Theme.Space.md)
+        }
+    }
+
+    private func seriesKey(_ label: String, _ color: Color) -> some View {
+        HStack(spacing: 4) {
+            Capsule().fill(color).frame(width: 14, height: 4)
+            Text(label).font(.caption2).foregroundStyle(Theme.Palette.textSecondary)
         }
     }
 

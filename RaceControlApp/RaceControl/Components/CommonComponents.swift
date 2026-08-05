@@ -1,4 +1,5 @@
 import SwiftUI
+import Charts
 
 // MARK: - Season picker (menu in the nav bar)
 
@@ -210,5 +211,95 @@ struct StatCell: View {
                 .tracking(0.5)
         }
         .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Chart series labels
+
+/// A label pinned to the end of a chart series, in data-space coordinates.
+struct ChartSeriesLabel: Identifiable {
+    let id: String
+    let text: String
+    let color: Color
+    /// Data-space y of the point the label belongs to.
+    let value: Double
+    var bold = true
+}
+
+/// Vertical de-collision for chart labels.
+///
+/// Swift Charts' `.annotation` has no collision handling: plot twenty drivers
+/// whose final gaps sit within a couple of tenths of each other and the codes
+/// stack into an unreadable pile. This spreads them into the nearest set of
+/// non-overlapping slots while preserving their original top-to-bottom order.
+enum ChartLabelLayout {
+    /// - Parameters:
+    ///   - desired: preferred y for each label, in view space (top-down).
+    ///   - spacing: minimum gap to keep between neighbours.
+    ///   - bounds: the vertical range labels must stay inside.
+    /// - Returns: adjusted y values, in the same order as `desired`.
+    static func spread(_ desired: [CGFloat], spacing: CGFloat,
+                       in bounds: ClosedRange<CGFloat>) -> [CGFloat] {
+        guard !desired.isEmpty else { return [] }
+        let order = desired.indices.sorted { desired[$0] < desired[$1] }
+        var placed = order.map { desired[$0] }
+
+        // Sweep down: every label clears the one above it.
+        for i in placed.indices.dropFirst() {
+            placed[i] = max(placed[i], placed[i - 1] + spacing)
+        }
+        // If that pushed the stack off the bottom, sweep back up from the end.
+        if let last = placed.last, last > bounds.upperBound {
+            placed[placed.count - 1] = bounds.upperBound
+            for i in placed.indices.dropLast().reversed() {
+                placed[i] = min(placed[i], placed[i + 1] - spacing)
+            }
+        }
+        // …which can in turn overflow the top when there's simply no room.
+        if let first = placed.first, first < bounds.lowerBound {
+            placed[0] = bounds.lowerBound
+            for i in placed.indices.dropFirst() {
+                placed[i] = max(placed[i], placed[i - 1] + spacing)
+            }
+        }
+
+        var result = [CGFloat](repeating: 0, count: desired.count)
+        for (slot, index) in order.enumerated() { result[index] = placed[slot] }
+        return result
+    }
+}
+
+/// Non-overlapping series labels drawn in a gutter at the right edge of a
+/// plot. Use from `.chartOverlay`, and reserve room for it by extending the
+/// chart's x domain past the last data point.
+struct ChartTrailingLabels: View {
+    let proxy: ChartProxy
+    let labels: [ChartSeriesLabel]
+    /// Data-space x where the label gutter starts.
+    let anchorX: Double
+    var width: CGFloat = 96
+
+    var body: some View {
+        GeometryReader { geo in
+            if let anchor = proxy.plotFrame, !labels.isEmpty {
+                let plot = geo[anchor]
+                let desired = labels.map { CGFloat(proxy.position(forY: $0.value) ?? 0) }
+                let placed = ChartLabelLayout.spread(
+                    desired, spacing: Theme.Chart.labelSpacing, in: 0...plot.height
+                )
+                let x = plot.minX + CGFloat(proxy.position(forX: anchorX) ?? 0)
+
+                ForEach(Array(labels.enumerated()), id: \.element.id) { index, label in
+                    Text(label.text)
+                        .font(label.bold ? .caption2.weight(.bold) : .caption2)
+                        .foregroundStyle(label.color)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .frame(width: width, alignment: .leading)
+                        .position(x: x + width / 2, y: plot.minY + placed[index])
+                }
+            }
+        }
+        .allowsHitTesting(false)
     }
 }

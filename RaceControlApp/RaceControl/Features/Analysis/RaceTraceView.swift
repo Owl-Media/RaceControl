@@ -7,6 +7,7 @@ struct RaceTraceView: View {
     let title: String
 
     @StateObject private var vm = RaceTraceViewModel()
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         LoadableView(state: vm.state) {
@@ -42,16 +43,45 @@ struct RaceTraceView: View {
                             ForEach(driver.laps, id: \.lap) { lap in
                                 LineMark(
                                     x: .value("Lap", lap.lap),
-                                    y: .value("Delta", Double(lap.deltaMs) / 1000)
+                                    y: .value("Delta", Double(lap.deltaMs) / 1000),
+                                    // Each driver needs its own series, or the
+                                    // marks collapse into one polyline that
+                                    // jumps between drivers lap by lap.
+                                    series: .value("Driver", driver.code)
                                 )
                                 .foregroundStyle(Color.team(driver.teamColor))
+                                .lineStyle(.init(lineWidth: Theme.Chart.lineWidth,
+                                                 lineCap: .round, lineJoin: .round))
                                 .interpolationMethod(.catmullRom)
                             }
                         }
                     }
                     .chartYScale(domain: vm.domain(data))
                     .chartLegend(.hidden)
-                    .frame(height: 330)
+                    .chartXAxis {
+                        AxisMarks { _ in
+                            AxisGridLine().foregroundStyle(Theme.Palette.stroke)
+                            AxisValueLabel().font(.caption2)
+                        }
+                    }
+                    .chartYAxis {
+                        AxisMarks { value in
+                            AxisGridLine().foregroundStyle(Theme.Palette.stroke)
+                            AxisValueLabel {
+                                if let v = value.as(Double.self) {
+                                    // Tenths once the window is tight enough
+                                    // that whole seconds would repeat.
+                                    Text(vm.spanSeconds(data) < 12
+                                         ? String(format: "%+.1fs", v)
+                                         : String(format: "%+.0fs", v))
+                                        .font(.caption2)
+                                }
+                            }
+                        }
+                    }
+                    .frame(height: Theme.Chart.height(330, typeSize))
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel("Race trace chart")
                     .padding(.horizontal, Theme.Space.md)
 
                     driverChips(data.drivers)
@@ -113,8 +143,29 @@ final class RaceTraceViewModel: ObservableObject {
         if selected.contains(code) { selected.remove(code) } else { selected.insert(code) }
     }
 
+    /// Height of the visible y window, in seconds.
+    func spanSeconds(_ data: RaceTraceResponse) -> Double {
+        let range = domain(data)
+        return range.upperBound - range.lowerBound
+    }
+
+    /// Y range for the drivers actually on screen.
+    ///
+    /// The server's `yDomainMs` covers the entire field, so one lapped or
+    /// retired car stretches it to hundreds of seconds and squashes the
+    /// selected drivers into a flat smear at the top of the plot. Scale to the
+    /// selection instead, falling back to the server domain when nothing is
+    /// selected or the values are degenerate.
     func domain(_ data: RaceTraceResponse) -> ClosedRange<Double> {
-        guard let values = data.yDomainMs, values.count == 2 else { return -1...1 }
+        let deltas = data.drivers
+            .filter { selected.contains($0.code) }
+            .flatMap { $0.laps.map { Double($0.deltaMs) / 1000 } }
+        if let lo = deltas.min(), let hi = deltas.max(), hi > lo {
+            let pad = max((hi - lo) * 0.08, 0.5)
+            return (lo - pad)...(hi + pad)
+        }
+        guard let values = data.yDomainMs, values.count == 2,
+              values[0] < values[1] else { return -1...1 }
         return Double(values[0]) / 1000...Double(values[1]) / 1000
     }
 }
