@@ -14,6 +14,15 @@ struct QualifyingSectorsView: View {
     let round: Int
     let title: String
     @StateObject private var vm = QualifyingSectorsViewModel()
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    /// Colour key for the waterfall — the bars are meaningless without it.
+    private func sectorKey(_ label: String, _ color: Color) -> some View {
+        HStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 12, height: 8)
+            Text(label).font(.caption2).foregroundStyle(Theme.Palette.textSecondary)
+        }
+    }
 
     var body: some View {
         LoadableView(state: vm.state) {
@@ -40,9 +49,28 @@ struct QualifyingSectorsView: View {
                             }
                         }
                         .chartLegend(.hidden)
-                        .frame(height: CGFloat(max(330, data.drivers.count * 32)))
+                        .chartXAxis {
+                            AxisMarks { value in
+                                AxisGridLine().foregroundStyle(Theme.Palette.stroke)
+                                AxisValueLabel {
+                                    if let s = value.as(Double.self) {
+                                        Text(String(format: "%+.1fs", s)).font(.caption2)
+                                    }
+                                }
+                            }
+                        }
+                        .chartYAxis {
+                            AxisMarks { _ in AxisValueLabel().font(.caption2.weight(.semibold)) }
+                        }
+                        .frame(height: max(330, CGFloat(data.drivers.count) * Theme.Chart.rowHeight(typeSize)))
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel("Qualifying sector chart")
+
+                        HStack(spacing: Theme.Space.md) {
+                            sectorKey("Sector 1", vm.color(1))
+                            sectorKey("Sector 2", vm.color(2))
+                            sectorKey("Sector 3", vm.color(3))
+                        }
 
                         ForEach(data.drivers) { driver in
                             HStack {

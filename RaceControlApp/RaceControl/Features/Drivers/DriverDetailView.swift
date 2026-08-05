@@ -108,11 +108,14 @@ struct DriverDetailView: View {
                         ForEach(vm.pointsSeries, id: \.round) { pt in
                             LineMark(x: .value("Round", pt.round), y: .value("Points", pt.points))
                                 .foregroundStyle(accent)
+                                .lineStyle(.init(lineWidth: Theme.Chart.lineWidth,
+                                                 lineCap: .round, lineJoin: .round))
                                 .interpolationMethod(.monotone)
                         }
                         if let last = vm.pointsSeries.last {
                             PointMark(x: .value("Round", last.round), y: .value("Points", last.points))
                                 .foregroundStyle(accent)
+                                .symbolSize(Theme.Chart.pointSize)
                         }
                     }
                     .chartXAxis {

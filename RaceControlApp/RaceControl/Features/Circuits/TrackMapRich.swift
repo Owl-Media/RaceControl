@@ -186,6 +186,7 @@ struct TrackElevationProfile: View {
                 LineMark(x: .value("Distance", p.distance),
                          y: .value("Elevation", p.z))
                 .foregroundStyle(Theme.Palette.info)
+                .lineStyle(.init(lineWidth: 2, lineCap: .round, lineJoin: .round))
             }
         }
         .chartXAxis { AxisMarks { _ in AxisGridLine().foregroundStyle(Theme.Palette.stroke) } }

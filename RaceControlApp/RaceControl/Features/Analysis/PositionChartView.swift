@@ -7,6 +7,7 @@ struct PositionChartView: View {
     let title: String
 
     @StateObject private var vm = PositionChartViewModel()
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         LoadableView(state: vm.state) {
@@ -16,28 +17,49 @@ struct PositionChartView: View {
                 EmptyStateView(icon: "arrow.up.arrow.down", title: "No Position Data",
                                message: "Lap-by-lap positions aren't available.")
             } else {
+                let points = vm.visiblePoints(in: data.replay)
+                let lastLap = data.replay.frames.map(\.lap).max() ?? 1
+                // Room at the right edge for the driver-code labels.
+                let headroom = max(2, lastLap / 9)
                 VStack(spacing: Theme.Space.sm) {
                     Chart {
                         PositionFlagMarks(periods: data.flags)
-                        PositionLineMarks(points: vm.visiblePoints(in: data.replay))
+                        PositionLineMarks(points: points)
                         PositionPitMarks(markers: data.pits.filter { vm.selected.contains($0.code) })
                         PositionRetirementMarks(
                             markers: data.retirements.filter { vm.selected.contains($0.code) }
                         )
                     }
-                    .chartYScale(domain: -max(20, data.replay.drivers.count)...(-1))
+                    .chartYScale(domain: Double(-max(20, data.replay.drivers.count))...(-1))
+                    .chartXScale(domain: 1...Double(lastLap + headroom))
                     .chartYAxis {
-                        AxisMarks { value in
+                        // One label per position is ~17pt apart on a phone;
+                        // step it so the axis stays legible.
+                        AxisMarks(values: vm.positionAxisValues(data.replay.drivers.count)) { value in
                             AxisGridLine().foregroundStyle(Theme.Palette.stroke)
                             AxisValueLabel {
-                                if let position = value.as(Int.self) {
-                                    Text("P\(abs(position))")
+                                if let position = value.as(Double.self) {
+                                    Text("P\(Int(abs(position)))").font(.caption2)
+                                }
+                            }
+                        }
+                    }
+                    .chartXAxis {
+                        AxisMarks(values: vm.lapAxisValues(lastLap)) { value in
+                            AxisGridLine().foregroundStyle(Theme.Palette.stroke)
+                            AxisValueLabel {
+                                if let lap = value.as(Double.self) {
+                                    Text("\(Int(lap))").font(.caption2)
                                 }
                             }
                         }
                     }
                     .chartLegend(.hidden)
-                    .frame(height: 350)
+                    .chartOverlay { proxy in
+                        ChartTrailingLabels(proxy: proxy, labels: vm.endLabels(points),
+                                            anchorX: Double(lastLap) + 0.4, width: 40)
+                    }
+                    .frame(height: Theme.Chart.height(350, typeSize))
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Position chart")
                     .padding(Theme.Space.md)
@@ -69,14 +91,17 @@ struct PositionChartView: View {
     }
 }
 
+// Every mark plots lap and position as `Double` so the chart's scales stay a
+// single type — `ChartProxy.position(for:)`, which the trailing labels rely
+// on, can't resolve a value whose type doesn't match its axis.
 private struct PositionFlagMarks: ChartContent {
     let periods: [FlagPeriod]
 
     var body: some ChartContent {
         ForEach(periods) { period in
             RectangleMark(
-                xStart: .value("Start", period.startLap),
-                xEnd: .value("End", period.endLap + 1)
+                xStart: .value("Start", Double(period.startLap)),
+                xEnd: .value("End", Double(period.endLap + 1))
             )
             .foregroundStyle(FlagStyle.color(period.type).opacity(0.15))
         }
@@ -89,11 +114,12 @@ private struct PositionLineMarks: ChartContent {
     var body: some ChartContent {
         ForEach(points) { point in
             LineMark(
-                x: .value("Lap", point.lap),
+                x: .value("Lap", Double(point.lap)),
                 y: .value("Position", point.plottedPosition),
                 series: .value("Driver", point.code)
             )
             .foregroundStyle(Color.team(point.teamColor))
+            .lineStyle(.init(lineWidth: Theme.Chart.lineWidth, lineCap: .round, lineJoin: .round))
             .interpolationMethod(.catmullRom)
         }
     }
@@ -105,7 +131,7 @@ private struct PositionPitMarks: ChartContent {
     var body: some ChartContent {
         ForEach(markers) { marker in
             PointMark(
-                x: .value("Lap", marker.lap),
+                x: .value("Lap", Double(marker.lap)),
                 y: .value("Position", marker.plottedPosition)
             )
             .symbol(.circle)
@@ -121,7 +147,7 @@ private struct PositionRetirementMarks: ChartContent {
     var body: some ChartContent {
         ForEach(markers) { marker in
             PointMark(
-                x: .value("Lap", marker.lap),
+                x: .value("Lap", Double(marker.lap)),
                 y: .value("Position", marker.plottedPosition)
             )
             .symbol {
@@ -147,7 +173,7 @@ struct PositionPoint: Identifiable {
     let lap: Int
     let position: Int
     var id: String { "\(code)-\(lap)" }
-    var plottedPosition: Int { -position }
+    var plottedPosition: Double { Double(-position) }
 }
 
 struct PositionMarker: Identifiable {
@@ -156,7 +182,7 @@ struct PositionMarker: Identifiable {
     let position: Int
     let kind: String
     var id: String { "\(kind)-\(code)-\(lap)" }
-    var plottedPosition: Int { -position }
+    var plottedPosition: Double { Double(-position) }
 }
 
 @MainActor
@@ -206,6 +232,28 @@ final class PositionChartViewModel: ObservableObject {
 
     func toggle(_ code: String) {
         if selected.contains(code) { selected.remove(code) } else { selected.insert(code) }
+    }
+
+    /// Position ticks stepped so the axis stays readable on a phone: always
+    /// P1 and the back of the grid, with a handful in between.
+    func positionAxisValues(_ driverCount: Int) -> [Double] {
+        Theme.Chart.ticks(through: max(20, driverCount)).map { Double(-$0) }
+    }
+
+    /// Lap ticks, capped at the last racing lap so the label gutter doesn't
+    /// grow ticks for laps that were never run.
+    func lapAxisValues(_ lastLap: Int) -> [Double] {
+        Theme.Chart.ticks(through: lastLap).map(Double.init)
+    }
+
+    /// Driver code at the end of each visible line, for the trailing gutter.
+    func endLabels(_ points: [PositionPoint]) -> [ChartSeriesLabel] {
+        Dictionary(grouping: points, by: \.code).compactMap { code, pts in
+            guard let last = pts.max(by: { $0.lap < $1.lap }) else { return nil }
+            return ChartSeriesLabel(id: code, text: code,
+                                    color: Color.team(last.teamColor),
+                                    value: last.plottedPosition)
+        }
     }
 
     private func marker(code: String, lap: Int, kind: String, replay: RaceReplay) -> PositionMarker? {

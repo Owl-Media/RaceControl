@@ -11,6 +11,7 @@ struct CornerSpeedProfileView: View {
     let title: String
 
     @StateObject private var vm = CornerSpeedProfileViewModel()
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         LoadableView(state: vm.state) {
@@ -47,19 +48,26 @@ struct CornerSpeedProfileView: View {
                     }
                 }
                 .chartXAxis {
-                    AxisMarks { _ in AxisValueLabel().font(.caption2) }
+                    // A label per corner overlaps into a grey smear on a
+                    // phone; thin them to roughly eight across the axis.
+                    AxisMarks { value in
+                        if value.index % Theme.Chart.labelStride(corners.count) == 0 {
+                            AxisValueLabel().font(.caption2)
+                        }
+                    }
                 }
                 .chartYAxis {
                     AxisMarks { _ in
                         AxisGridLine().foregroundStyle(Theme.Palette.stroke); AxisValueLabel().font(.caption2)
                     }
                 }
-                .frame(height: 220)
+                .frame(height: Theme.Chart.height(240, typeSize))
                 .chartOverlay { proxy in
                     GeometryReader { geo in
                         Rectangle().fill(.clear).contentShape(Rectangle())
                             .gesture(DragGesture(minimumDistance: 0).onEnded { value in
-                                let originX = geo[proxy.plotAreaFrame].origin.x
+                                guard let anchor = proxy.plotFrame else { return }
+                                let originX = geo[anchor].origin.x
                                 guard let label: String = proxy.value(atX: value.location.x - originX) else { return }
                                 if let match = corners.first(where: { $0.label == label }) { vm.select(match) }
                             })

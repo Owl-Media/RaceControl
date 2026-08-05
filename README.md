@@ -4,7 +4,7 @@ Modern, **native iOS and Android apps** for exploring historical Formula 1 data:
 teams, circuits, standings, full session results, and a **lap-by-lap race replay**, powered
 by the [FastF1](https://docs.fastf1.dev) library (2018–present).
 
-RaceControl is four pieces:
+RaceControl is five pieces:
 
 | Piece | Tech | Folder |
 |------|------|--------|
@@ -12,6 +12,7 @@ RaceControl is four pieces:
 | **Android app** | Kotlin · Jetpack Compose (Android 8+) | [`RaceControlAndroid/`](RaceControlAndroid/) |
 | **Web app** | TypeScript · Next.js | [`RaceControlWeb/`](RaceControlWeb/) |
 | **Data backend** | Python · FastAPI · FastF1 | [`backend/`](backend/) |
+| **Project site** | TypeScript · Next.js | [`RaceControlSite/`](RaceControlSite/) |
 
 Same backend, same data, same features. The iOS, Android and web apps are independent
 clients of the same idea, each following its own platform's conventions rather than one
@@ -24,10 +25,11 @@ attestation the mobile apps use.
 [![Backend CI](https://github.com/Owl-Media/RaceControl/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/Owl-Media/RaceControl/actions/workflows/backend-ci.yml)
 [![Android CI](https://github.com/Owl-Media/RaceControl/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Owl-Media/RaceControl/actions/workflows/android-ci.yml)
 [![iOS CI](https://github.com/Owl-Media/RaceControl/actions/workflows/ios-ci.yml/badge.svg)](https://github.com/Owl-Media/RaceControl/actions/workflows/ios-ci.yml)
+[![Site CI](https://github.com/Owl-Media/RaceControl/actions/workflows/site-ci.yml/badge.svg)](https://github.com/Owl-Media/RaceControl/actions/workflows/site-ci.yml)
 
 ### Continuous integration
 
-Three independent GitHub Actions workflows in [`.github/workflows/`](.github/workflows/),
+Four independent GitHub Actions workflows in [`.github/workflows/`](.github/workflows/),
 each path-filtered so a change to one piece doesn't run the others' checks:
 
 | Workflow | Runs on changes to | What it does |
@@ -35,6 +37,7 @@ each path-filtered so a change to one piece doesn't run the others' checks:
 | `backend-ci.yml` | `backend/**` | Installs `requirements.txt` + `pytest`/`httpx`, runs `test_attest.py` and `test_attest_endpoints.py`, then imports `main.py` with no env vars to confirm the open-by-default local-dev path still boots. |
 | `android-ci.yml` | `RaceControlAndroid/**` | `./gradlew testDebugUnitTest` then `./gradlew assembleDebug`; uploads the test reports as a build artifact. |
 | `ios-ci.yml` | `RaceControlApp/**` | Unsigned `xcodebuild build` against `generic/platform=iOS Simulator`, on a macOS runner. |
+| `site-ci.yml` | `RaceControlSite/**` | `npm ci`, `npm run lint`, `npm run build` for the project site. |
 
 This is CI only; nothing here deploys anywhere. Deploying the backend to Coolify is still
 the manual process in section 1b below, and there's no Play Store or TestFlight upload wired
@@ -257,6 +260,20 @@ needing to know which one issued it.
 
 ---
 
+## 1e. Deploy the Site to Coolify
+
+[`RaceControlSite/`](RaceControlSite/) is the project's marketing/about site — covers all
+three apps and the backend, links out to each, and gives full attribution to the open data
+sources and open-source libraries the project depends on. It also ships with a `Dockerfile`
+and deploys as a third, independent Coolify service from this same repo (**Base Directory:**
+`/RaceControlSite`, **Port:** `3000`, **Health check path:** `/api/health`). It holds no
+backend credentials and is entirely stateless — no persistent volume needed. Every external
+link (backend URL, web app URL, App/Play Store links) is env-driven with working defaults;
+see [`RaceControlSite/README.md`](RaceControlSite/README.md) and `.env.example` for the full
+list.
+
+---
+
 ## 2a. Run the iOS app
 
 Requirements: **Xcode 16+**, macOS.
@@ -333,6 +350,22 @@ deployment steps.
 
 ---
 
+## 2d. Run the Site
+
+Requirements: **Node 20+**.
+
+```bash
+cd RaceControlSite
+npm install
+npm run dev
+```
+
+Open **http://localhost:3000**. No backend needs to be running — every external link is
+env-driven with a working fallback (see `RaceControlSite/.env.example` and
+[`RaceControlSite/README.md`](RaceControlSite/README.md)).
+
+---
+
 ## 3. Features
 
 Largely identical across iOS, Android and Web: same backend, same data, same core feature
@@ -402,6 +435,7 @@ flowchart LR
     Android["Android app<br/>Compose · MVVM + Hilt"]
     Browser["Browser"]
     Web["Web app (BFF)<br/>Next.js"]
+    Site["Project site<br/>Next.js"]
     Backend["Backend<br/>FastAPI<br/><i>response cache</i>"]
     FastF1["FastF1<br/><i>disk cache</i>"]
     Sources["F1 live-timing API<br/>Ergast / Jolpica DB"]
@@ -409,10 +443,15 @@ flowchart LR
     iOS -- "HTTP/JSON<br/>(App Attest)" --> Backend
     Android -- "HTTP/JSON<br/>(Play Integrity)" --> Backend
     Browser -- HTTP --> Web
+    Browser -- HTTP --> Site
     Web -- "HTTP/JSON<br/>(API_TOKEN)" --> Backend
+    Site -- "links only, no data calls" -.-> Backend
     Backend --> FastF1
     FastF1 --> Sources
 ```
+
+- **Project site:** stateless Next.js app with no backend credentials — links out to the
+  live backend's Swagger docs and the deployed web app rather than calling the API itself.
 
 - **iOS app:** MVVM. Each feature has a `@MainActor` view model exposing a `Loadable` state;
   `APIClient` is an `actor`. A permissive `JSONValue` type absorbs the fact that FastF1

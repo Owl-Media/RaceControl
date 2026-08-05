@@ -6,6 +6,7 @@ import Charts
 struct HeadToHeadView: View {
     let year: Int
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var typeSize
     @StateObject private var vm = HeadToHeadViewModel()
 
     var body: some View {
@@ -161,13 +162,21 @@ struct HeadToHeadView: View {
                     Chart {
                         ForEach(series) { s in
                             ForEach(s.points) { point in
-                                LineMark(x: .value("Round", point.round), y: .value("Position", -Double(point.position)))
+                                LineMark(x: .value("Round", point.round),
+                                         y: .value("Position", -Double(point.position)),
+                                         // Both drivers share the round axis, so
+                                         // without a series their results join
+                                         // into one line that flips between them.
+                                         series: .value("Driver", s.code))
                                     .foregroundStyle(Color.team(s.teamColor))
+                                    .lineStyle(.init(lineWidth: Theme.Chart.lineWidth,
+                                                     lineCap: .round, lineJoin: .round))
                                     .interpolationMethod(.monotone)
                             }
                             ForEach(s.points) { point in
                                 PointMark(x: .value("Round", point.round), y: .value("Position", -Double(point.position)))
                                     .foregroundStyle(Color.team(s.teamColor))
+                                    .symbolSize(Theme.Chart.pointSize)
                             }
                         }
                     }
@@ -183,7 +192,7 @@ struct HeadToHeadView: View {
                     .chartXAxis {
                         AxisMarks { _ in AxisGridLine().foregroundStyle(Theme.Palette.stroke); AxisValueLabel().font(.caption2) }
                     }
-                    .frame(height: 160)
+                    .frame(height: Theme.Chart.height(180, typeSize))
                     HStack(spacing: Theme.Space.md) {
                         ForEach(series) { s in
                             HStack(spacing: 4) {

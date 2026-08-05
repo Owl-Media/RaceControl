@@ -6,6 +6,7 @@ struct PitStopsView: View {
     let round: Int
     let title: String
     @StateObject private var vm = PitStopsViewModel()
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         LoadableView(state: vm.state) {
@@ -33,7 +34,20 @@ struct PitStopsView: View {
                             }
                         }
                         .chartLegend(.hidden)
-                        .frame(height: CGFloat(max(300, data.stops.count * 34)))
+                        .chartXAxis {
+                            AxisMarks { value in
+                                AxisGridLine().foregroundStyle(Theme.Palette.stroke)
+                                AxisValueLabel {
+                                    if let s = value.as(Double.self) {
+                                        Text(String(format: "%.0fs", s)).font(.caption2)
+                                    }
+                                }
+                            }
+                        }
+                        .chartYAxis {
+                            AxisMarks { _ in AxisValueLabel().font(.caption2.weight(.semibold)) }
+                        }
+                        .frame(height: max(300, CGFloat(data.stops.count) * Theme.Chart.rowHeight(typeSize)))
                         .accessibilityElement(children: .ignore)
                         .accessibilityLabel("Pit stop chart")
 

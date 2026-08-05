@@ -297,6 +297,8 @@ struct TelemetryView: View {
                                  y: .value(label, sample.value))
                         .foregroundStyle(Color.team(t.teamColor))
                         .foregroundStyle(by: .value("Driver", t.code))
+                        .lineStyle(.init(lineWidth: Theme.Chart.lineWidth,
+                                         lineCap: .round, lineJoin: .round))
                     }
                 }
             }
@@ -329,6 +331,7 @@ struct TelemetryView: View {
                         LineMark(x: .value("Distance", pair.0), y: .value("Gear", pair.1))
                         .foregroundStyle(Color.team(t.teamColor))
                         .foregroundStyle(by: .value("Driver", t.code))
+                        .lineStyle(.init(lineWidth: Theme.Chart.lineWidth, lineJoin: .round))
                         .interpolationMethod(.stepEnd)
                     }
                 }

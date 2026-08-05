@@ -8,6 +8,7 @@ struct LapTimesChartView: View {
     let title: String
 
     @StateObject private var vm = LapTimesViewModel()
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         LoadableView(state: vm.state) {
@@ -87,6 +88,8 @@ struct LapTimesChartView: View {
                     )
                     .foregroundStyle(Color.team(driver.teamColor))
                     .foregroundStyle(by: .value("Driver", driver.code))
+                    .lineStyle(.init(lineWidth: Theme.Chart.lineWidth,
+                                     lineCap: .round, lineJoin: .round))
                     .interpolationMethod(.catmullRom)
                 }
             }
@@ -112,7 +115,7 @@ struct LapTimesChartView: View {
                 AxisValueLabel().font(.caption2)
             }
         }
-        .frame(height: 320)
+        .frame(height: Theme.Chart.height(320, typeSize))
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Lap time chart")
         .accessibilityValue(drivers.isEmpty
