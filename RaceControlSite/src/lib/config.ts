@@ -14,7 +14,7 @@ export const siteConfig = {
   backendGithubUrl: "https://github.com/Owl-Media/RaceControl/tree/main/backend",
 
   // The Next.js web client (RaceControlWeb) — the third client of the same backend.
-  webAppUrl: process.env.NEXT_PUBLIC_WEB_APP_URL ?? "https://app.racecontrol.owl-media.co.uk",
+  webAppUrl: process.env.NEXT_PUBLIC_WEB_APP_URL ?? "https://web.getracecontrol.com",
   webAppGithubUrl: "https://github.com/Owl-Media/RaceControl/tree/main/RaceControlWeb",
 
   iosGithubUrl: "https://github.com/Owl-Media/RaceControl/tree/main/RaceControlApp",
