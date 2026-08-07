@@ -91,26 +91,48 @@ export default function Home() {
             {SEASONS_COVERED} seasons of it.
           </p>
           <div className="flex flex-wrap gap-3">
-            <Link
-              href="/features"
-              className="rounded-md bg-racing-red px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            >
-              Explore the features
-            </Link>
-            <Link
-              href="/docs"
-              className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-foreground"
-            >
-              Read the docs
-            </Link>
+            {siteConfig.appStoreUrl ? (
+              <a
+                href={siteConfig.appStoreUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-foreground"
+              >
+                Get it for iOS
+              </a>
+            ) : (
+              <Link
+                href="/platforms#ios"
+                className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-foreground"
+              >
+                Get it for iOS
+              </Link>
+            )}
             <a
-              href={siteConfig.githubRepo}
+              href={siteConfig.webAppUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-foreground"
+              className="rounded-md bg-racing-red px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
             >
-              GitHub
+              Open on the web
             </a>
+            {siteConfig.playStoreUrl ? (
+              <a
+                href={siteConfig.playStoreUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-foreground"
+              >
+                Get it for Android
+              </a>
+            ) : (
+              <Link
+                href="/platforms#android"
+                className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-foreground"
+              >
+                Get it for Android
+              </Link>
+            )}
           </div>
           <dl className="mt-2 grid grid-cols-3 gap-6">
             {[
