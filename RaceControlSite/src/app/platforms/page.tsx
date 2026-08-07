@@ -2,12 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Card, Pill, SectionHeading } from "@/components/Card";
 import { Screenshot } from "@/components/Screenshot";
-import { ReplayMock } from "@/components/mockups/ReplayMock";
-import { ScheduleMock } from "@/components/mockups/ScheduleMock";
-import { StandingsMock } from "@/components/mockups/StandingsMock";
-import { FlagsMock } from "@/components/mockups/FlagsMock";
-import { StrategyMock } from "@/components/mockups/StrategyMock";
-import { TrackMapMock } from "@/components/mockups/TrackMapMock";
 import { siteConfig } from "@/lib/config";
 import { FEATURES, PLATFORM_LABELS, type Platform } from "@/lib/features";
 
@@ -97,76 +91,71 @@ export default function PlatformsPage() {
               </a>
             </div>
           </Card>
-          <Screenshot id="replay">
-            <ReplayMock />
-          </Screenshot>
+          <Screenshot id="iosRaceClassification" priority />
         </div>
       </section>
 
       {/* Android */}
       <section id="android" className="scroll-mt-24">
-        <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-          <Card className="flex flex-col gap-5">
-            <div className="flex flex-wrap items-center gap-3">
-              <h2 className="text-xl font-bold">Android</h2>
-              <Pill>Kotlin · Jetpack Compose</Pill>
-              <Pill>Android 8+</Pill>
-              <Pill>{countFor("android")} features</Pill>
-            </div>
-            <p className="text-sm leading-relaxed text-muted">
-              Built against Material 3 and Android accessibility conventions. Same palette and colour semantics as
-              iOS, but every divergence below is deliberate rather than incidental.
-            </p>
-            <ul className="flex flex-col gap-1.5 text-sm">
-              {[
-                "48dp touch targets — Android's accessibility minimum, above iOS's 44pt",
-                "Material You dynamic colour deliberately disabled: it would collide with the team and tyre colours the app uses to convey meaning",
-                "Tab rows where option counts vary (sessions range from 1 to 6 a weekend)",
-                "Settings moved to the overflow menu — top-left is reserved for navigation",
-                "A 10 MB offline cache backs schedule and standings, with an explicit banner",
-                "Charts render through an in-house Compose Canvas layer; Play Integrity authorises requests",
-              ].map((item) => (
-                <li key={item} className="flex items-start gap-2 leading-relaxed">
-                  <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-racing-red" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <div className="flex flex-wrap gap-3">
-              <StoreLink
-                href={siteConfig.playStoreUrl}
-                fallback="Coming to Google Play"
-                label="Get it on Google Play"
-              />
-              <a
-                href={siteConfig.androidGithubUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-foreground"
-              >
-                View source
-              </a>
-              <a
-                href={siteConfig.githubRepo + "/blob/main/RaceControlAndroid/docs/FEATURES.md"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-foreground"
-              >
-                Every divergence, documented ↗
-              </a>
-            </div>
-          </Card>
-          <div className="flex flex-col gap-6">
-            <Screenshot id="standings">
-              <StandingsMock />
-            </Screenshot>
+        <Card className="flex flex-col gap-5">
+          <div className="flex flex-wrap items-center gap-3">
+            <h2 className="text-xl font-bold">Android</h2>
+            <Pill>Kotlin · Jetpack Compose</Pill>
+            <Pill>Android 8+</Pill>
+            <Pill>{countFor("android")} features</Pill>
           </div>
-        </div>
+          <p className="text-sm leading-relaxed text-muted">
+            Built against Material 3 and Android accessibility conventions. Same palette and colour semantics as
+            iOS, but every divergence below is deliberate rather than incidental.
+          </p>
+          <p className="rounded-lg border border-border bg-surface-raised px-4 py-3 text-xs leading-relaxed text-muted">
+            Android product capture pending. The mobile screenshots on this site are labelled iOS captures so the
+            platform-specific interface is never presented as Android.
+          </p>
+          <ul className="flex flex-col gap-1.5 text-sm">
+            {[
+              "48dp touch targets — Android's accessibility minimum, above iOS's 44pt",
+              "Material You dynamic colour deliberately disabled: it would collide with the team and tyre colours the app uses to convey meaning",
+              "Tab rows where option counts vary (sessions range from 1 to 6 a weekend)",
+              "Settings moved to the overflow menu — top-left is reserved for navigation",
+              "A 10 MB offline cache backs schedule and standings, with an explicit banner",
+              "Charts render through an in-house Compose Canvas layer; Play Integrity authorises requests",
+            ].map((item) => (
+              <li key={item} className="flex items-start gap-2 leading-relaxed">
+                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-racing-red" />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <div className="flex flex-wrap gap-3">
+            <StoreLink
+              href={siteConfig.playStoreUrl}
+              fallback="Coming to Google Play"
+              label="Get it on Google Play"
+            />
+            <a
+              href={siteConfig.androidGithubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-foreground"
+            >
+              View source
+            </a>
+            <a
+              href={siteConfig.githubRepo + "/blob/main/RaceControlAndroid/docs/FEATURES.md"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-md border border-border px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:border-foreground"
+            >
+              Every divergence, documented ↗
+            </a>
+          </div>
+        </Card>
       </section>
 
       {/* Web */}
       <section id="web" className="scroll-mt-24">
-        <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+        <div className="grid gap-6 lg:grid-cols-[1fr_440px]">
           <Card className="flex flex-col gap-5">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-xl font-bold">Web</h2>
@@ -212,26 +201,16 @@ export default function PlatformsPage() {
               </a>
             </div>
           </Card>
-          <div className="flex flex-col gap-6">
-            <Screenshot id="flags" frame="none">
-              <FlagsMock />
-            </Screenshot>
-          </div>
+          <Screenshot id="webResults" />
         </div>
       </section>
 
       <section>
         <SectionHeading eyebrow="More screens" title="The same data, three ways" />
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <Screenshot id="trackmap" frame="none">
-            <TrackMapMock />
-          </Screenshot>
-          <Screenshot id="strategy" frame="none">
-            <StrategyMock />
-          </Screenshot>
-          <Screenshot id="schedule">
-            <ScheduleMock />
-          </Screenshot>
+          <Screenshot id="webTrackMap" />
+          <Screenshot id="iosConstructors" />
+          <Screenshot id="iosDrivers" />
         </div>
       </section>
 

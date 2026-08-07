@@ -1,11 +1,6 @@
 import Link from "next/link";
 import { Card, Pill, SectionHeading } from "@/components/Card";
 import { Screenshot } from "@/components/Screenshot";
-import { ReplayMock } from "@/components/mockups/ReplayMock";
-import { ScheduleMock } from "@/components/mockups/ScheduleMock";
-import { TrackMapMock } from "@/components/mockups/TrackMapMock";
-import { TelemetryMock } from "@/components/mockups/TelemetryMock";
-import { StandingsMock } from "@/components/mockups/StandingsMock";
 import { siteConfig } from "@/lib/config";
 import { FEATURES } from "@/lib/features";
 import { ENDPOINTS } from "@/lib/endpoints";
@@ -132,12 +127,8 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <Screenshot id="replay">
-            <ReplayMock />
-          </Screenshot>
-          <Screenshot id="schedule">
-            <ScheduleMock />
-          </Screenshot>
+          <Screenshot id="iosRaceDetail" priority />
+          <Screenshot id="iosSchedule" priority />
         </div>
       </section>
 
@@ -172,15 +163,9 @@ export default function Home() {
           subtitle="Track maps rendered from real circuit geometry with numbered corners and DRS zones. Telemetry traced over lap distance. Analytics endpoints arrive pre-binned and chart-ready so three platforms can't compute different answers."
         />
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          <Screenshot id="trackmap" frame="none">
-            <TrackMapMock />
-          </Screenshot>
-          <Screenshot id="telemetry" frame="none">
-            <TelemetryMock />
-          </Screenshot>
-          <Screenshot id="standings" frame="none">
-            <StandingsMock />
-          </Screenshot>
+          <Screenshot id="iosTrackMap" />
+          <Screenshot id="iosTelemetry" />
+          <Screenshot id="iosStandings" />
         </div>
       </section>
 

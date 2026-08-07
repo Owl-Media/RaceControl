@@ -2,10 +2,6 @@ import type { Metadata } from "next";
 import { SectionHeading } from "@/components/Card";
 import { FeatureCatalogue } from "@/components/FeatureCatalogue";
 import { Screenshot } from "@/components/Screenshot";
-import { ReplayMock } from "@/components/mockups/ReplayMock";
-import { TelemetryMock } from "@/components/mockups/TelemetryMock";
-import { StrategyMock } from "@/components/mockups/StrategyMock";
-import { FlagsMock } from "@/components/mockups/FlagsMock";
 import { FEATURES } from "@/lib/features";
 
 export const metadata: Metadata = {
@@ -24,18 +20,10 @@ export default function FeaturesPage() {
       />
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <Screenshot id="replay">
-          <ReplayMock />
-        </Screenshot>
-        <Screenshot id="telemetry" frame="none">
-          <TelemetryMock />
-        </Screenshot>
-        <Screenshot id="strategy" frame="none">
-          <StrategyMock />
-        </Screenshot>
-        <Screenshot id="flags" frame="none">
-          <FlagsMock />
-        </Screenshot>
+        <Screenshot id="webDashboard" />
+        <Screenshot id="webLapTimes" />
+        <Screenshot id="webDrivers" />
+        <Screenshot id="iosTelemetry" priority />
       </div>
 
       <FeatureCatalogue />
